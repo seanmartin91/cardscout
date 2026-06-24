@@ -364,6 +364,7 @@ $('#forgetKey').onclick=()=>{
 async function runAI(){
   const key=$('#aiKey').value.trim(); if(!key||!capturedDataURL) return;
   const provider=$('#aiProvider').value;
+  $('#aiThinking').innerHTML='<div class="spin"></div><p class="muted">Reading your photo with AI…</p>';
   $('#aiThinking').classList.remove('hidden'); $('#results').innerHTML='';
   const prompt='Identify this Pokemon trading card. Respond ONLY with compact JSON: {"name":"","set":"","number":""}. name=Pokemon/card name, set=set name if visible, number=the collector number printed on the card (e.g. 4/102) if visible. Use empty strings if unsure.';
   try{
@@ -395,8 +396,14 @@ async function runAI(){
     toast('AI read: '+(obj.name||'?')+' — searching…');
     searchCards();
   }catch(e){
-    $('#aiThinking').classList.add('hidden');
-    toast('AI couldn’t read it: '+e.message.slice(0,60)+' — type it manually.');
+    const msg=(e&&e.message)||'unknown error';
+    let hint='You can still type the card name below to price it.';
+    if(/x-api-key|authentication|invalid.*key|401/i.test(msg)) hint='Your API key was rejected. Make sure it’s pasted correctly (no spaces) and is still active — if you deleted it, create a new one at console.anthropic.com and paste that.';
+    else if(/credit|billing|quota|insufficient|payment|low/i.test(msg)) hint='Your Anthropic account has no usable credit. Add a payment method / credit at console.anthropic.com → Billing, then try again.';
+    else if(/model/i.test(msg)) hint='That model isn’t available on your key. Pick the other AI provider, or contact me to switch the model.';
+    else if(/Failed to fetch|NetworkError|load failed/i.test(msg)) hint='Couldn’t reach the AI service — check your internet connection and try again.';
+    $('#aiThinking').innerHTML='<div style="text-align:left;background:rgba(255,107,125,.12);border:1px solid rgba(255,107,125,.4);border-radius:12px;padding:13px;color:#ffb3bd;font-size:13px;line-height:1.55"><b>AI recognition failed</b><br>'+msg+'<br><span style="color:#ffd6db">'+hint+'</span></div>';
+    $('#aiThinking').classList.remove('hidden');
   }
 }
 
