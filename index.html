@@ -185,8 +185,9 @@
         <option value="anthropic">Anthropic (Claude)</option>
       </select>
       <label>API key</label>
-      <input type="password" id="aiKey" placeholder="sk-... (stored only on this device)">
+      <input type="password" id="aiKey" placeholder="sk-... (saved on this device)">
       <p class="muted" id="aiState" style="margin-top:10px">AI recognition is <b>off</b>. Add a key to enable it.</p>
+      <button class="btn ghost" id="forgetKey" style="margin-top:8px;display:none;padding:9px;font-size:12.5px">Forget saved key</button>
     </details>
     <div class="step-dots"><i class="on"></i><i></i><i></i></div>
   </div>
@@ -334,11 +335,30 @@ function setCaptured(url){
   if($('#aiKey').value.trim()){ runAI(); } else { toast('Photo ready — type the card name to price it.'); }
 }
 
-// ---------- AI KEY STATE ----------
-$('#aiKey').addEventListener('input', ()=>{
+// ---------- AI KEY STATE (saved on this device) ----------
+function updateAiState(){
   const on = $('#aiKey').value.trim().length>0;
-  $('#aiState').innerHTML = on ? 'AI recognition is <b style="color:#5cf0a6">ON</b>. Your next photo will be read automatically.' : 'AI recognition is <b>off</b>. Add a key to enable it.';
+  $('#aiState').innerHTML = on
+    ? 'AI recognition is <b style="color:#5cf0a6">ON</b> — your key is saved on this device, so it’s ready every time you open CardScout here.'
+    : 'AI recognition is <b>off</b>. Add a key to enable it.';
+  $('#forgetKey').style.display = on ? 'block' : 'none';
+}
+try{ // restore previously saved key + provider
+  const sp=localStorage.getItem('cs_aiProvider'); if(sp) $('#aiProvider').value=sp;
+  const sk=localStorage.getItem('cs_aiKey'); if(sk) $('#aiKey').value=sk;
+}catch(e){}
+updateAiState();
+$('#aiKey').addEventListener('input', ()=>{
+  try{ localStorage.setItem('cs_aiKey', $('#aiKey').value.trim()); }catch(e){}
+  updateAiState();
 });
+$('#aiProvider').addEventListener('change', ()=>{
+  try{ localStorage.setItem('cs_aiProvider', $('#aiProvider').value); }catch(e){}
+});
+$('#forgetKey').onclick=()=>{
+  try{ localStorage.removeItem('cs_aiKey'); }catch(e){}
+  $('#aiKey').value=''; updateAiState(); toast('Saved key removed from this device.');
+};
 
 // ---------- AI RECOGNITION ----------
 async function runAI(){
