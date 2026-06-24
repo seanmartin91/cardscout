@@ -78,10 +78,15 @@
     box-shadow:0 10px 26px -10px rgba(255,158,0,.8),inset 0 1px 0 rgba(255,255,255,.4)}
   .btn.ghost{background:rgba(255,255,255,.05);border:1px solid var(--line-strong);color:var(--txt);box-shadow:none;font-weight:600}
   .btn.ghost:hover{background:rgba(255,255,255,.09);transform:translateY(-1px)}
+  .modes{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:16px;
+    background:rgba(8,11,20,.5);border:1px solid var(--line);border-radius:14px;padding:5px}
+  .mode{background:transparent;color:var(--muted);padding:10px 4px;border-radius:10px;font-size:12px;font-weight:600;line-height:1.25;transition:.18s}
+  .mode .mi{font-size:17px;display:block;margin-bottom:3px}
+  .mode.on{background:linear-gradient(135deg,var(--blue),var(--blue-deep));color:#fff;box-shadow:0 6px 16px -8px rgba(67,97,255,.8)}
   .camwrap{position:relative;border-radius:18px;overflow:hidden;aspect-ratio:3/4;display:grid;place-items:center;
     background:radial-gradient(circle at 50% 35%,#10141f,#06080e);border:1px solid var(--line)}
   video,#preview{width:100%;height:100%;object-fit:cover;display:none}
-  .camwrap .hint{color:var(--muted);font-size:14px;text-align:center;padding:30px;line-height:1.6;max-width:280px}
+  .camwrap .hint{color:var(--muted);font-size:14px;text-align:center;padding:30px;line-height:1.6;max-width:290px}
   .camwrap .hint .ico{font-size:34px;display:block;margin-bottom:10px;opacity:.9}
   .reticle{position:absolute;inset:9% 11%;border:2px dashed rgba(255,255,255,.3);border-radius:14px;pointer-events:none}
   .reticle::before,.reticle::after{content:'';position:absolute;width:26px;height:26px;border:3px solid var(--accent);border-radius:3px}
@@ -145,6 +150,27 @@
   a{color:var(--blue)}
   .fxnote{font-size:11px;color:var(--faint);text-align:center;margin-top:10px}
   .disclaimer{color:var(--faint);font-size:12px;text-align:center;margin:18px auto;line-height:1.6;max-width:480px}
+  .errbox{text-align:left;background:rgba(255,107,125,.12);border:1px solid rgba(255,107,125,.4);border-radius:12px;padding:13px;color:#ffb3bd;font-size:13px;line-height:1.55}
+  /* batch rows */
+  .brow{display:flex;gap:11px;align-items:center;background:rgba(8,11,20,.5);border:1px solid var(--line);
+    border-radius:13px;padding:9px 11px;margin-bottom:9px}
+  .brow img{width:40px;height:56px;object-fit:contain;border-radius:6px;background:#0a0f1f;flex:0 0 auto}
+  .brow .bi{flex:1;min-width:0}
+  .brow .bi b{font-size:13.5px;font-weight:600;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .brow .bi span{font-size:11px;color:var(--muted)}
+  .brow .bp{text-align:right;flex:0 0 auto}
+  .brow .bp .buy{font-family:'Sora',sans-serif;font-weight:800;font-size:15px;color:#bdf5cf}
+  .brow .bp .mk{font-size:10.5px;color:var(--faint)}
+  .brow .x{flex:0 0 auto;color:var(--faint);font-size:18px;background:none;padding:4px 6px}
+  .totbar{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:6px}
+  .totbar .vbox{padding:12px;text-align:center}
+  .totbar .num{font-size:18px}
+  .linkbtn{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;
+    background:rgba(8,11,20,.6);border:1px solid var(--line-strong);border-radius:13px;padding:14px 15px;
+    color:var(--txt);font-weight:600;font-size:14px;margin-top:10px;text-decoration:none;transition:.18s}
+  .linkbtn:hover{border-color:var(--blue);background:rgba(8,11,20,.9)}
+  .linkbtn .arr{color:var(--faint);font-size:18px}
+  .linkbtn small{display:block;color:var(--muted);font-weight:500;font-size:11.5px;margin-top:2px}
 </style>
 </head>
 <body>
@@ -162,11 +188,15 @@
 
   <!-- STEP 1: CAPTURE -->
   <div class="panel" id="step1">
-    <h2 class="eyebrow"><span class="n">1</span> Capture the card</h2>
+    <div class="modes" id="modes">
+      <button class="mode on" data-mode="single"><span class="mi">🃏</span>Single card</button>
+      <button class="mode" data-mode="multi"><span class="mi">🗂️</span>Multiple cards</button>
+      <button class="mode" data-mode="sealed"><span class="mi">📦</span>Pack / box</button>
+    </div>
     <div class="camwrap" id="camwrap">
-      <div class="hint" id="camHint"><span class="ico">📸</span>Tap “Use camera” to scan a card on the shelf, or upload a photo.</div>
+      <div class="hint" id="camHint"><span class="ico">📸</span><span id="hintText">Tap “Use camera” to scan a card on the shelf, or upload a photo.</span></div>
       <video id="video" playsinline autoplay muted></video>
-      <img id="preview" alt="captured card">
+      <img id="preview" alt="captured">
       <div class="reticle" id="reticle" style="display:none"></div>
     </div>
     <div class="row" style="margin-top:14px">
@@ -175,10 +205,11 @@
     </div>
     <input type="file" id="fileIn" accept="image/*" capture="environment" class="hidden">
     <button class="btn gold hidden" id="snap" style="margin-top:11px">Capture 📷</button>
+    <button class="btn ghost hidden" id="manualSealed" style="margin-top:11px">Or type the product name instead →</button>
 
     <details>
       <summary>AI auto-recognition (optional — uses your API key)</summary>
-      <p class="muted" style="margin-top:10px">Paste an AI API key and CardScout will read the card name, set &amp; number straight from your photo. Your key stays in this browser only and is never sent anywhere except the AI provider you choose.</p>
+      <p class="muted" style="margin-top:10px">Paste an AI API key and CardScout reads the card(s)/product straight from your photo. Your key stays in this browser only and is sent only to the AI provider you choose. <b>Multiple-cards</b> and photo-based <b>pack/box</b> detection need a key; single cards and manual entry work without one.</p>
       <label>AI provider</label>
       <select id="aiProvider">
         <option value="openai">OpenAI (gpt-4o-mini — vision)</option>
@@ -192,12 +223,10 @@
     <div class="step-dots"><i class="on"></i><i></i><i></i></div>
   </div>
 
-  <!-- STEP 2: IDENTIFY -->
+  <!-- STEP 2 (SINGLE): IDENTIFY -->
   <div class="panel hidden" id="step2">
     <h2 class="eyebrow"><span class="n">2</span> Identify the card</h2>
-    <div class="row">
-      <input id="qName" placeholder="Card name (e.g. Charizard)">
-    </div>
+    <div class="row"><input id="qName" placeholder="Card name (e.g. Charizard)"></div>
     <div class="row" style="margin-top:11px">
       <input id="qSet" placeholder="Set (optional)">
       <input id="qNum" placeholder="No. (e.g. 4/102)" style="max-width:130px">
@@ -211,14 +240,12 @@
     <div class="step-dots"><i></i><i class="on"></i><i></i></div>
   </div>
 
-  <!-- STEP 3: VALUE + OFFER -->
+  <!-- STEP 3 (SINGLE): VALUE + OFFER -->
   <div class="panel hidden" id="step3">
     <h2 class="eyebrow"><span class="n">3</span> Value &amp; your buy price</h2>
     <div id="cardHead" style="display:flex;gap:14px;margin-bottom:16px"></div>
-
     <label>Card finish / variant</label>
     <select id="finishSel"></select>
-
     <label>Condition of this copy</label>
     <select id="condSel">
       <option value="1.00">Near Mint (NM)</option>
@@ -227,26 +254,12 @@
       <option value="0.50">Heavily Played (HP)</option>
       <option value="0.35">Damaged (DMG)</option>
     </select>
-
     <h2 class="eyebrow" style="margin-top:22px"><span class="n">$</span> Worldwide market value</h2>
     <div class="valuegrid">
-      <div class="vbox">
-        <div class="lbl">🇺🇸 US · TCGplayer</div>
-        <div class="num" id="usVal">—</div>
-        <div class="sub" id="usSub">market price</div>
-      </div>
-      <div class="vbox">
-        <div class="lbl">🇪🇺 EU · Cardmarket</div>
-        <div class="num" id="euVal">—</div>
-        <div class="sub" id="euSub">trend price</div>
-      </div>
+      <div class="vbox"><div class="lbl">🇺🇸 US · TCGplayer</div><div class="num" id="usVal">—</div><div class="sub" id="usSub">market price</div></div>
+      <div class="vbox"><div class="lbl">🇪🇺 EU · Cardmarket</div><div class="num" id="euVal">—</div><div class="sub" id="euSub">trend price</div></div>
     </div>
-    <div class="vbox wide">
-      <div class="lbl">⭐ Blended market value (this condition)</div>
-      <div class="num" id="blendVal" style="color:var(--accent)">—</div>
-      <div class="sub" id="blendSub"></div>
-    </div>
-
+    <div class="vbox wide"><div class="lbl">⭐ Blended market value (this condition)</div><div class="num" id="blendVal" style="color:var(--accent)">—</div><div class="sub" id="blendSub"></div></div>
     <h2 class="eyebrow" style="margin-top:22px"><span class="n">£</span> Your buy price</h2>
     <p class="muted">How much of market value are you willing to pay? Lower % = more margin when you resell.</p>
     <input type="range" min="30" max="90" value="60" step="1" class="slider" id="buyPct">
@@ -254,26 +267,67 @@
       <span>Pay <span class="sliderval" id="buyPctTxt">60%</span> of market</span>
       <span>Margin ≈ <span class="sliderval" id="marginTxt">40%</span></span>
     </div>
-
-    <div class="offer">
-      <div class="lbl">💰 Suggested max buy price</div>
-      <div class="big" id="offerVal">—</div>
-      <div class="rng" id="offerRng"></div>
-    </div>
-
-    <details style="margin-top:14px">
-      <summary>Full price breakdown</summary>
-      <table id="breakTbl"></table>
-    </details>
-
-    <button class="btn ghost" id="resetBtn" style="margin-top:16px">← Scan another card</button>
+    <div class="offer"><div class="lbl">💰 Suggested max buy price</div><div class="big" id="offerVal">—</div><div class="rng" id="offerRng"></div></div>
+    <details style="margin-top:14px"><summary>Full price breakdown</summary><table id="breakTbl"></table></details>
+    <button class="btn ghost" id="resetBtn" style="margin-top:16px">← Scan another</button>
     <div class="fxnote" id="fxNote"></div>
     <div class="step-dots"><i></i><i></i><i class="on"></i></div>
   </div>
 
+  <!-- MULTI: BATCH -->
+  <div class="panel hidden" id="batchStep">
+    <h2 class="eyebrow"><span class="n">2</span> Your stack</h2>
+    <div id="batchThinking" class="hidden" style="text-align:center"><div class="spin"></div><p class="muted" id="batchThinkTxt">Reading all the cards in your photo…</p></div>
+    <div id="batchEmpty" class="muted">Take or upload one photo with several cards laid out and CardScout will price the whole stack.</div>
+    <div id="batchList"></div>
+    <div id="batchControls" class="hidden">
+      <label>Condition of the stack (applied to all)</label>
+      <select id="batchCond">
+        <option value="1.00">Near Mint (NM)</option>
+        <option value="0.82">Lightly Played (LP)</option>
+        <option value="0.65">Moderately Played (MP)</option>
+        <option value="0.50">Heavily Played (HP)</option>
+        <option value="0.35">Damaged (DMG)</option>
+      </select>
+      <div style="display:flex;justify-content:space-between;margin-top:14px;font-size:12px;color:var(--muted)">
+        <span>Pay <span class="sliderval" id="batchPctTxt">60%</span> of market</span>
+        <span>Margin ≈ <span class="sliderval" id="batchMarginTxt">40%</span></span>
+      </div>
+      <input type="range" min="30" max="90" value="60" step="1" class="slider" id="batchPct">
+      <div class="totbar">
+        <div class="vbox"><div class="lbl">Cards</div><div class="num" id="totCount">0</div></div>
+        <div class="vbox"><div class="lbl">Total resale</div><div class="num" id="totResale" style="color:var(--accent)">—</div></div>
+        <div class="vbox"><div class="lbl">Max buy (all)</div><div class="num" id="totBuy" style="color:#bdf5cf">—</div></div>
+      </div>
+      <div class="muted" id="totProfit" style="text-align:center;margin-top:10px"></div>
+    </div>
+    <button class="btn ghost" id="batchReset" style="margin-top:16px">← Start over</button>
+    <div class="fxnote" id="fxNote2"></div>
+  </div>
+
+  <!-- SEALED -->
+  <div class="panel hidden" id="sealedStep">
+    <h2 class="eyebrow"><span class="n">2</span> Sealed pack / box value</h2>
+    <div id="sealedThinking" class="hidden" style="text-align:center;margin-bottom:6px"><div class="spin"></div><p class="muted">Reading the product from your photo…</p></div>
+    <label>Product / set name</label>
+    <input id="sealedQuery" placeholder="e.g. Scarlet & Violet 151">
+    <label>Product type</label>
+    <select id="sealedType">
+      <option>Booster Box</option>
+      <option>Elite Trainer Box</option>
+      <option>Booster Bundle</option>
+      <option>Booster Pack</option>
+      <option>Tin</option>
+      <option>Collection / Premium Box</option>
+    </select>
+    <button class="btn" id="sealedGo" style="margin-top:14px">Show live market prices</button>
+    <div id="sealedResult" style="margin-top:6px"></div>
+    <button class="btn ghost" id="sealedReset" style="margin-top:16px">← Scan another</button>
+  </div>
+
   <p class="disclaimer">
-    Prices are live from TCGplayer (US) &amp; Cardmarket (EU) via the Pokémon TCG API, converted to GBP.
-    Treat the suggested price as a guide — final value depends on condition, grading &amp; local demand.
+    Single &amp; multi-card prices are live from TCGplayer (US) &amp; Cardmarket (EU) via the Pokémon TCG API, converted to GBP.
+    Sealed packs/boxes link to live eBay sold listings &amp; TCGplayer. Treat suggestions as a guide — final value depends on condition, grading &amp; local demand.
   </p>
 </div>
 
@@ -281,26 +335,43 @@
 
 <script>
 const $ = s => document.querySelector(s);
-const toast = (m)=>{const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2600);};
-let FX = {USDGBP:0.79, EURGBP:0.85}; // fallback; refreshed live
+const toast = (m)=>{const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2800);};
+let FX = {USDGBP:0.79, EURGBP:0.85};
 let capturedDataURL = null;
 let selectedCard = null;
+let mode = 'single';
+let batchCards = []; // {card, finishKey}
 
 // ---------- FX ----------
 async function loadFX(){
   try{
-    const r = await fetch('https://open.er-api.com/v6/latest/USD');
-    const j = await r.json();
+    const r = await fetch('https://open.er-api.com/v6/latest/USD'); const j = await r.json();
     if(j && j.rates && j.rates.GBP){
-      FX.USDGBP = j.rates.GBP;
-      FX.EURGBP = j.rates.GBP / j.rates.EUR;
+      FX.USDGBP = j.rates.GBP; FX.EURGBP = j.rates.GBP / j.rates.EUR;
       const d = new Date((j.time_last_update_unix||Date.now()/1000)*1000);
-      $('#fxNote').textContent = `FX live: £1 = $${(1/FX.USDGBP).toFixed(2)} / €${(1/FX.EURGBP).toFixed(2)} · updated ${d.toLocaleDateString()}`;
+      const t = `FX live: £1 = $${(1/FX.USDGBP).toFixed(2)} / €${(1/FX.EURGBP).toFixed(2)} · updated ${d.toLocaleDateString()}`;
+      $('#fxNote').textContent=t; $('#fxNote2').textContent=t;
     }
   }catch(e){ $('#fxNote').textContent = 'FX: using offline fallback rates.'; }
 }
 loadFX();
 const gbp = n => '£'+ (n>=100? n.toFixed(0): n.toFixed(2));
+
+// ---------- MODE ----------
+document.querySelectorAll('.mode').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('.mode').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on'); mode=b.dataset.mode; applyMode();
+  };
+});
+function hideAll(){ ['step2','step3','batchStep','sealedStep'].forEach(id=>$('#'+id).classList.add('hidden')); }
+function applyMode(){
+  hideAll();
+  $('#manualSealed').classList.toggle('hidden', mode!=='sealed');
+  if(mode==='single') $('#hintText').textContent='Tap “Use camera” to scan a single card, or upload a photo.';
+  if(mode==='multi')  $('#hintText').textContent='Lay several cards out and take ONE photo — CardScout prices the whole stack. (Needs an AI key.)';
+  if(mode==='sealed') $('#hintText').textContent='Photo a sealed pack/box, or type the product name below.';
+}
 
 // ---------- CAMERA ----------
 let stream=null;
@@ -309,15 +380,12 @@ $('#startCam').onclick = async ()=>{
     stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}});
     const v=$('#video'); v.srcObject=stream; v.style.display='block';
     $('#camHint').style.display='none'; $('#reticle').style.display='block';
-    $('#preview').style.display='none';
-    $('#snap').classList.remove('hidden');
+    $('#preview').style.display='none'; $('#snap').classList.remove('hidden');
   }catch(e){ toast('Camera unavailable — use Upload instead.'); $('#fileIn').click(); }
 };
 $('#uploadBtn').onclick = ()=> $('#fileIn').click();
-$('#fileIn').onchange = e=>{
-  const f=e.target.files[0]; if(!f) return;
-  const rd=new FileReader(); rd.onload=()=> setCaptured(rd.result); rd.readAsDataURL(f);
-};
+$('#fileIn').onchange = e=>{ const f=e.target.files[0]; if(!f) return;
+  const rd=new FileReader(); rd.onload=()=> setCaptured(rd.result); rd.readAsDataURL(f); };
 $('#snap').onclick = ()=>{
   const v=$('#video'); const c=document.createElement('canvas');
   c.width=v.videoWidth; c.height=v.videoHeight; c.getContext('2d').drawImage(v,0,0);
@@ -325,17 +393,27 @@ $('#snap').onclick = ()=>{
   if(stream){ stream.getTracks().forEach(t=>t.stop()); }
   v.style.display='none'; $('#reticle').style.display='none'; $('#snap').classList.add('hidden');
 };
+$('#manualSealed').onclick = ()=>{ $('#sealedStep').classList.remove('hidden'); $('#sealedStep').scrollIntoView({behavior:'smooth'}); $('#sealedQuery').focus(); };
+
 function setCaptured(url){
   capturedDataURL=url;
   const p=$('#preview'); p.src=url; p.style.display='block';
   $('#camHint').style.display='none'; $('#video').style.display='none';
   $('#reticle').style.display='none'; $('#snap').classList.add('hidden');
-  $('#step2').classList.remove('hidden');
-  $('#step2').scrollIntoView({behavior:'smooth'});
-  if($('#aiKey').value.trim()){ runAI(); } else { toast('Photo ready — type the card name to price it.'); }
+  const hasKey = $('#aiKey').value.trim().length>0;
+  if(mode==='single'){
+    $('#step2').classList.remove('hidden'); $('#step2').scrollIntoView({behavior:'smooth'});
+    if(hasKey) runAI(); else toast('Photo ready — type the card name to price it.');
+  } else if(mode==='multi'){
+    $('#batchStep').classList.remove('hidden'); $('#batchStep').scrollIntoView({behavior:'smooth'});
+    if(hasKey) runMulti(); else $('#batchEmpty').innerHTML='<div class="errbox">Multiple-card detection needs an AI key. Add one under “AI auto-recognition”, or use <b>Single card</b> mode and price them one at a time.</div>';
+  } else {
+    $('#sealedStep').classList.remove('hidden'); $('#sealedStep').scrollIntoView({behavior:'smooth'});
+    if(hasKey) runSealed(); else toast('Photo ready — type the product name to price it.');
+  }
 }
 
-// ---------- AI KEY STATE (saved on this device) ----------
+// ---------- AI KEY (saved on device) ----------
 function updateAiState(){
   const on = $('#aiKey').value.trim().length>0;
   $('#aiState').innerHTML = on
@@ -343,201 +421,206 @@ function updateAiState(){
     : 'AI recognition is <b>off</b>. Add a key to enable it.';
   $('#forgetKey').style.display = on ? 'block' : 'none';
 }
-try{ // restore previously saved key + provider
-  const sp=localStorage.getItem('cs_aiProvider'); if(sp) $('#aiProvider').value=sp;
-  const sk=localStorage.getItem('cs_aiKey'); if(sk) $('#aiKey').value=sk;
-}catch(e){}
+try{ const sp=localStorage.getItem('cs_aiProvider'); if(sp) $('#aiProvider').value=sp;
+     const sk=localStorage.getItem('cs_aiKey'); if(sk) $('#aiKey').value=sk; }catch(e){}
 updateAiState();
-$('#aiKey').addEventListener('input', ()=>{
-  try{ localStorage.setItem('cs_aiKey', $('#aiKey').value.trim()); }catch(e){}
-  updateAiState();
-});
-$('#aiProvider').addEventListener('change', ()=>{
-  try{ localStorage.setItem('cs_aiProvider', $('#aiProvider').value); }catch(e){}
-});
-$('#forgetKey').onclick=()=>{
-  try{ localStorage.removeItem('cs_aiKey'); }catch(e){}
-  $('#aiKey').value=''; updateAiState(); toast('Saved key removed from this device.');
-};
+$('#aiKey').addEventListener('input', ()=>{ try{ localStorage.setItem('cs_aiKey', $('#aiKey').value.trim()); }catch(e){} updateAiState(); });
+$('#aiProvider').addEventListener('change', ()=>{ try{ localStorage.setItem('cs_aiProvider', $('#aiProvider').value); }catch(e){} });
+$('#forgetKey').onclick=()=>{ try{ localStorage.removeItem('cs_aiKey'); }catch(e){} $('#aiKey').value=''; updateAiState(); toast('Saved key removed from this device.'); };
 
-// ---------- AI RECOGNITION ----------
+// ---------- AI CALL (shared) ----------
+async function aiVision(prompt){
+  const key=$('#aiKey').value.trim(); const provider=$('#aiProvider').value;
+  if(provider==='openai'){
+    const r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+      body:JSON.stringify({model:'gpt-4o-mini',messages:[{role:'user',content:[
+        {type:'text',text:prompt},{type:'image_url',image_url:{url:capturedDataURL}}]}],max_tokens:700})});
+    const j=await r.json(); if(j.error) throw new Error(j.error.message); return j.choices[0].message.content;
+  } else {
+    const b64=capturedDataURL.split(',')[1]; const media=capturedDataURL.substring(5,capturedDataURL.indexOf(';'));
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-3-5-sonnet-20241022',max_tokens:700,messages:[{role:'user',content:[
+        {type:'image',source:{type:'base64',media_type:media,data:b64}},{type:'text',text:prompt}]}]})});
+    const j=await r.json(); if(j.error) throw new Error(j.error.message); return j.content[0].text;
+  }
+}
+function aiErrHint(msg){
+  if(/x-api-key|authentication|invalid.*key|401/i.test(msg)) return 'Your API key was rejected. Paste it correctly (no spaces) and make sure it’s active at console.anthropic.com / platform.openai.com.';
+  if(/credit|billing|quota|insufficient|payment|low/i.test(msg)) return 'Your AI account has no usable credit. Add billing, then try again.';
+  if(/Failed to fetch|NetworkError|load failed/i.test(msg)) return 'Couldn’t reach the AI service — check your connection.';
+  return 'You can still type the name in manually.';
+}
+
+// ---------- SINGLE ----------
 async function runAI(){
-  const key=$('#aiKey').value.trim(); if(!key||!capturedDataURL) return;
-  const provider=$('#aiProvider').value;
+  if(!$('#aiKey').value.trim()||!capturedDataURL) return;
   $('#aiThinking').innerHTML='<div class="spin"></div><p class="muted">Reading your photo with AI…</p>';
   $('#aiThinking').classList.remove('hidden'); $('#results').innerHTML='';
-  const prompt='Identify this Pokemon trading card. Respond ONLY with compact JSON: {"name":"","set":"","number":""}. name=Pokemon/card name, set=set name if visible, number=the collector number printed on the card (e.g. 4/102) if visible. Use empty strings if unsure.';
+  const prompt='Identify this Pokemon trading card. Respond ONLY with compact JSON: {"name":"","set":"","number":""}. number=collector number printed on the card (e.g. 4/102). Empty strings if unsure.';
   try{
-    let text='';
-    if(provider==='openai'){
-      const r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
-        body:JSON.stringify({model:'gpt-4o-mini',messages:[{role:'user',content:[
-          {type:'text',text:prompt},{type:'image_url',image_url:{url:capturedDataURL}}]}],max_tokens:200})});
-      const j=await r.json();
-      if(j.error) throw new Error(j.error.message);
-      text=j.choices[0].message.content;
-    } else {
-      const b64=capturedDataURL.split(',')[1];
-      const media=capturedDataURL.substring(5,capturedDataURL.indexOf(';'));
-      const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
-        headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-        body:JSON.stringify({model:'claude-3-5-sonnet-20241022',max_tokens:200,messages:[{role:'user',content:[
-          {type:'image',source:{type:'base64',media_type:media,data:b64}},{type:'text',text:prompt}]}]})});
-      const j=await r.json();
-      if(j.error) throw new Error(j.error.message);
-      text=j.content[0].text;
-    }
+    const text=await aiVision(prompt);
     const m=text.match(/\{[\s\S]*\}/); const obj=m?JSON.parse(m[0]):{};
-    if(obj.name) $('#qName').value=obj.name;
-    if(obj.set) $('#qSet').value=obj.set;
-    if(obj.number) $('#qNum').value=obj.number;
-    $('#aiThinking').classList.add('hidden');
-    toast('AI read: '+(obj.name||'?')+' — searching…');
-    searchCards();
-  }catch(e){
-    const msg=(e&&e.message)||'unknown error';
-    let hint='You can still type the card name below to price it.';
-    if(/x-api-key|authentication|invalid.*key|401/i.test(msg)) hint='Your API key was rejected. Make sure it’s pasted correctly (no spaces) and is still active — if you deleted it, create a new one at console.anthropic.com and paste that.';
-    else if(/credit|billing|quota|insufficient|payment|low/i.test(msg)) hint='Your Anthropic account has no usable credit. Add a payment method / credit at console.anthropic.com → Billing, then try again.';
-    else if(/model/i.test(msg)) hint='That model isn’t available on your key. Pick the other AI provider, or contact me to switch the model.';
-    else if(/Failed to fetch|NetworkError|load failed/i.test(msg)) hint='Couldn’t reach the AI service — check your internet connection and try again.';
-    $('#aiThinking').innerHTML='<div style="text-align:left;background:rgba(255,107,125,.12);border:1px solid rgba(255,107,125,.4);border-radius:12px;padding:13px;color:#ffb3bd;font-size:13px;line-height:1.55"><b>AI recognition failed</b><br>'+msg+'<br><span style="color:#ffd6db">'+hint+'</span></div>';
+    if(obj.name) $('#qName').value=obj.name; if(obj.set) $('#qSet').value=obj.set; if(obj.number) $('#qNum').value=obj.number;
+    $('#aiThinking').classList.add('hidden'); toast('AI read: '+(obj.name||'?')+' — searching…'); searchCards();
+  }catch(e){ const msg=(e&&e.message)||'unknown error';
+    $('#aiThinking').innerHTML='<div class="errbox"><b>AI recognition failed</b><br>'+msg+'<br><span style="color:#ffd6db">'+aiErrHint(msg)+'</span></div>';
     $('#aiThinking').classList.remove('hidden');
   }
 }
-
-// ---------- SEARCH (Pokémon TCG API) ----------
 $('#searchBtn').onclick = searchCards;
 async function searchCards(){
   const name=$('#qName').value.trim(); const set=$('#qSet').value.trim();
   let num=$('#qNum').value.trim().split('/')[0].trim();
   if(!name){ toast('Type at least a card name.'); return; }
-  const parts=[`name:"${name}"`];
-  if(set) parts.push(`set.name:"${set}"`);
-  if(num) parts.push(`number:${num}`);
-  const q=encodeURIComponent(parts.join(' '));
+  const parts=[`name:"${name}"`]; if(set) parts.push(`set.name:"${set}"`); if(num) parts.push(`number:${num}`);
   $('#searchStatus').innerHTML='<div class="spin"></div>'; $('#results').innerHTML='';
   try{
-    let r=await fetch(`https://api.pokemontcg.io/v2/cards?q=${q}&pageSize=12&orderBy=-set.releaseDate`);
-    let j=await r.json();
-    if((!j.data||!j.data.length) && (set||num)){ // relax to name only
-      r=await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent('name:"'+name+'"')}&pageSize=12&orderBy=-set.releaseDate`);
-      j=await r.json();
-    }
+    let r=await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(parts.join(' '))}&pageSize=12&orderBy=-set.releaseDate`); let j=await r.json();
+    if((!j.data||!j.data.length)&&(set||num)){ r=await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent('name:"'+name+'"')}&pageSize=12&orderBy=-set.releaseDate`); j=await r.json(); }
     if(!j.data||!j.data.length){ $('#searchStatus').textContent='No matches. Try a different spelling or drop the set/number.'; return; }
-    $('#searchStatus').textContent=`${j.data.length} match${j.data.length>1?'es':''} — tap the right one:`;
-    renderResults(j.data);
+    $('#searchStatus').textContent=`${j.data.length} match${j.data.length>1?'es':''} — tap the right one:`; renderResults(j.data);
   }catch(e){ $('#searchStatus').textContent='Search failed: '+e.message; }
 }
 function renderResults(cards){
   const wrap=$('#results'); wrap.innerHTML='';
-  cards.forEach(c=>{
-    const hasP = c.tcgplayer||c.cardmarket;
-    const b=document.createElement('button'); b.className='cardpick';
-    b.innerHTML=`<img src="${c.images.small}" loading="lazy">
-      <div class="meta"><b>${c.name}</b><span>${c.set.name} · #${c.number} · ${c.rarity||''} ${hasP?'':'· no price'}</span></div>`;
-    b.onclick=()=>{ document.querySelectorAll('.cardpick').forEach(x=>x.classList.remove('sel'));
-      b.classList.add('sel'); selectCard(c); };
-    wrap.appendChild(b);
-  });
+  cards.forEach(c=>{ const hasP=c.tcgplayer||c.cardmarket; const b=document.createElement('button'); b.className='cardpick';
+    b.innerHTML=`<img src="${c.images.small}" loading="lazy"><div class="meta"><b>${c.name}</b><span>${c.set.name} · #${c.number} · ${c.rarity||''} ${hasP?'':'· no price'}</span></div>`;
+    b.onclick=()=>{ document.querySelectorAll('.cardpick').forEach(x=>x.classList.remove('sel')); b.classList.add('sel'); selectCard(c); };
+    wrap.appendChild(b); });
 }
-
-// ---------- VALUE + OFFER ----------
 function selectCard(c){
-  selectedCard=c;
-  $('#step3').classList.remove('hidden');
-  $('#cardHead').innerHTML=`<img class="cardhead-img" src="${c.images.small}">
-    <div><div style="font-weight:700;font-size:17px;font-family:'Sora',sans-serif">${c.name}</div>
-    <div class="muted">${c.set.name} · #${c.number}/${c.set.printedTotal||''}</div>
-    <div class="muted">${c.rarity||''} · ${c.set.releaseDate||''}</div></div>`;
-  buildFinishes(c);
-  recompute();
-  $('#step3').scrollIntoView({behavior:'smooth'});
+  selectedCard=c; $('#step3').classList.remove('hidden');
+  $('#cardHead').innerHTML=`<img class="cardhead-img" src="${c.images.small}"><div><div style="font-weight:700;font-size:17px;font-family:'Sora',sans-serif">${c.name}</div><div class="muted">${c.set.name} · #${c.number}/${c.set.printedTotal||''}</div><div class="muted">${c.rarity||''} · ${c.set.releaseDate||''}</div></div>`;
+  buildFinishes(c); recompute(); $('#step3').scrollIntoView({behavior:'smooth'});
 }
+function finishKeysOf(c){ return Object.keys((c.tcgplayer&&c.tcgplayer.prices)||{}); }
+function preferFinish(keys){ return keys.find(k=>/holofoil/i.test(k)&&!/reverse|1st/i.test(k))||keys.find(k=>/normal/i.test(k))||keys[0]; }
 function buildFinishes(c){
-  const sel=$('#finishSel'); sel.innerHTML='';
-  const tp=(c.tcgplayer&&c.tcgplayer.prices)||{};
-  const keys=Object.keys(tp);
-  if(keys.length){
-    keys.forEach(k=>{
-      const o=document.createElement('option'); o.value=k;
-      o.textContent=k.replace(/([A-Z])/g,' $1').replace(/^./,m=>m.toUpperCase());
-      sel.appendChild(o);
-    });
-    const pref=keys.find(k=>/holofoil/i.test(k)&&!/reverse|1st/i.test(k))||keys.find(k=>/normal/i.test(k))||keys[0];
-    sel.value=pref;
-  } else {
-    const o=document.createElement('option'); o.value='_cm'; o.textContent='Standard (EU data only)'; sel.appendChild(o);
-  }
+  const sel=$('#finishSel'); sel.innerHTML=''; const keys=finishKeysOf(c);
+  if(keys.length){ keys.forEach(k=>{ const o=document.createElement('option'); o.value=k; o.textContent=k.replace(/([A-Z])/g,' $1').replace(/^./,m=>m.toUpperCase()); sel.appendChild(o); }); sel.value=preferFinish(keys); }
+  else { const o=document.createElement('option'); o.value='_cm'; o.textContent='Standard (EU data only)'; sel.appendChild(o); }
 }
-$('#finishSel').onchange=recompute;
-$('#condSel').onchange=recompute;
-$('#buyPct').oninput=recompute;
-
-function recompute(){
-  if(!selectedCard) return;
-  const c=selectedCard;
-  const cond=parseFloat($('#condSel').value);
-  const buyPct=parseInt($('#buyPct').value);
-  $('#buyPctTxt').textContent=buyPct+'%';
-  $('#marginTxt').textContent=(100-buyPct)+'%';
-
-  let usUSD=null, usLabel='—';
-  const tp=(c.tcgplayer&&c.tcgplayer.prices)||{};
-  const fk=$('#finishSel').value;
-  if(tp[fk]){
-    const p=tp[fk];
-    usUSD = p.market || p.mid || p.low || null;
-    usLabel = p.market?'market':(p.mid?'mid':'low');
-  }
+// shared price calc
+function priceCard(c, finishKey){
+  let usUSD=null, usLabel='—'; const tp=(c.tcgplayer&&c.tcgplayer.prices)||{};
+  if(tp[finishKey]){ const p=tp[finishKey]; usUSD=p.market||p.mid||p.low||null; usLabel=p.market?'market':(p.mid?'mid':'low'); }
   const usGBP = usUSD!=null ? usUSD*FX.USDGBP : null;
-
-  let euEUR=null, euLabel='—';
-  const cm=(c.cardmarket&&c.cardmarket.prices)||{};
-  if(cm.trendPrice){ euEUR=cm.trendPrice; euLabel='trend'; }
-  else if(cm.averageSellPrice){ euEUR=cm.averageSellPrice; euLabel='avg sell'; }
-  else if(cm.avg7){ euEUR=cm.avg7; euLabel='7-day avg'; }
+  let euEUR=null, euLabel='—'; const cm=(c.cardmarket&&c.cardmarket.prices)||{};
+  if(cm.trendPrice){ euEUR=cm.trendPrice; euLabel='trend'; } else if(cm.averageSellPrice){ euEUR=cm.averageSellPrice; euLabel='avg'; } else if(cm.avg7){ euEUR=cm.avg7; euLabel='7d avg'; }
   const euGBP = euEUR!=null ? euEUR*FX.EURGBP : null;
-
-  $('#usVal').textContent = usGBP!=null? gbp(usGBP) : '—';
-  $('#usSub').textContent = usUSD!=null? `${usLabel} · $${usUSD.toFixed(2)}` : 'no US data';
-  $('#euVal').textContent = euGBP!=null? gbp(euGBP) : '—';
-  $('#euSub').textContent = euEUR!=null? `${euLabel} · €${euEUR.toFixed(2)}` : 'no EU data';
-
   const vals=[usGBP,euGBP].filter(v=>v!=null);
-  if(!vals.length){ $('#blendVal').textContent='No price data'; $('#offerVal').textContent='—'; $('#offerRng').textContent=''; $('#breakTbl').innerHTML=''; return; }
-  const blendNM = vals.reduce((a,b)=>a+b,0)/vals.length;
-  const blendCond = blendNM*cond;
-  $('#blendVal').textContent = gbp(blendCond);
-  $('#blendSub').textContent = `NM ${gbp(blendNM)} × ${($('#condSel').selectedOptions[0].text)} (${Math.round(cond*100)}%)`;
-
-  const offer = blendCond*(buyPct/100);
-  $('#offerVal').textContent = gbp(offer);
-  const lo = blendCond*((buyPct-12)/100), hi=blendCond*((buyPct+8)/100);
-  $('#offerRng').textContent = `Walk-away range ${gbp(Math.max(0,lo))} – ${gbp(hi)} · resell ≈ ${gbp(blendCond)}`;
-
-  const rows=[
-    ['US market (TCGplayer)', usGBP!=null?gbp(usGBP):'—'],
-    ['EU market (Cardmarket)', euGBP!=null?gbp(euGBP):'—'],
-    ['Blended NM value', gbp(blendNM)],
-    ['Condition adjustment', Math.round(cond*100)+'%'],
-    ['Adjusted resale value', gbp(blendCond)],
-    ['Your buy % of market', buyPct+'%'],
-    ['→ Suggested max buy', gbp(offer)],
-    ['Est. profit if you resell', gbp(blendCond-offer)]
-  ];
-  $('#breakTbl').innerHTML = rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('');
+  const blendNM = vals.length? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+  return {usUSD,usGBP,usLabel,euEUR,euGBP,euLabel,blendNM};
 }
+$('#finishSel').onchange=recompute; $('#condSel').onchange=recompute; $('#buyPct').oninput=recompute;
+function recompute(){
+  if(!selectedCard) return; const c=selectedCard;
+  const cond=parseFloat($('#condSel').value); const buyPct=parseInt($('#buyPct').value);
+  $('#buyPctTxt').textContent=buyPct+'%'; $('#marginTxt').textContent=(100-buyPct)+'%';
+  const p=priceCard(c,$('#finishSel').value);
+  $('#usVal').textContent=p.usGBP!=null?gbp(p.usGBP):'—'; $('#usSub').textContent=p.usUSD!=null?`${p.usLabel} · $${p.usUSD.toFixed(2)}`:'no US data';
+  $('#euVal').textContent=p.euGBP!=null?gbp(p.euGBP):'—'; $('#euSub').textContent=p.euEUR!=null?`${p.euLabel} · €${p.euEUR.toFixed(2)}`:'no EU data';
+  if(p.blendNM==null){ $('#blendVal').textContent='No price data'; $('#offerVal').textContent='—'; $('#offerRng').textContent=''; $('#breakTbl').innerHTML=''; return; }
+  const blendCond=p.blendNM*cond; $('#blendVal').textContent=gbp(blendCond);
+  $('#blendSub').textContent=`NM ${gbp(p.blendNM)} × ${$('#condSel').selectedOptions[0].text} (${Math.round(cond*100)}%)`;
+  const offer=blendCond*(buyPct/100); $('#offerVal').textContent=gbp(offer);
+  const lo=blendCond*((buyPct-12)/100), hi=blendCond*((buyPct+8)/100);
+  $('#offerRng').textContent=`Walk-away range ${gbp(Math.max(0,lo))} – ${gbp(hi)} · resell ≈ ${gbp(blendCond)}`;
+  const rows=[['US market (TCGplayer)',p.usGBP!=null?gbp(p.usGBP):'—'],['EU market (Cardmarket)',p.euGBP!=null?gbp(p.euGBP):'—'],['Blended NM value',gbp(p.blendNM)],['Condition adjustment',Math.round(cond*100)+'%'],['Adjusted resale value',gbp(blendCond)],['Your buy % of market',buyPct+'%'],['→ Suggested max buy',gbp(offer)],['Est. profit if you resell',gbp(blendCond-offer)]];
+  $('#breakTbl').innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('');
+}
+$('#resetBtn').onclick=resetSingle;
+function resetSingle(){ selectedCard=null; capturedDataURL=null; $('#step3').classList.add('hidden'); $('#step2').classList.add('hidden');
+  $('#results').innerHTML=''; $('#searchStatus').textContent=''; $('#qName').value=''; $('#qSet').value=''; $('#qNum').value='';
+  $('#preview').style.display='none'; $('#camHint').style.display='block'; window.scrollTo({top:0,behavior:'smooth'}); }
 
-$('#resetBtn').onclick=()=>{
-  selectedCard=null; capturedDataURL=null;
-  $('#step3').classList.add('hidden'); $('#step2').classList.add('hidden');
-  $('#results').innerHTML=''; $('#searchStatus').textContent='';
-  $('#qName').value=''; $('#qSet').value=''; $('#qNum').value='';
-  $('#preview').style.display='none'; $('#camHint').style.display='block';
-  window.scrollTo({top:0,behavior:'smooth'});
-};
+// ---------- MULTI ----------
+async function findOne(name,set,num){
+  const parts=[`name:"${name}"`]; if(set) parts.push(`set.name:"${set}"`); if(num) parts.push(`number:${String(num).split('/')[0].trim()}`);
+  let r=await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(parts.join(' '))}&pageSize=8&orderBy=-set.releaseDate`); let j=await r.json();
+  if((!j.data||!j.data.length)&&(set||num)){ r=await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent('name:"'+name+'"')}&pageSize=8&orderBy=-set.releaseDate`); j=await r.json(); }
+  if(!j.data||!j.data.length) return null;
+  return j.data.find(c=>c.tcgplayer||c.cardmarket) || j.data[0];
+}
+async function runMulti(){
+  $('#batchEmpty').classList.add('hidden'); $('#batchControls').classList.add('hidden'); $('#batchList').innerHTML='';
+  $('#batchThinking').classList.remove('hidden'); $('#batchThinkTxt').textContent='Reading all the cards in your photo…';
+  const prompt='List EVERY distinct Pokemon trading card visible in this photo. Respond ONLY with a JSON array, no prose: [{"name":"","set":"","number":""}, ...]. name=Pokemon/card name, set=set name if legible, number=collector number if legible (e.g. 4/102). Include each card once.';
+  try{
+    const text=await aiVision(prompt);
+    const m=text.match(/\[[\s\S]*\]/); let arr=m?JSON.parse(m[0]):[];
+    arr=arr.filter(o=>o&&o.name).slice(0,24);
+    if(!arr.length){ $('#batchThinking').classList.add('hidden'); $('#batchEmpty').classList.remove('hidden'); $('#batchEmpty').innerHTML='<div class="errbox">AI didn’t find any cards in that photo. Try better lighting, lay the cards flat without overlap, or use <b>Single card</b> mode.</div>'; return; }
+    batchCards=[];
+    for(let i=0;i<arr.length;i++){
+      $('#batchThinkTxt').textContent=`Pricing card ${i+1} of ${arr.length}…`;
+      try{ const c=await findOne(arr[i].name,arr[i].set,arr[i].number); if(c){ const keys=finishKeysOf(c); batchCards.push({card:c, finishKey: keys.length?preferFinish(keys):'_cm'}); } }catch(e){}
+    }
+    $('#batchThinking').classList.add('hidden');
+    if(!batchCards.length){ $('#batchEmpty').classList.remove('hidden'); $('#batchEmpty').innerHTML='<div class="errbox">Couldn’t price any of the detected cards. Try again or use Single mode.</div>'; return; }
+    $('#batchControls').classList.remove('hidden'); renderBatch();
+  }catch(e){ const msg=(e&&e.message)||'unknown error';
+    $('#batchThinking').classList.add('hidden'); $('#batchEmpty').classList.remove('hidden');
+    $('#batchEmpty').innerHTML='<div class="errbox"><b>AI recognition failed</b><br>'+msg+'<br><span style="color:#ffd6db">'+aiErrHint(msg)+'</span></div>';
+  }
+}
+$('#batchCond').onchange=renderBatch; $('#batchPct').oninput=renderBatch;
+function renderBatch(){
+  const cond=parseFloat($('#batchCond').value); const buyPct=parseInt($('#batchPct').value);
+  $('#batchPctTxt').textContent=buyPct+'%'; $('#batchMarginTxt').textContent=(100-buyPct)+'%';
+  let totResale=0, totBuy=0; const wrap=$('#batchList'); wrap.innerHTML='';
+  batchCards.forEach((bc,idx)=>{
+    const p=priceCard(bc.card,bc.finishKey); const nm=p.blendNM||0; const resale=nm*cond; const buy=resale*(buyPct/100);
+    totResale+=resale; totBuy+=buy;
+    const row=document.createElement('div'); row.className='brow';
+    row.innerHTML=`<img src="${bc.card.images.small}"><div class="bi"><b>${bc.card.name}</b><span>${bc.card.set.name} · #${bc.card.number}</span></div>
+      <div class="bp"><div class="buy">${nm?gbp(buy):'—'}</div><div class="mk">${nm?'mkt '+gbp(resale):'no price'}</div></div>
+      <button class="x" title="remove">✕</button>`;
+    row.querySelector('.x').onclick=()=>{ batchCards.splice(idx,1); if(batchCards.length) renderBatch(); else { $('#batchControls').classList.add('hidden'); $('#batchEmpty').classList.remove('hidden'); $('#batchEmpty').textContent='Stack cleared. Take another photo to start again.'; } };
+    wrap.appendChild(row);
+  });
+  $('#totCount').textContent=batchCards.length;
+  $('#totResale').textContent=gbp(totResale); $('#totBuy').textContent=gbp(totBuy);
+  $('#totProfit').innerHTML=`Est. profit if you resell the stack: <b style="color:#bdf5cf">${gbp(totResale-totBuy)}</b> · paying ${buyPct}% of market`;
+}
+$('#batchReset').onclick=()=>{ batchCards=[]; capturedDataURL=null; $('#batchStep').classList.add('hidden'); $('#batchList').innerHTML=''; $('#batchControls').classList.add('hidden'); $('#batchEmpty').classList.remove('hidden'); $('#batchEmpty').textContent='Take or upload one photo with several cards laid out and CardScout will price the whole stack.'; $('#preview').style.display='none'; $('#camHint').style.display='block'; window.scrollTo({top:0,behavior:'smooth'}); };
+
+// ---------- SEALED ----------
+async function runSealed(){
+  $('#sealedThinking').classList.remove('hidden');
+  const prompt='Identify this SEALED Pokemon product (not a single card). Respond ONLY with JSON: {"product":"","set":"","type":""}. set=set/expansion name; type=one of Booster Box, Elite Trainer Box, Booster Bundle, Booster Pack, Tin, Collection / Premium Box; product=full product name if legible.';
+  try{
+    const text=await aiVision(prompt); const m=text.match(/\{[\s\S]*\}/); const o=m?JSON.parse(m[0]):{};
+    $('#sealedThinking').classList.add('hidden');
+    const q=(o.product&&o.product.length>3)?o.product:[o.set,o.type].filter(Boolean).join(' ');
+    if(q) $('#sealedQuery').value=q;
+    if(o.type){ const opt=[...$('#sealedType').options].find(x=>x.text.toLowerCase().includes((o.type||'').toLowerCase().split(' ')[0])); if(opt) $('#sealedType').value=opt.value; }
+    if($('#sealedQuery').value.trim()) showSealed(); else toast('Type the product name and tap Show prices.');
+  }catch(e){ const msg=(e&&e.message)||'unknown error'; $('#sealedThinking').classList.add('hidden');
+    $('#sealedResult').innerHTML='<div class="errbox"><b>AI recognition failed</b><br>'+msg+'<br><span style="color:#ffd6db">'+aiErrHint(msg)+' Type the product name above instead.</span></div>'; }
+}
+$('#sealedGo').onclick=showSealed;
+function showSealed(){
+  const base=$('#sealedQuery').value.trim(); const type=$('#sealedType').value;
+  if(!base){ toast('Type the product / set name first.'); return; }
+  const q=`Pokemon ${base} ${type}`.replace(/\s+/g,' ').trim();
+  const eUK=`https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(q)}&LH_Sold=1&LH_Complete=1`;
+  const eUS=`https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(q)}&LH_Sold=1&LH_Complete=1`;
+  const tcg=`https://www.tcgplayer.com/search/pokemon/product?q=${encodeURIComponent(base+' '+type)}&productLineName=pokemon`;
+  $('#sealedResult').innerHTML=`
+    <div class="vbox wide" style="margin-top:14px"><div class="lbl">📦 ${q}</div>
+      <div class="sub" style="margin-top:6px;color:var(--muted)">Sealed product prices aren’t in the free card database, so here are live market sources for this exact item. eBay <b>sold</b> listings show what people actually paid — the best guide for a buy offer.</div></div>
+    <a class="linkbtn" href="${eUK}" target="_blank" rel="noopener">🇬🇧 eBay UK — sold prices <span>›</span><small>Real recent UK sale prices for this product</small></a>
+    <a class="linkbtn" href="${eUS}" target="_blank" rel="noopener">🇺🇸 eBay US — sold prices <span>›</span><small>Largest market, sold listings in USD</small></a>
+    <a class="linkbtn" href="${tcg}" target="_blank" rel="noopener">🛒 TCGplayer — market price <span>›</span><small>US retailer market price for sealed product</small></a>
+    <div class="muted" style="margin-top:12px">Tip: read the median of recent <b>sold</b> prices, then offer well below it to leave resale margin.</div>`;
+  $('#sealedResult').scrollIntoView({behavior:'smooth'});
+}
+$('#sealedReset').onclick=()=>{ capturedDataURL=null; $('#sealedStep').classList.add('hidden'); $('#sealedResult').innerHTML=''; $('#sealedQuery').value=''; $('#preview').style.display='none'; $('#camHint').style.display='block'; window.scrollTo({top:0,behavior:'smooth'}); };
+
+applyMode();
 </script>
 </body>
 </html>
