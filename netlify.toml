@@ -1,0 +1,8 @@
+# CardScout — Netlify config
+# Serves the static app from the repo root and runs the sealed-pricing proxy.
+[build]
+  publish = "."
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
