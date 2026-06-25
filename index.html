@@ -281,10 +281,11 @@
   <div class="panel hidden" id="batchStep">
     <h2 class="eyebrow"><span class="n">2</span> Your stack</h2>
     <div id="batchThinking" class="hidden" style="text-align:center"><div class="spin"></div><p class="muted" id="batchThinkTxt">Reading all the cards in your photo…</p></div>
-    <div id="batchEmpty" class="muted">Take or upload one photo with several cards laid out and CardScout will price the whole stack.</div>
-    <div id="batchList"></div>
+    <div id="batchEmpty" class="muted">Take or upload one photo with several cards laid out, and/or add sealed packs &amp; boxes manually — CardScout totals the whole pile.</div>
+    <button class="btn ghost" id="addManual" style="margin-top:12px">➕ Add pack / sealed / manual item</button>
+    <div id="batchList" style="margin-top:12px"></div>
     <div id="batchControls" class="hidden">
-      <label>Condition of the stack (applied to all)</label>
+      <label>Condition of the cards (applied to cards only — manual items use the price you enter)</label>
       <select id="batchCond">
         <option value="1.00">Near Mint (NM)</option>
         <option value="0.82">Lightly Played (LP)</option>
@@ -297,12 +298,12 @@
         <span>Margin ≈ <span class="sliderval" id="batchMarginTxt">40%</span></span>
       </div>
       <input type="range" min="30" max="90" value="60" step="1" class="slider" id="batchPct">
-      <div class="totbar">
-        <div class="vbox"><div class="lbl">Cards</div><div class="num" id="totCount">0</div></div>
+      <div class="offer" style="margin-top:12px"><div class="lbl">💰 Total offer to the shop</div><div class="big" id="totBuy">—</div><div class="rng" id="totProfit"></div></div>
+      <div class="totbar" style="margin-top:12px">
+        <div class="vbox"><div class="lbl">Items</div><div class="num" id="totCount">0</div></div>
         <div class="vbox"><div class="lbl">Total resale</div><div class="num" id="totResale" style="color:var(--accent)">—</div></div>
-        <div class="vbox"><div class="lbl">Max buy (all)</div><div class="num" id="totBuy" style="color:#bdf5cf">—</div></div>
+        <div class="vbox"><div class="lbl">Profit if sold</div><div class="num" id="totProfitNum" style="color:#bdf5cf">—</div></div>
       </div>
-      <div class="muted" id="totProfit" style="text-align:center;margin-top:10px"></div>
       <div class="row" style="margin-top:14px">
         <button class="btn gold" id="batchShare">📋 Copy / share</button>
         <button class="btn ghost" id="batchCsv">⬇ CSV</button>
@@ -348,6 +349,7 @@ let capturedDataURL = null;
 let selectedCard = null;
 let mode = 'single';
 let batchCards = []; // {card, finishKey}
+let manualItems = []; // {name, value}  (sealed packs/boxes or any manual line)
 
 // ---------- FX ----------
 async function loadFX(){
@@ -376,7 +378,10 @@ function applyMode(){
   hideAll();
   $('#manualSealed').classList.toggle('hidden', mode!=='sealed');
   if(mode==='single') $('#hintText').textContent='Tap “Use camera” to scan a single card, or upload a photo.';
-  if(mode==='multi')  $('#hintText').textContent='Lay several cards out and take ONE photo — CardScout prices the whole stack. (Needs an AI key.)';
+  if(mode==='multi'){ $('#hintText').textContent='Lay several cards out and take ONE photo, and/or add sealed packs & boxes manually below.';
+    $('#batchStep').classList.remove('hidden');
+    if(batchCards.length||manualItems.length){ $('#batchControls').classList.remove('hidden'); $('#batchEmpty').classList.add('hidden'); renderBatch(); }
+    else { $('#batchControls').classList.add('hidden'); $('#batchEmpty').classList.remove('hidden'); } }
   if(mode==='sealed') $('#hintText').textContent='Photo a sealed pack/box, or type the product name below.';
 }
 
@@ -448,7 +453,7 @@ async function aiVision(prompt){
     const b64=capturedDataURL.split(',')[1]; const media=capturedDataURL.substring(5,capturedDataURL.indexOf(';'));
     const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-3-5-sonnet-20241022',max_tokens:700,messages:[{role:'user',content:[
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:700,messages:[{role:'user',content:[
         {type:'image',source:{type:'base64',media_type:media,data:b64}},{type:'text',text:prompt}]}]})});
     const j=await r.json(); if(j.error) throw new Error(j.error.message); return j.content[0].text;
   }
@@ -581,6 +586,10 @@ async function runMulti(){
   }
 }
 $('#batchCond').onchange=renderBatch; $('#batchPct').oninput=renderBatch;
+function refreshBatch(){
+  if(batchCards.length||manualItems.length){ $('#batchControls').classList.remove('hidden'); $('#batchEmpty').classList.add('hidden'); renderBatch(); }
+  else { $('#batchControls').classList.add('hidden'); $('#batchEmpty').classList.remove('hidden'); $('#batchEmpty').textContent='Stack cleared. Take a photo or add a manual item.'; }
+}
 function renderBatch(){
   const cond=parseFloat($('#batchCond').value); const buyPct=parseInt($('#batchPct').value);
   $('#batchPctTxt').textContent=buyPct+'%'; $('#batchMarginTxt').textContent=(100-buyPct)+'%';
@@ -592,24 +601,46 @@ function renderBatch(){
     row.innerHTML=`<img src="${bc.card.images.small}"><div class="bi"><b>${bc.card.name}</b><span>${bc.card.set.name} · #${bc.card.number}</span></div>
       <div class="bp"><div class="buy">${nm?gbp(buy):'—'}</div><div class="mk">${nm?'mkt '+gbp(resale):'no price'}</div></div>
       <button class="x" title="remove">✕</button>`;
-    row.querySelector('.x').onclick=()=>{ batchCards.splice(idx,1); if(batchCards.length) renderBatch(); else { $('#batchControls').classList.add('hidden'); $('#batchEmpty').classList.remove('hidden'); $('#batchEmpty').textContent='Stack cleared. Take another photo to start again.'; } };
+    row.querySelector('.x').onclick=()=>{ batchCards.splice(idx,1); refreshBatch(); };
     wrap.appendChild(row);
   });
-  $('#totCount').textContent=batchCards.length;
-  $('#totResale').textContent=gbp(totResale); $('#totBuy').textContent=gbp(totBuy);
-  $('#totProfit').innerHTML=`Est. profit if you resell the stack: <b style="color:#bdf5cf">${gbp(totResale-totBuy)}</b> · paying ${buyPct}% of market`;
+  manualItems.forEach((mi,idx)=>{
+    const resale=mi.value||0; const buy=resale*(buyPct/100); totResale+=resale; totBuy+=buy;
+    const row=document.createElement('div'); row.className='brow';
+    row.innerHTML=`<div style="width:40px;height:56px;border-radius:6px;background:rgba(255,209,26,.12);display:grid;place-items:center;font-size:20px;flex:0 0 auto">📦</div>
+      <div class="bi"><b>${mi.name}</b><span>Sealed / manual</span></div>
+      <div class="bp"><div class="buy">${gbp(buy)}</div><div class="mk">mkt ${gbp(resale)}</div></div>
+      <button class="x" title="remove">✕</button>`;
+    row.querySelector('.x').onclick=()=>{ manualItems.splice(idx,1); refreshBatch(); };
+    wrap.appendChild(row);
+  });
+  $('#totCount').textContent=batchCards.length+manualItems.length;
+  $('#totResale').textContent=gbp(totResale);
+  $('#totBuy').textContent=gbp(totBuy);
+  $('#totProfitNum').textContent=gbp(totResale-totBuy);
+  $('#totProfit').textContent=`Resale value ≈ ${gbp(totResale)} · profit if sold ≈ ${gbp(totResale-totBuy)} · paying ${buyPct}% of market`;
 }
+$('#addManual').onclick=()=>{
+  const name=prompt('Item name (e.g. “151 Booster Box”):'); if(!name||!name.trim()) return;
+  const raw=prompt('Market / resale value in £ (what it sells for — e.g. from eBay sold prices):');
+  const v=parseFloat(String(raw).replace(/[^0-9.]/g,''));
+  if(!(v>0)){ toast('Enter a number greater than 0.'); return; }
+  manualItems.push({name:name.trim(), value:v});
+  $('#batchControls').classList.remove('hidden'); $('#batchEmpty').classList.add('hidden'); renderBatch();
+};
 function batchTotals(){
   const cond=parseFloat($('#batchCond').value); const buyPct=parseInt($('#batchPct').value);
   let totResale=0, totBuy=0;
   const rows=batchCards.map(bc=>{ const p=priceCard(bc.card,bc.finishKey); const nm=p.blendNM||0; const resale=nm*cond; const buy=resale*(buyPct/100); totResale+=resale; totBuy+=buy;
     return {name:bc.card.name, set:bc.card.set.name, num:bc.card.number, resale:nm?resale:null, buy:nm?buy:null}; });
+  manualItems.forEach(mi=>{ const resale=mi.value||0; const buy=resale*(buyPct/100); totResale+=resale; totBuy+=buy;
+    rows.push({name:mi.name, set:'sealed/manual', num:'', resale, buy}); });
   return {cond,buyPct,rows,totResale,totBuy};
 }
 $('#batchShare').onclick=async ()=>{
   const t=batchTotals(); const L=['CardScout — stack valuation',''];
   t.rows.forEach(r=> L.push(`• ${r.name} (${r.set} #${r.num}) — market ${r.resale!=null?gbp(r.resale):'n/a'}, buy ${r.buy!=null?gbp(r.buy):'n/a'}`));
-  L.push('', `Cards: ${t.rows.length}`, `Total resale value: ${gbp(t.totResale)}`, `Total max buy (pay ${t.buyPct}% of market): ${gbp(t.totBuy)}`, `Est. profit if resold: ${gbp(t.totResale-t.totBuy)}`, '', 'Priced via cardscout-uk.netlify.app');
+  L.push('', `Items: ${t.rows.length}`, `Total resale value: ${gbp(t.totResale)}`, `TOTAL OFFER TO THE SHOP (pay ${t.buyPct}% of market): ${gbp(t.totBuy)}`, `Profit if sold: ${gbp(t.totResale-t.totBuy)}`, '', 'Priced via cardscout-uk.netlify.app');
   const text=L.join('\n');
   if(navigator.share){ try{ await navigator.share({title:'CardScout stack',text}); return; }catch(e){ if(e&&e.name==='AbortError') return; } }
   if(navigator.clipboard){ try{ await navigator.clipboard.writeText(text); toast('Stack summary copied to clipboard.'); return; }catch(e){} }
@@ -624,7 +655,7 @@ $('#batchCsv').onclick=()=>{
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='cardscout-stack.csv'; a.click();
   setTimeout(()=>URL.revokeObjectURL(a.href),1500); toast('CSV downloaded.');
 };
-$('#batchReset').onclick=()=>{ batchCards=[]; capturedDataURL=null; $('#batchStep').classList.add('hidden'); $('#batchList').innerHTML=''; $('#batchControls').classList.add('hidden'); $('#batchEmpty').classList.remove('hidden'); $('#batchEmpty').textContent='Take or upload one photo with several cards laid out and CardScout will price the whole stack.'; $('#preview').style.display='none'; $('#camHint').style.display='block'; window.scrollTo({top:0,behavior:'smooth'}); };
+$('#batchReset').onclick=()=>{ batchCards=[]; manualItems=[]; capturedDataURL=null; $('#batchStep').classList.add('hidden'); $('#batchList').innerHTML=''; $('#batchControls').classList.add('hidden'); $('#batchEmpty').classList.remove('hidden'); $('#batchEmpty').innerHTML='Take or upload one photo with several cards laid out, and/or add sealed packs &amp; boxes manually — CardScout totals the whole pile.'; $('#preview').style.display='none'; $('#camHint').style.display='block'; window.scrollTo({top:0,behavior:'smooth'}); };
 
 // ---------- SEALED ----------
 async function runSealed(){
