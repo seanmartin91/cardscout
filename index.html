@@ -330,6 +330,13 @@
     </select>
     <button class="btn" id="sealedGo" style="margin-top:14px">Show live market prices</button>
     <div id="sealedResult" style="margin-top:6px"></div>
+    <div style="border-top:1px solid var(--line);margin-top:18px;padding-top:8px">
+      <h2 class="eyebrow" style="margin-bottom:6px"><span class="n">💎</span> Worth opening?</h2>
+      <label>Price you'd pay for it (£) — optional, for the verdict</label>
+      <input id="boxPrice" type="number" inputmode="decimal" placeholder="e.g. 110">
+      <button class="btn gold" id="analyzeBox" style="margin-top:12px">💎 What's inside &amp; is it worth opening?</button>
+      <div id="insideResult" style="margin-top:6px"></div>
+    </div>
     <button class="btn ghost" id="sealedReset" style="margin-top:16px">← Scan another</button>
   </div>
 
@@ -688,7 +695,64 @@ function showSealed(){
     <div class="muted" style="margin-top:12px">Tip: read the median of recent <b>sold</b> prices, then offer well below it to leave resale margin.</div>`;
   $('#sealedResult').scrollIntoView({behavior:'smooth'});
 }
-$('#sealedReset').onclick=()=>{ capturedDataURL=null; $('#sealedStep').classList.add('hidden'); $('#sealedResult').innerHTML=''; $('#sealedQuery').value=''; $('#preview').style.display='none'; $('#camHint').style.display='block'; window.scrollTo({top:0,behavior:'smooth'}); };
+// ---------- SEALED EV / "worth opening" ----------
+async function aiText(prompt){
+  const key=$('#aiKey').value.trim(); const provider=$('#aiProvider').value;
+  if(provider==='openai'){
+    const r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+      body:JSON.stringify({model:'gpt-4o-mini',messages:[{role:'user',content:prompt}],max_tokens:450})});
+    const j=await r.json(); if(j.error) throw new Error(j.error.message); return j.choices[0].message.content;
+  } else {
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:450,messages:[{role:'user',content:prompt}]})});
+    const j=await r.json(); if(j.error) throw new Error(j.error.message); return j.content[0].text;
+  }
+}
+function cleanSet(s){ return (s||'').replace(/booster box|elite trainer box|booster bundle|booster pack|premium|collection box|\bbox\b|\betb\b|\btin\b|pok[eé]mon/gi,'').replace(/[^A-Za-z0-9 &]/g,' ').replace(/\s+/g,' ').trim(); }
+function cardBestGBP(c){ let best=0; const tp=(c.tcgplayer&&c.tcgplayer.prices)||{}; Object.values(tp).forEach(p=>{ const m=p.market||p.mid||0; if(m*FX.USDGBP>best) best=m*FX.USDGBP; }); const cm=(c.cardmarket&&c.cardmarket.prices)||{}; if(cm.trendPrice && cm.trendPrice*FX.EURGBP>best) best=cm.trendPrice*FX.EURGBP; return best; }
+async function resolveSetId(term){
+  const t=term.toLowerCase().trim();
+  try{
+    const sr=await fetch('https://api.pokemontcg.io/v2/sets?pageSize=400&orderBy=-releaseDate'); const sj=await sr.json(); const sets=(sj.data||[]).filter(s=>s.name&&s.name.length>1);
+    // direct containment either way (e.g. term "scarlet & violet 151" contains set "151")
+    let cands=sets.filter(s=>{ const n=s.name.toLowerCase(); return t===n || t.includes(n) || n.includes(t); });
+    if(!cands.length){ // token overlap fallback
+      const toks=t.split(' ').filter(w=>w.length>1);
+      cands=sets.map(s=>{ const n=s.name.toLowerCase(); return {s,score:toks.filter(w=>n.includes(w)).length}; }).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).map(x=>x.s);
+    }
+    cands.sort((a,b)=> (b.name.length-a.name.length) || (new Date(b.releaseDate)-new Date(a.releaseDate)));
+    return cands.length? cands[0].id : null;
+  }catch(e){ return null; }
+}
+async function findTopHits(term){
+  let cards=[]; const setId=await resolveSetId(term);
+  if(setId){ try{ const cr=await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent('set.id:'+setId)}&pageSize=250`); const cj=await cr.json(); cards=cj.data||[]; }catch(e){} }
+  if(!cards.length){ try{ const cr=await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent('set.name:"'+term+'"')}&pageSize=250`); const cj=await cr.json(); cards=cj.data||[]; }catch(e){} }
+  return cards.map(c=>({c,gbp:cardBestGBP(c)})).filter(x=>x.gbp>0).sort((a,b)=>b.gbp-a.gbp).slice(0,8);
+}
+$('#analyzeBox').onclick=async ()=>{
+  const term=cleanSet($('#sealedQuery').value); if(!term){ toast('Type the set / product name first.'); return; }
+  $('#insideResult').innerHTML='<div class="spin"></div><p class="muted" style="text-align:center">Finding the biggest hits in this set…</p>';
+  const hits=await findTopHits(term);
+  if(!hits.length){ $('#insideResult').innerHTML='<div class="errbox">Couldn’t match that to a set in the card database. Try just the set name (e.g. “151”, “Surging Sparks”, “Obsidian Flames”).</div>'; return; }
+  let html='<div class="vbox wide" style="margin-top:14px"><div class="lbl">💎 Biggest current hits in this set</div><div class="sub" style="margin-top:4px;color:var(--muted)">Live prices — these are the cards you’re chasing when you open it.</div></div><div class="results" style="margin-top:10px">';
+  hits.forEach(h=> html+=`<div class="cardpick"><img src="${h.c.images.small}" loading="lazy"><div class="meta"><b>${h.c.name}</b><span>${h.c.rarity||''} · <b style="color:var(--accent)">${gbp(h.gbp)}</b></span></div></div>`);
+  html+='</div>';
+  $('#insideResult').innerHTML=html;
+  const key=$('#aiKey').value.trim();
+  if(!key){ $('#insideResult').insertAdjacentHTML('beforeend','<div class="muted" style="margin-top:12px">Add your AI key (under “AI auto-recognition” on the first panel) to get an “is it worth opening?” verdict with a ballpark expected value.</div>'); }
+  else{
+    const price=$('#boxPrice').value.trim();
+    const list=hits.map(h=>`${h.c.name} ${gbp(h.gbp)}`).join('; ');
+    const prompt=`You advise a UK Pokemon TCG reseller deciding whether to buy a sealed product to flip or open. Product: "${term} ${$('#sealedType').value}". ${price?('They can buy it sealed for about £'+price+'. '):''}The most valuable single cards currently in this set are: ${list}. Give a concise, REALISTIC verdict for the UK market. Cover, briefly: (1) VERDICT: Pass, Flip sealed, or Open & sell singles. (2) A rough expected value if opened — be honest that the big hits are rare, most packs are low value, and at retail price opening usually loses to EV; clearly call it an estimate, not a guarantee. (3) One line of reasoning. Under 110 words, plain text, no markdown headings.`;
+    const v=document.createElement('div'); v.className='vbox wide'; v.style.marginTop='12px'; v.innerHTML='<div class="lbl">🤖 Is it worth it?</div><div class="spin"></div>';
+    $('#insideResult').appendChild(v);
+    try{ const txt=await aiText(prompt); v.innerHTML='<div class="lbl">🤖 Is it worth it? <span style="color:var(--faint);font-weight:500;text-transform:none;letter-spacing:0">· AI estimate</span></div><div style="margin-top:8px;font-size:13.5px;line-height:1.65;white-space:pre-wrap">'+txt.replace(/[<>]/g,m=>m=='<'?'&lt;':'&gt;')+'</div><div class="muted" style="margin-top:10px;font-size:11.5px">⚠️ Opening sealed product is high-variance — treat this as a guide, not a promise. Most boxes bought at shop price don’t beat their cost.</div>'; }
+    catch(e){ const msg=(e&&e.message)||'error'; v.innerHTML='<div class="errbox"><b>Verdict unavailable</b><br>'+msg+'<br><span style="color:#ffd6db">'+aiErrHint(msg)+'</span></div>'; }
+  }
+  $('#insideResult').scrollIntoView({behavior:'smooth'});
+};
+$('#sealedReset').onclick=()=>{ capturedDataURL=null; $('#sealedStep').classList.add('hidden'); $('#sealedResult').innerHTML=''; $('#insideResult').innerHTML=''; $('#sealedQuery').value=''; $('#boxPrice').value=''; $('#preview').style.display='none'; $('#camHint').style.display='block'; window.scrollTo({top:0,behavior:'smooth'}); };
 
 applyMode();
 </script>
