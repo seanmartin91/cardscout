@@ -269,7 +269,10 @@
     </div>
     <div class="offer"><div class="lbl">💰 Suggested max buy price</div><div class="big" id="offerVal">—</div><div class="rng" id="offerRng"></div></div>
     <details style="margin-top:14px"><summary>Full price breakdown</summary><table id="breakTbl"></table></details>
-    <button class="btn ghost" id="resetBtn" style="margin-top:16px">← Scan another</button>
+    <div class="row" style="margin-top:16px">
+      <button class="btn gold" id="cardShare">📋 Share valuation</button>
+      <button class="btn ghost" id="resetBtn">← Scan another</button>
+    </div>
     <div class="fxnote" id="fxNote"></div>
     <div class="step-dots"><i></i><i></i><i class="on"></i></div>
   </div>
@@ -300,8 +303,12 @@
         <div class="vbox"><div class="lbl">Max buy (all)</div><div class="num" id="totBuy" style="color:#bdf5cf">—</div></div>
       </div>
       <div class="muted" id="totProfit" style="text-align:center;margin-top:10px"></div>
+      <div class="row" style="margin-top:14px">
+        <button class="btn gold" id="batchShare">📋 Copy / share</button>
+        <button class="btn ghost" id="batchCsv">⬇ CSV</button>
+      </div>
     </div>
-    <button class="btn ghost" id="batchReset" style="margin-top:16px">← Start over</button>
+    <button class="btn ghost" id="batchReset" style="margin-top:12px">← Start over</button>
     <div class="fxnote" id="fxNote2"></div>
   </div>
 
@@ -532,6 +539,13 @@ function recompute(){
   $('#breakTbl').innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('');
 }
 $('#resetBtn').onclick=resetSingle;
+$('#cardShare').onclick=()=>{
+  if(!selectedCard) return; const c=selectedCard;
+  const text=`CardScout valuation\n${c.name} — ${c.set.name} #${c.number}\nMarket (${$('#condSel').selectedOptions[0].text}): ${$('#blendVal').textContent}\nSuggested max buy: ${$('#offerVal').textContent}\n\nvia cardscout-uk.netlify.app`;
+  if(navigator.share){ navigator.share({title:'CardScout valuation',text}).catch(()=>{}); }
+  else if(navigator.clipboard){ navigator.clipboard.writeText(text).then(()=>toast('Valuation copied to clipboard.')).catch(()=>toast('Copy failed — long-press to select.')); }
+  else toast('Sharing not supported on this browser.');
+};
 function resetSingle(){ selectedCard=null; capturedDataURL=null; $('#step3').classList.add('hidden'); $('#step2').classList.add('hidden');
   $('#results').innerHTML=''; $('#searchStatus').textContent=''; $('#qName').value=''; $('#qSet').value=''; $('#qNum').value='';
   $('#preview').style.display='none'; $('#camHint').style.display='block'; window.scrollTo({top:0,behavior:'smooth'}); }
@@ -585,6 +599,31 @@ function renderBatch(){
   $('#totResale').textContent=gbp(totResale); $('#totBuy').textContent=gbp(totBuy);
   $('#totProfit').innerHTML=`Est. profit if you resell the stack: <b style="color:#bdf5cf">${gbp(totResale-totBuy)}</b> · paying ${buyPct}% of market`;
 }
+function batchTotals(){
+  const cond=parseFloat($('#batchCond').value); const buyPct=parseInt($('#batchPct').value);
+  let totResale=0, totBuy=0;
+  const rows=batchCards.map(bc=>{ const p=priceCard(bc.card,bc.finishKey); const nm=p.blendNM||0; const resale=nm*cond; const buy=resale*(buyPct/100); totResale+=resale; totBuy+=buy;
+    return {name:bc.card.name, set:bc.card.set.name, num:bc.card.number, resale:nm?resale:null, buy:nm?buy:null}; });
+  return {cond,buyPct,rows,totResale,totBuy};
+}
+$('#batchShare').onclick=async ()=>{
+  const t=batchTotals(); const L=['CardScout — stack valuation',''];
+  t.rows.forEach(r=> L.push(`• ${r.name} (${r.set} #${r.num}) — market ${r.resale!=null?gbp(r.resale):'n/a'}, buy ${r.buy!=null?gbp(r.buy):'n/a'}`));
+  L.push('', `Cards: ${t.rows.length}`, `Total resale value: ${gbp(t.totResale)}`, `Total max buy (pay ${t.buyPct}% of market): ${gbp(t.totBuy)}`, `Est. profit if resold: ${gbp(t.totResale-t.totBuy)}`, '', 'Priced via cardscout-uk.netlify.app');
+  const text=L.join('\n');
+  if(navigator.share){ try{ await navigator.share({title:'CardScout stack',text}); return; }catch(e){ if(e&&e.name==='AbortError') return; } }
+  if(navigator.clipboard){ try{ await navigator.clipboard.writeText(text); toast('Stack summary copied to clipboard.'); return; }catch(e){} }
+  toast('Sharing not supported — try the CSV.');
+};
+$('#batchCsv').onclick=()=>{
+  const t=batchTotals();
+  const lines=[['Name','Set','Number','Market_GBP','MaxBuy_GBP']];
+  t.rows.forEach(r=> lines.push([r.name,r.set,r.num, r.resale!=null?r.resale.toFixed(2):'', r.buy!=null?r.buy.toFixed(2):'']));
+  lines.push(['TOTAL','','', t.totResale.toFixed(2), t.totBuy.toFixed(2)]);
+  const csv=lines.map(r=>r.map(x=>`"${String(x).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='cardscout-stack.csv'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1500); toast('CSV downloaded.');
+};
 $('#batchReset').onclick=()=>{ batchCards=[]; capturedDataURL=null; $('#batchStep').classList.add('hidden'); $('#batchList').innerHTML=''; $('#batchControls').classList.add('hidden'); $('#batchEmpty').classList.remove('hidden'); $('#batchEmpty').textContent='Take or upload one photo with several cards laid out and CardScout will price the whole stack.'; $('#preview').style.display='none'; $('#camHint').style.display='block'; window.scrollTo({top:0,behavior:'smooth'}); };
 
 // ---------- SEALED ----------
