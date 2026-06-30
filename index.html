@@ -431,9 +431,9 @@
     </div>
 
     <div id="dealLot" class="hidden">
-      <label>Paste the eBay listing link — easiest (no eBay account needed)</label>
-      <div class="muted" style="margin:2px 0 8px;font-size:12.5px">✅ Just paste the <b>eBay listing link</b> (or the item number) and tap Scan — CardScout pulls all the photos itself. From a daily lot folder, the link is in <b>lot.md</b>. You can still paste individual photo links or upload photos.</div>
-      <textarea id="lotImgs" rows="3" placeholder="Paste the eBay listing link here (e.g. https://www.ebay.ca/itm/123456789). Or paste photo links, one per line. Or use Upload photos below." style="width:100%;background:rgba(8,11,20,.7);border:1px solid var(--line-strong);color:var(--txt);padding:13px 15px;border-radius:13px;font-size:13.5px;font-family:inherit;outline:none;resize:vertical"></textarea>
+      <label>Paste the photo links — one per line (no eBay account needed)</label>
+      <div class="muted" style="margin:2px 0 8px;font-size:12.5px">✅ From a daily lot folder, open <b>cardscout-links.txt</b>, select all (Ctrl/Cmd+A), copy, and paste it here — then tap Scan. No file download needed. (You can also paste an eBay listing link, but eBay often blocks that; photo links are reliable.)</div>
+      <textarea id="lotImgs" rows="4" placeholder="Paste photo links here, one per line (the contents of cardscout-links.txt). Or use Upload photos below." style="width:100%;background:rgba(8,11,20,.7);border:1px solid var(--line-strong);color:var(--txt);padding:13px 15px;border-radius:13px;font-size:13.5px;font-family:inherit;outline:none;resize:vertical"></textarea>
       <input id="lotAsk" type="number" inputmode="decimal" placeholder="Asking price (optional, for the verdict)" style="margin-top:10px">
       <div class="row" style="margin-top:12px">
         <button class="btn gold" id="lotManualBtn">Scan the photos</button>
