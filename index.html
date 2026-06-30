@@ -269,8 +269,9 @@
     </div>
     <div class="offer"><div class="lbl">💰 Suggested max buy price</div><div class="big" id="offerVal">—</div><div class="rng" id="offerRng"></div></div>
     <details style="margin-top:14px"><summary>Full price breakdown</summary><table id="breakTbl"></table></details>
-    <details style="margin-top:10px"><summary>💎 PSA / graded value</summary>
-      <p class="muted" style="margin-top:8px">Graded (slabbed) cards sell for far more, and graded prices aren’t in the free database. Pick a grade to open real <b>sold</b> listings for this exact card — the true market for slabs.</p>
+    <details id="gradedDetails" style="margin-top:10px"><summary>💎 PSA / graded value</summary>
+      <div id="gradedLive"></div>
+      <p class="muted" style="margin-top:8px">Or open real <b>sold</b> listings for this exact card at a chosen grade:</p>
       <label>Grade</label>
       <select id="gradeSel">
         <option>PSA 10</option><option>PSA 9</option><option>PSA 8</option>
@@ -535,8 +536,29 @@ function renderResults(cards){
 function selectCard(c){
   selectedCard=c; $('#step3').classList.remove('hidden');
   $('#cardHead').innerHTML=`<img class="cardhead-img" src="${c.images.small}"><div><div style="font-weight:700;font-size:17px;font-family:'Sora',sans-serif">${c.name}</div><div class="muted">${c.set.name} · #${c.number}/${c.set.printedTotal||''}</div><div class="muted">${c.rarity||''} · ${c.set.releaseDate||''}</div></div>`;
-  buildFinishes(c); recompute(); $('#step3').scrollIntoView({behavior:'smooth'});
+  buildFinishes(c); recompute();
+  const gl=$('#gradedLive'); if(gl) gl.innerHTML=''; const gd=$('#gradedDetails'); if(gd){ gd.open=false; gd.dataset.loadedFor=''; }
+  $('#step3').scrollIntoView({behavior:'smooth'});
 }
+async function loadGraded(c){
+  const box=$('#gradedLive'); box.innerHTML='<div class="spin" style="margin:8px auto"></div>';
+  try{
+    const r=await fetch('/.netlify/functions/pcprice?q='+encodeURIComponent(`${c.name} ${c.number}`));
+    const d=await r.json();
+    if(!d.enabled){ box.innerHTML='<div class="muted" style="margin-bottom:8px">💡 Live graded prices (PSA 10/9, CGC, BGS) turn on with a PriceCharting subscription. Until then, use the sold-listing links below.</div>'; return; }
+    if(!d.best){ box.innerHTML='<div class="muted" style="margin-bottom:8px">No PriceCharting match for this card — use the sold links below.</div>'; return; }
+    const b=d.best; const g=v=> v!=null? gbp(v*FX.USDGBP) : '—';
+    box.innerHTML=`<div class="vbox wide"><div class="lbl">💎 Graded value · PriceCharting</div>
+      <div class="sub" style="margin:3px 0 10px;color:var(--muted)">${b.name} · ${b.set}</div>
+      <div class="valuegrid">
+        <div class="vbox"><div class="lbl">Ungraded</div><div class="num" style="font-size:18px">${g(b.ungraded)}</div></div>
+        <div class="vbox"><div class="lbl">PSA 9</div><div class="num" style="font-size:18px">${g(b.psa9)}</div></div>
+        <div class="vbox"><div class="lbl" style="color:var(--accent)">PSA 10</div><div class="num" style="font-size:18px;color:var(--accent)">${g(b.psa10)}</div></div>
+        <div class="vbox"><div class="lbl">CGC 10</div><div class="num" style="font-size:18px">${g(b.cgc10)}</div></div>
+      </div></div>`;
+  }catch(e){ box.innerHTML='<div class="muted">Graded price service unavailable — use the sold links below.</div>'; }
+}
+(function(){ const gd=$('#gradedDetails'); if(gd) gd.addEventListener('toggle', function(){ if(this.open && selectedCard && this.dataset.loadedFor!==selectedCard.id){ this.dataset.loadedFor=selectedCard.id; loadGraded(selectedCard); } }); })();
 function finishKeysOf(c){ return Object.keys((c.tcgplayer&&c.tcgplayer.prices)||{}); }
 function preferFinish(keys){ return keys.find(k=>/holofoil/i.test(k)&&!/reverse|1st/i.test(k))||keys.find(k=>/normal/i.test(k))||keys[0]; }
 function buildFinishes(c){
