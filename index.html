@@ -812,18 +812,34 @@ function resetSingle(){ selectedCard=null; capturedDataURL=null; $('#step3').cla
   $('#preview').style.display='none'; $('#camHint').style.display='block'; window.scrollTo({top:0,behavior:'smooth'}); }
 
 // ---------- MULTI ----------
-async function findOne(name,set,num,era){
+const isHoloCard = c => /holo/i.test(c.rarity||'') || finishKeysOf(c).some(k=>/holofoil/i.test(k)&&!/reverse/i.test(k));
+async function findOne(name,set,num,era,holo){
   const order = era==='vintage' ? 'set.releaseDate' : '-set.releaseDate'; // vintage -> oldest printing first
-  const parts=[`name:"${name}"`]; if(set) parts.push(`set.name:"${set}"`); if(num) parts.push(`number:${String(num).split('/')[0].trim()}`);
-  let r=await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(parts.join(' '))}&pageSize=8&orderBy=${order}`); let j=await r.json();
-  if((!j.data||!j.data.length)&&(set||num)){ r=await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent('name:"'+name+'"')}&pageSize=12&orderBy=${order}`); j=await r.json(); }
-  if(!j.data||!j.data.length) return null;
-  return j.data.find(c=>c.tcgplayer||c.cardmarket) || j.data[0];
+  const q = async (withNum) => {
+    const parts=[`name:"${name}"`]; if(set) parts.push(`set.name:"${set}"`); if(withNum&&num) parts.push(`number:${String(num).split('/')[0].trim()}`);
+    const r=await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(parts.join(' '))}&pageSize=12&orderBy=${order}`); const j=await r.json();
+    return (j.data||[]).filter(c=>c.tcgplayer||c.cardmarket);
+  };
+  let cands = await q(true);
+  if(!cands.length && (set||num)) cands = await q(false);
+  if(!cands.length){ const r=await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent('name:"'+name+'"')}&pageSize=12&orderBy=${order}`); const j=await r.json(); cands=(j.data||[]); }
+  if(!cands.length) return null;
+  // Holo-aware: a non-holo common should never resolve to the pricey holo of the same name (and vice-versa).
+  if(typeof holo==='boolean'){
+    const match = cands.filter(c=>isHoloCard(c)===holo);
+    if(match.length) return match[0];
+    // number likely misread → re-search by name (+set) WITHOUT the number, pick a holo-consistent printing
+    const parts=[`name:"${name}"`]; if(set) parts.push(`set.name:"${set}"`);
+    const r=await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(parts.join(' '))}&pageSize=20&orderBy=${order}`); const j=await r.json();
+    const alt=(j.data||[]).filter(c=>(c.tcgplayer||c.cardmarket)&&isHoloCard(c)===holo);
+    if(alt.length) return alt[0];
+  }
+  return cands[0];
 }
 async function runMulti(){
   $('#batchEmpty').classList.add('hidden'); $('#batchControls').classList.add('hidden'); $('#batchList').innerHTML='';
   $('#batchThinking').classList.remove('hidden'); $('#batchThinkTxt').textContent='Reading all the cards in your photo…';
-  const prompt='You are reading a photo of several Pokemon cards laid out. For EACH card whose NAME you can clearly read, give: name (never guess a name you cannot read); set and number ONLY if clearly legible, otherwise ""; era ("vintage" for 1999-2003 WOTC-style cards — yellow border, old layout, e.g. Base, Jungle, Fossil, Team Rocket, Gym, Neo — otherwise "modern"). NEVER guess a set you cannot read. Respond ONLY with a JSON array, no prose: [{"name":"","set":"","number":"","era":""}, ...].';
+  const prompt='You are reading a photo of several Pokemon cards laid out. For EACH card whose NAME you can clearly read, give: name (never guess a name you cannot read); set and number ONLY if clearly legible, otherwise ""; era ("vintage" for 1999-2003 WOTC-style cards — yellow border, old layout, e.g. Base, Jungle, Fossil, Team Rocket, Gym, Neo — otherwise "modern"); holo (true if the artwork has a shiny/holographic/foil sheen, false for a flat matte non-foil card — this decides common vs rare). NEVER guess a set you cannot read. Respond ONLY with a JSON array, no prose: [{"name":"","set":"","number":"","era":"","holo":false}, ...].';
   try{
     const text=await aiVision(prompt);
     const m=text.match(/\[[\s\S]*\]/); let arr=m?JSON.parse(m[0]):[];
@@ -832,7 +848,7 @@ async function runMulti(){
     batchCards=[];
     for(let i=0;i<arr.length;i++){
       $('#batchThinkTxt').textContent=`Pricing card ${i+1} of ${arr.length}…`;
-      try{ const c=await findOne(arr[i].name,arr[i].set,arr[i].number,arr[i].era); if(c){ const keys=finishKeysOf(c); batchCards.push({card:c, finishKey: keys.length?preferFinish(keys):'_cm'}); } }catch(e){}
+      try{ const c=await findOne(arr[i].name,arr[i].set,arr[i].number,arr[i].era, typeof arr[i].holo==='boolean'?arr[i].holo:undefined); if(c){ const keys=finishKeysOf(c); batchCards.push({card:c, finishKey: keys.length?preferFinish(keys):'_cm'}); } }catch(e){}
     }
     $('#batchThinking').classList.add('hidden');
     if(!batchCards.length){ $('#batchEmpty').classList.remove('hidden'); $('#batchEmpty').innerHTML='<div class="errbox">Couldn’t price any of the detected cards. Try again or use Single mode.</div>'; return; }
@@ -1086,20 +1102,20 @@ async function scanImages(imgs, ask, out){
   imgs=(imgs||[]).filter(Boolean).slice(0,8);
   if(!imgs.length){ out.innerHTML='<div class="errbox">No photos to scan — paste image links or upload photos.</div>'; return; }
   out.innerHTML='<div class="spin"></div><p class="muted" id="lotScanTxt" style="text-align:center">Reading the photos…</p>';
-  const prompt='Photo from a Pokemon card lot. For EACH card whose name you can clearly read, give: name; set (ONLY if the set symbol/name is clearly legible, otherwise ""); number (ONLY if legible, otherwise ""); era ("vintage" for 1999-2003 WOTC-style cards — yellow border, old layout, sets like Base, Jungle, Fossil, Team Rocket, Gym Heroes, Gym Challenge, Neo — otherwise "modern"). NEVER guess a set you cannot read; leave it "" instead. Respond ONLY with a JSON array: [{"name":"","set":"","number":"","era":""}, ...].';
+  const prompt='Photo from a Pokemon card lot. For EACH card whose name you can clearly read, give: name; set (ONLY if the set symbol/name is clearly legible, otherwise ""); number (ONLY if legible, otherwise ""); era ("vintage" for 1999-2003 WOTC-style cards — yellow border, old layout, sets like Base, Jungle, Fossil, Team Rocket, Gym Heroes, Gym Challenge, Neo — otherwise "modern"); holo (true if the artwork has a shiny/holographic/foil sheen, false for a flat matte non-foil card — look carefully, this decides common vs rare). NEVER guess a set you cannot read; leave it "" instead. Respond ONLY with a JSON array: [{"name":"","set":"","number":"","era":"","holo":false}, ...].';
   const found={};
   try{
     for(let i=0;i<imgs.length;i++){
       const t=$('#lotScanTxt'); if(t) t.textContent=`Reading photo ${i+1} of ${imgs.length}…`;
       let text=''; try{ text=await aiVisionUrl(prompt, imgs[i]); }catch(e){ if(/api key/i.test(e.message)){ out.innerHTML='<div class="errbox">'+e.message+'</div>'; return; } continue; }
       const m=text.match(/\[[\s\S]*\]/); let arr=m?JSON.parse(m[0]):[];
-      arr.forEach(o=>{ if(o&&o.name){ const k=(o.name+'|'+(o.number||'')).toLowerCase(); if(!found[k]) found[k]={name:o.name,set:o.set,number:o.number,era:o.era}; } });
+      arr.forEach(o=>{ if(o&&o.name){ const k=(o.name+'|'+(o.number||'')).toLowerCase(); if(!found[k]) found[k]={name:o.name,set:o.set,number:o.number,era:o.era,holo:o.holo}; } });
     }
     const list=Object.values(found).slice(0,30);
     if(!list.length){ out.innerHTML='<div class="muted">No clearly-readable cards spotted — lot pics are often low-res. Worth a manual look if the price is right.</div>'; return; }
     const t=$('#lotScanTxt'); if(t) t.textContent='Pricing the cards found…';
     const items=[];
-    for(const f of list){ try{ const c=await findOne(cleanCardName(f.name), f.set||'', f.number||'', f.era); if(c){ const keys=finishKeysOf(c); items.push({card:c, finishKey: keys.length?preferFinish(keys):'_cm'}); } }catch(e){} }
+    for(const f of list){ try{ const c=await findOne(cleanCardName(f.name), f.set||'', f.number||'', f.era, typeof f.holo==='boolean'?f.holo:undefined); if(c){ const keys=finishKeysOf(c); items.push({card:c, finishKey: keys.length?preferFinish(keys):'_cm'}); } }catch(e){} }
     if(!items.length){ out.innerHTML='<div class="muted">Couldn’t price any of the detected cards. Try again or use Single mode.</div>'; return; }
     scanState={items, ask, out}; renderScan();
   }catch(e){ out.innerHTML='<div class="errbox">Scan failed: '+e.message+'</div>'; }
