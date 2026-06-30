@@ -313,6 +313,12 @@
       <option value="0.50">Heavily Played (HP)</option>
       <option value="0.35">Damaged (DMG)</option>
     </select>
+    <div class="row" style="margin-top:10px">
+      <button class="btn ghost" id="gradeBtn">Grade with AI</button>
+      <button class="btn ghost" id="backBtn">Add back photo</button>
+    </div>
+    <input type="file" id="backFile" accept="image/*" capture="environment" class="hidden">
+    <div id="gradeNote" class="muted" style="margin-top:8px"></div>
     <h2 class="eyebrow" style="margin-top:22px"><span class="n">$</span> Worldwide market value</h2>
     <div class="valuegrid">
       <div class="vbox"><div class="lbl">US · TCGplayer</div><div class="num" id="usVal">—</div><div class="sub" id="usSub">market price</div></div>
@@ -487,6 +493,7 @@ let selectedCard = null;
 let mode = 'single';
 let batchCards = []; // {card, finishKey}
 let manualItems = []; // {name, value}  (sealed packs/boxes or any manual line)
+let scanState = null; // lot-scan results {items:[{card,finishKey}], ask, out}
 
 // ---------- FX / currency ----------
 function applyRates(){ FX.USD = RATES[CUR]||1; FX.EUR = (RATES[CUR]||1)/(RATES.EUR||1); }
@@ -657,6 +664,7 @@ function selectCard(c){
   $('#cardHead').innerHTML=`<img class="cardhead-img" src="${c.images.small}"><div><div style="font-weight:700;font-size:17px;font-family:'Sora',sans-serif">${c.name}</div><div class="muted">${c.set.name} · #${c.number}/${c.set.printedTotal||''}</div><div class="muted">${c.rarity||''} · ${c.set.releaseDate||''}</div></div>`;
   buildFinishes(c); recompute();
   const gl=$('#gradedLive'); if(gl) gl.innerHTML=''; const gd=$('#gradedDetails'); if(gd){ gd.open=false; gd.dataset.loadedFor=''; }
+  window._backImg=null; if($('#gradeNote')) $('#gradeNote').textContent='';
   $('#step3').scrollIntoView({behavior:'smooth'});
 }
 async function loadGraded(c){
@@ -729,6 +737,34 @@ $('#cardShare').onclick=()=>{
   if(navigator.share){ navigator.share({title:'CardScout valuation',text}).catch(()=>{}); }
   else if(navigator.clipboard){ navigator.clipboard.writeText(text).then(()=>toast('Valuation copied to clipboard.')).catch(()=>toast('Copy failed — long-press to select.')); }
   else toast('Sharing not supported on this browser.');
+};
+// ---------- AI condition grading (front + back) ----------
+async function aiGrade(images){
+  const key=$('#aiKey').value.trim(); const provider=$('#aiProvider').value;
+  if(!key) throw new Error('Add your AI key in Settings to grade condition.');
+  const prompt='Grade this single Pokemon card’s condition from the photo(s) (front, and back if shown). Judge centering, corner sharpness, edge whitening, surface scratches/scuffs/dents, and back whitening/wear. Respond ONLY with JSON: {"grade":"NM|LP|MP|HP|DMG","reason":"short reason"}. NM=near mint, LP=lightly played, MP=moderately played, HP=heavily played, DMG=damaged.';
+  if(provider==='openai'){
+    const content=[{type:'text',text:prompt}].concat(images.map(u=>({type:'image_url',image_url:{url:u}})));
+    const r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:'gpt-4o',messages:[{role:'user',content}],max_tokens:300})});
+    const j=await r.json(); if(j.error) throw new Error(j.error.message); return j.choices[0].message.content;
+  } else {
+    const content=images.map(u=>({type:'image',source:u.startsWith('data:')?{type:'base64',media_type:u.substring(5,u.indexOf(';')),data:u.split(',')[1]}:{type:'url',url:u}})).concat([{type:'text',text:prompt}]);
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:300,messages:[{role:'user',content}]})});
+    const j=await r.json(); if(j.error) throw new Error(j.error.message); return j.content[0].text;
+  }
+}
+if($('#backBtn')) $('#backBtn').onclick=()=>$('#backFile').click();
+if($('#backFile')) $('#backFile').onchange=e=>{ const f=e.target.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=()=>{ window._backImg=rd.result; $('#gradeNote').textContent='Back photo added — tap “Grade with AI”.'; }; rd.readAsDataURL(f); };
+if($('#gradeBtn')) $('#gradeBtn').onclick=async()=>{
+  const imgs=[]; if(capturedDataURL) imgs.push(capturedDataURL); if(window._backImg) imgs.push(window._backImg);
+  if(!imgs.length){ toast('Take or upload a photo of the card first (front, and ideally the back).'); return; }
+  $('#gradeNote').innerHTML='<div class="spin" style="margin:6px auto"></div>';
+  try{
+    const text=await aiGrade(imgs); const m=text.match(/\{[\s\S]*\}/); const o=m?JSON.parse(m[0]):{};
+    const map={NM:'1.00',LP:'0.82',MP:'0.65',HP:'0.50',DMG:'0.35'}; const g=(o.grade||'').toUpperCase(); const val=map[g];
+    if(val){ $('#condSel').value=val; recompute(); $('#gradeNote').innerHTML=`AI grade: <b style="color:var(--accent)">${g}</b>${o.reason?' — '+o.reason:''}. Adjust above if you disagree.`; }
+    else { $('#gradeNote').textContent='Couldn’t read a grade from the photo — set the condition manually.'; }
+  }catch(e){ $('#gradeNote').innerHTML='<span style="color:var(--red)">Grade failed: '+((e.message||'').slice(0,70))+'</span>'; }
 };
 $('#gradedBtn').onclick=()=>{
   if(!selectedCard) return; const c=selectedCard; const g=$('#gradeSel').value;
@@ -1026,19 +1062,32 @@ async function scanImages(imgs, ask, out){
     const list=Object.values(found).slice(0,30);
     if(!list.length){ out.innerHTML='<div class="muted">No clearly-readable cards spotted — lot pics are often low-res. Worth a manual look if the price is right.</div>'; return; }
     const t=$('#lotScanTxt'); if(t) t.textContent='Pricing the cards found…';
-    let rows='', total=0, noPrice=0;
-    for(const f of list){ try{ const c=await findOne(cleanCardName(f.name), f.set||'', f.number||'', f.era); if(c){
-      const p=priceCard(c, finishKeysOf(c).length?preferFinish(finishKeysOf(c)):'_cm'); const v=p.blendNM||0; total+=v;
-      let cell;
-      if(v){ cell=`<div class="buy">${gbp(v)}</div>`; }
-      else { noPrice++; const eb=`https://www.${CUR_DEFS[CUR].ebay}/sch/i.html?_nkw=${encodeURIComponent(c.name+' '+c.set.name+' '+c.number)}&LH_Sold=1&LH_Complete=1`; cell=`<a href="${eb}" target="_blank" rel="noopener" style="font-size:11.5px;font-weight:700;color:var(--blue);white-space:nowrap">check eBay ›</a>`; }
-      rows+=`<div class="brow"><img src="${c.images.small}"><div class="bi"><b>${c.name}</b><span>${c.set.name} · #${c.number}</span></div><div class="bp">${cell}</div></div>`;
-    } }catch(e){} }
-    const col=(ask!=null && total>ask)?'#5cf0a6':'#ffd6db';
-    const verdict = ask!=null ? `Priced cards ≈ <b style="color:${col}">${gbp(total)}</b> vs asking ${gbp(ask)} — ${total>ask?'worth a look':'below asking on priced cards alone'}.` : `Priced cards ≈ <b>${gbp(total)}</b>.`;
-    out.innerHTML=`<div class="offer" style="margin-top:6px"><div class="lbl">Priced cards value</div><div class="big" style="font-size:34px">${gbp(total)}</div><div class="rng">${verdict}</div></div>
-      <div class="muted" style="margin:10px 0">${list.length} card(s) read across the photos.${noPrice?` ${noPrice} had no live price yet (usually brand-new sets) — tap “check eBay” on those to value them, and add them on top.`:''} Lot photos are low-res — treat this as a shortlist.</div>${rows}`;
+    const items=[];
+    for(const f of list){ try{ const c=await findOne(cleanCardName(f.name), f.set||'', f.number||'', f.era); if(c){ const keys=finishKeysOf(c); items.push({card:c, finishKey: keys.length?preferFinish(keys):'_cm'}); } }catch(e){} }
+    if(!items.length){ out.innerHTML='<div class="muted">Couldn’t price any of the detected cards. Try again or use Single mode.</div>'; return; }
+    scanState={items, ask, out}; renderScan();
   }catch(e){ out.innerHTML='<div class="errbox">Scan failed: '+e.message+'</div>'; }
+}
+function renderScan(){
+  if(!scanState) return; const {items, ask, out}=scanState; let rows='', total=0, noPrice=0;
+  items.forEach((it,idx)=>{ const c=it.card; const p=priceCard(c, it.finishKey); const v=p.blendNM||0; total+=v;
+    let cell;
+    if(v){ cell=`<div class="buy">${gbp(v)}</div>`; }
+    else { noPrice++; const eb=`https://www.${CUR_DEFS[CUR].ebay}/sch/i.html?_nkw=${encodeURIComponent(c.name+' '+c.set.name+' '+c.number)}&LH_Sold=1&LH_Complete=1`; cell=`<a href="${eb}" target="_blank" rel="noopener" style="font-size:11.5px;font-weight:700;color:var(--blue);white-space:nowrap">check eBay ›</a>`; }
+    rows+=`<div class="brow"><img src="${c.images.small}"><div class="bi"><b>${c.name}</b><span>${c.set.name} · #${c.number}</span></div><div class="bp">${cell}</div><button class="x edit" data-i="${idx}" title="fix this card">✎</button></div>`;
+  });
+  const col=(ask!=null && total>ask)?'#5cf0a6':'#ffd6db';
+  const verdict = ask!=null ? `Priced cards ≈ <b style="color:${col}">${gbp(total)}</b> vs asking ${gbp(ask)} — ${total>ask?'worth a look':'below asking on priced cards alone'}.` : `Priced cards ≈ <b>${gbp(total)}</b>.`;
+  out.innerHTML=`<div class="offer" style="margin-top:6px"><div class="lbl">Priced cards value</div><div class="big" style="font-size:34px">${gbp(total)}</div><div class="rng">${verdict}</div></div>
+    <div class="muted" style="margin:10px 0">${items.length} card(s).${noPrice?` ${noPrice} had no live price (new sets) — tap “check eBay”.`:''} Tap ✎ to fix a wrong name/number. Lot photos are low-res — treat as a shortlist.</div>${rows}`;
+  out.querySelectorAll('.edit').forEach(b=>{ b.onclick=async()=>{
+    const i=+b.dataset.i; const cur=scanState.items[i].card;
+    const nn=prompt('Fix this card — type the name and number (e.g. "Hitmonlee 22/62"):', cur.name+' '+cur.number); if(!nn||!nn.trim()) return;
+    const numm=((nn.match(/(\d+)\s*\/\s*\d+/)||nn.match(/(\d{1,3})\s*$/))||[])[1]||'';
+    const nm=cleanCardName(nn.replace(/\d+\s*\/\s*\d+/,'').replace(/\d{1,3}\s*$/,'').trim());
+    const era=(new Date(cur.set.releaseDate||'2020')<new Date('2005-01-01'))?'vintage':'';
+    try{ const c=await findOne(nm||cur.name, '', numm, era); if(c){ const keys=finishKeysOf(c); scanState.items[i]={card:c, finishKey:keys.length?preferFinish(keys):'_cm'}; renderScan(); toast('Updated to '+c.name+' #'+c.number); } else toast('No match for that — try the exact number.'); }catch(e){ toast('Search failed.'); }
+  }; });
 }
 async function scanLot(){ const it=window._lot; if(!it) return; scanImages(it.images, ebGBP(it.price,it.currency), $('#lotScan')); }
 // manual (no eBay API): paste image links or upload photos
