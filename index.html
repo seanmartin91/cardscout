@@ -425,10 +425,22 @@
     </div>
 
     <div id="dealLot" class="hidden">
-      <label>Paste an eBay lot / bundle listing link</label>
-      <input id="lotUrl" placeholder="https://www.ebay.co.uk/itm/…">
-      <button class="btn" id="lotFetchBtn" style="margin-top:12px">Pull the lot photos</button>
-      <div id="lotResult" style="margin-top:10px"></div>
+      <label>Paste the listing's photo links — one per line (no eBay account needed)</label>
+      <textarea id="lotImgs" rows="4" placeholder="On the listing, right-click each photo → Copy image address, and paste them here (one per line). Or use Upload photos below." style="width:100%;background:rgba(8,11,20,.7);border:1px solid var(--line-strong);color:var(--txt);padding:13px 15px;border-radius:13px;font-size:13.5px;font-family:inherit;outline:none;resize:vertical"></textarea>
+      <input id="lotAsk" type="number" inputmode="decimal" placeholder="Asking price (optional, for the verdict)" style="margin-top:10px">
+      <div class="row" style="margin-top:12px">
+        <button class="btn gold" id="lotManualBtn">Scan the photos</button>
+        <button class="btn ghost" id="lotUploadBtn">Upload photos</button>
+      </div>
+      <input type="file" id="lotFile" accept="image/*" multiple class="hidden">
+      <div id="lotManualScan" style="margin-top:10px"></div>
+
+      <details style="margin-top:16px"><summary>Have eBay API keys? Auto-pull photos from a listing link</summary>
+        <label>eBay lot / bundle listing link</label>
+        <input id="lotUrl" placeholder="https://www.ebay.ca/itm/…">
+        <button class="btn" id="lotFetchBtn" style="margin-top:12px">Pull the lot photos</button>
+        <div id="lotResult" style="margin-top:10px"></div>
+      </details>
     </div>
   </div>
 
@@ -938,14 +950,17 @@ $('#sealedReset').onclick=()=>{ capturedDataURL=null; $('#sealedStep').classList
 // ---------- DEALS (eBay) ----------
 async function aiVisionUrl(prompt, imageUrl){
   const key=$('#aiKey').value.trim(); const provider=$('#aiProvider').value;
-  if(!key) throw new Error('Add your AI key (under “AI auto-recognition”) to scan photos.');
+  if(!key) throw new Error('Add your AI key in Settings to scan photos.');
   if(provider==='openai'){
     const r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
       body:JSON.stringify({model:'gpt-4o',messages:[{role:'user',content:[{type:'text',text:prompt},{type:'image_url',image_url:{url:imageUrl}}]}],max_tokens:700})});
     const j=await r.json(); if(j.error) throw new Error(j.error.message); return j.choices[0].message.content;
   } else {
+    let source;
+    if(imageUrl.startsWith('data:')){ source={type:'base64',media_type:imageUrl.substring(5,imageUrl.indexOf(';')),data:imageUrl.split(',')[1]}; }
+    else { source={type:'url',url:imageUrl}; }
     const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:700,messages:[{role:'user',content:[{type:'image',source:{type:'url',url:imageUrl}},{type:'text',text:prompt}]}]})});
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:700,messages:[{role:'user',content:[{type:'image',source},{type:'text',text:prompt}]}]})});
     const j=await r.json(); if(j.error) throw new Error(j.error.message); return j.content[0].text;
   }
 }
@@ -986,11 +1001,11 @@ $('#lotFetchBtn').onclick=async()=>{
   html+='</div><button class="btn gold" id="lotScanBtn" style="margin-top:12px">Scan photos for valuable cards</button><div id="lotScan" style="margin-top:8px"></div>';
   $('#lotResult').innerHTML=html; $('#lotScanBtn').onclick=scanLot;
 };
-async function scanLot(){
-  const it=window._lot; if(!it) return; const out=$('#lotScan');
+async function scanImages(imgs, ask, out){
+  imgs=(imgs||[]).filter(Boolean).slice(0,8);
+  if(!imgs.length){ out.innerHTML='<div class="errbox">No photos to scan — paste image links or upload photos.</div>'; return; }
   out.innerHTML='<div class="spin"></div><p class="muted" id="lotScanTxt" style="text-align:center">Reading the photos…</p>';
-  const imgs=it.images.slice(0,6);
-  const prompt='This is a photo from an eBay Pokemon card lot. List ONLY cards whose name you can clearly read — never guess. Respond ONLY with a JSON array: [{"name":"","set":"","number":""}, ...]. Leave set/number blank if not legible.';
+  const prompt='This is a photo from a Pokemon card lot. List ONLY cards whose name you can clearly read — never guess. Respond ONLY with a JSON array: [{"name":"","set":"","number":""}, ...]. Leave set/number blank if not legible.';
   const found={};
   try{
     for(let i=0;i<imgs.length;i++){
@@ -1004,13 +1019,28 @@ async function scanLot(){
     const t=$('#lotScanTxt'); if(t) t.textContent='Pricing the cards found…';
     let rows='', total=0;
     for(const f of list){ try{ const c=await findOne(cleanCardName(f.name), f.set||'', f.number||''); if(c){ const p=priceCard(c, finishKeysOf(c).length?preferFinish(finishKeysOf(c)):'_cm'); const v=p.blendNM||0; total+=v; rows+=`<div class="brow"><img src="${c.images.small}"><div class="bi"><b>${c.name}</b><span>${c.set.name} · #${c.number}</span></div><div class="bp"><div class="buy">${v?gbp(v):'—'}</div></div></div>`; } }catch(e){} }
-    const ask=ebGBP(it.price,it.currency);
     const col=(ask!=null && total>ask)?'#5cf0a6':'#ffd6db';
-    const verdict = ask!=null ? `Readable cards ≈ <b style="color:${col}">${gbp(total)}</b> vs asking ${gbp(ask)} — ${total>ask?'🔥 worth a look':'below asking on readable cards alone'}.` : `Readable cards ≈ <b>${gbp(total)}</b>.`;
+    const verdict = ask!=null ? `Readable cards ≈ <b style="color:${col}">${gbp(total)}</b> vs asking ${gbp(ask)} — ${total>ask?'worth a look':'below asking on readable cards alone'}.` : `Readable cards ≈ <b>${gbp(total)}</b>.`;
     out.innerHTML=`<div class="offer" style="margin-top:6px"><div class="lbl">Readable cards value</div><div class="big" style="font-size:34px">${gbp(total)}</div><div class="rng">${verdict}</div></div>
       <div class="muted" style="margin:10px 0">${list.length} card(s) read across the photos. Lot photos are low-res — treat this as a shortlist; there may be more (or less) than the AI could read.</div>${rows}`;
   }catch(e){ out.innerHTML='<div class="errbox">Scan failed: '+e.message+'</div>'; }
 }
+async function scanLot(){ const it=window._lot; if(!it) return; scanImages(it.images, ebGBP(it.price,it.currency), $('#lotScan')); }
+// manual (no eBay API): paste image links or upload photos
+function lotManualScan(){
+  const ask=parseFloat($('#lotAsk').value)||null;
+  const urls=($('#lotImgs').value||'').split(/\s+/).map(s=>s.trim()).filter(s=>/^https?:\/\//i.test(s));
+  if(urls.length){ scanImages(urls, ask, $('#lotManualScan')); }
+  else { toast('Paste at least one image link, or upload photos.'); }
+}
+if($('#lotManualBtn')) $('#lotManualBtn').onclick=lotManualScan;
+if($('#lotUploadBtn')) $('#lotUploadBtn').onclick=()=>$('#lotFile').click();
+if($('#lotFile')) $('#lotFile').onchange=async (e)=>{
+  const files=[...e.target.files]; if(!files.length) return;
+  const ask=parseFloat($('#lotAsk').value)||null;
+  const urls=await Promise.all(files.map(f=>new Promise(res=>{ const rd=new FileReader(); rd.onload=()=>res(rd.result); rd.readAsDataURL(f); })));
+  scanImages(urls, ask, $('#lotManualScan'));
+};
 
 // ---------- SETTINGS + LOGIN ----------
 function openSettings(){
