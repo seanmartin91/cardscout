@@ -1017,12 +1017,18 @@ async function scanImages(imgs, ask, out){
     const list=Object.values(found).slice(0,30);
     if(!list.length){ out.innerHTML='<div class="muted">No clearly-readable cards spotted — lot pics are often low-res. Worth a manual look if the price is right.</div>'; return; }
     const t=$('#lotScanTxt'); if(t) t.textContent='Pricing the cards found…';
-    let rows='', total=0;
-    for(const f of list){ try{ const c=await findOne(cleanCardName(f.name), f.set||'', f.number||''); if(c){ const p=priceCard(c, finishKeysOf(c).length?preferFinish(finishKeysOf(c)):'_cm'); const v=p.blendNM||0; total+=v; rows+=`<div class="brow"><img src="${c.images.small}"><div class="bi"><b>${c.name}</b><span>${c.set.name} · #${c.number}</span></div><div class="bp"><div class="buy">${v?gbp(v):'—'}</div></div></div>`; } }catch(e){} }
+    let rows='', total=0, noPrice=0;
+    for(const f of list){ try{ const c=await findOne(cleanCardName(f.name), f.set||'', f.number||''); if(c){
+      const p=priceCard(c, finishKeysOf(c).length?preferFinish(finishKeysOf(c)):'_cm'); const v=p.blendNM||0; total+=v;
+      let cell;
+      if(v){ cell=`<div class="buy">${gbp(v)}</div>`; }
+      else { noPrice++; const eb=`https://www.${CUR_DEFS[CUR].ebay}/sch/i.html?_nkw=${encodeURIComponent(c.name+' '+c.set.name+' '+c.number)}&LH_Sold=1&LH_Complete=1`; cell=`<a href="${eb}" target="_blank" rel="noopener" style="font-size:11.5px;font-weight:700;color:var(--blue);white-space:nowrap">check eBay ›</a>`; }
+      rows+=`<div class="brow"><img src="${c.images.small}"><div class="bi"><b>${c.name}</b><span>${c.set.name} · #${c.number}</span></div><div class="bp">${cell}</div></div>`;
+    } }catch(e){} }
     const col=(ask!=null && total>ask)?'#5cf0a6':'#ffd6db';
-    const verdict = ask!=null ? `Readable cards ≈ <b style="color:${col}">${gbp(total)}</b> vs asking ${gbp(ask)} — ${total>ask?'worth a look':'below asking on readable cards alone'}.` : `Readable cards ≈ <b>${gbp(total)}</b>.`;
-    out.innerHTML=`<div class="offer" style="margin-top:6px"><div class="lbl">Readable cards value</div><div class="big" style="font-size:34px">${gbp(total)}</div><div class="rng">${verdict}</div></div>
-      <div class="muted" style="margin:10px 0">${list.length} card(s) read across the photos. Lot photos are low-res — treat this as a shortlist; there may be more (or less) than the AI could read.</div>${rows}`;
+    const verdict = ask!=null ? `Priced cards ≈ <b style="color:${col}">${gbp(total)}</b> vs asking ${gbp(ask)} — ${total>ask?'worth a look':'below asking on priced cards alone'}.` : `Priced cards ≈ <b>${gbp(total)}</b>.`;
+    out.innerHTML=`<div class="offer" style="margin-top:6px"><div class="lbl">Priced cards value</div><div class="big" style="font-size:34px">${gbp(total)}</div><div class="rng">${verdict}</div></div>
+      <div class="muted" style="margin:10px 0">${list.length} card(s) read across the photos.${noPrice?` ${noPrice} had no live price yet (usually brand-new sets) — tap “check eBay” on those to value them, and add them on top.`:''} Lot photos are low-res — treat this as a shortlist.</div>${rows}`;
   }catch(e){ out.innerHTML='<div class="errbox">Scan failed: '+e.message+'</div>'; }
 }
 async function scanLot(){ const it=window._lot; if(!it) return; scanImages(it.images, ebGBP(it.price,it.currency), $('#lotScan')); }
