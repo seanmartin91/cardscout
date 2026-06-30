@@ -148,6 +148,31 @@
   @keyframes r{to{transform:rotate(360deg)}}
   .cardhead-img{width:78px;border-radius:11px;box-shadow:0 8px 20px -8px rgba(0,0,0,.8)}
   a{color:var(--blue)}
+  /* ---- refined icon system ---- */
+  .ic{width:1em;height:1em;display:inline-block;vertical-align:-0.13em;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
+  .eyebrow .n .ic{width:13px;height:13px;stroke:#fff;stroke-width:2}
+  .brand .logo{background:none!important;box-shadow:none!important;width:40px;height:40px;display:block}
+  .brand .logo svg{width:40px;height:40px;display:block;filter:drop-shadow(0 6px 16px rgba(0,0,0,.5))}
+  .gear{margin-left:auto;width:38px;height:38px;border-radius:11px;background:rgba(255,255,255,.05);border:1px solid var(--line-strong);color:var(--muted);display:grid;place-items:center;flex:0 0 auto;transition:.18s}
+  .gear:hover{background:rgba(255,255,255,.1);color:var(--txt)}
+  .gear .ic{width:19px;height:19px}
+  .mode .mi{display:flex;justify-content:center;margin-bottom:4px}
+  .mode .mi .ic{width:18px;height:18px;stroke-width:1.8}
+  .rgn{font-size:10px;font-weight:800;letter-spacing:.4px;color:var(--muted);background:rgba(255,255,255,.06);padding:2px 6px;border-radius:6px}
+  /* ---- settings rows ---- */
+  .setrow{display:flex;align-items:center;gap:11px;padding:12px 0;border-bottom:1px solid var(--line)}
+  .setrow:last-child{border-bottom:none}
+  .setrow .si{flex:1;min-width:0}
+  .setrow .st{font-size:13.5px;font-weight:600}
+  .setrow .sd{font-size:11.5px;color:var(--muted);margin-top:1px}
+  .dot2{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+  .dot2.on{background:var(--green);box-shadow:0 0 8px rgba(54,224,138,.7)}
+  .dot2.off{background:var(--faint)}
+  /* ---- login overlay ---- */
+  .overlay{position:fixed;inset:0;z-index:120;background:radial-gradient(720px 520px at 50% -5%,rgba(109,139,255,.20),transparent 60%),var(--bg);display:grid;place-items:center;padding:24px}
+  .loginbox{width:100%;max-width:380px;background:var(--panel-solid);border:1px solid var(--line-strong);border-radius:22px;padding:32px 26px;text-align:center;box-shadow:var(--shadow)}
+  .loginbox .lb-logo{width:56px;height:56px;margin:0 auto 18px}
+  .loginbox h3{font-family:'Sora',sans-serif;font-size:21px;margin:0 0 6px;letter-spacing:-.3px}
   .fxnote{font-size:11px;color:var(--faint);text-align:center;margin-top:10px}
   .disclaimer{color:var(--faint);font-size:12px;text-align:center;margin:18px auto;line-height:1.6;max-width:480px}
   .errbox{text-align:left;background:rgba(255,107,125,.12);border:1px solid rgba(255,107,125,.4);border-radius:12px;padding:13px;color:#ffb3bd;font-size:13px;line-height:1.55}
@@ -176,26 +201,63 @@
 <body>
 <header>
   <div class="brand">
-    <span class="logo">⚡</span>
+    <span class="logo">
+      <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" aria-label="CardScout">
+        <defs>
+          <linearGradient id="pbTop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff6173"/><stop offset="1" stop-color="#e1273f"/></linearGradient>
+          <linearGradient id="pbBot" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6f9ff"/><stop offset="1" stop-color="#ccd6ec"/></linearGradient>
+        </defs>
+        <circle cx="20" cy="20" r="18.5" fill="#0b0f1a"/>
+        <path d="M2.4 20a17.6 17.6 0 0 1 35.2 0z" fill="url(#pbTop)"/>
+        <path d="M37.6 20a17.6 17.6 0 0 1-35.2 0z" fill="url(#pbBot)"/>
+        <rect x="2.2" y="18.5" width="35.6" height="3" fill="#0b0f1a"/>
+        <circle cx="20" cy="20" r="6.1" fill="#0b0f1a"/>
+        <circle cx="20" cy="20" r="4.1" fill="#fff"/>
+        <circle cx="20" cy="20" r="1.9" fill="#eef2ff" stroke="#aebbd8" stroke-width=".8"/>
+      </svg>
+    </span>
     <div>
       <b>CardScout <span class="chip" id="liveBadge"><span class="blip"></span>Live prices</span></b>
-      <small>Snap a card → see worldwide value → get a buy price</small>
+      <small>Scan a card · see worldwide value · get a buy price</small>
     </div>
+    <button class="gear" id="settingsBtn" title="Settings" aria-label="Settings"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
   </div>
 </header>
 
 <div class="wrap">
 
+  <!-- SETTINGS -->
+  <div class="panel hidden" id="settingsStep">
+    <h2 class="eyebrow"><span class="n"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 4v2M12 18v2M4 12h2M18 12h2M6 6l1.5 1.5M16.5 16.5L18 18M18 6l-1.5 1.5M7.5 16.5L6 18"/></svg></span> Settings</h2>
+    <h3 style="font-family:'Sora',sans-serif;font-size:14px;margin:0 0 4px">AI recognition</h3>
+    <p class="muted">Add a Claude or OpenAI key to read cards &amp; products from photos and run lot scans. Stored only on this device — sent only to the provider you pick.</p>
+    <label>AI provider</label>
+    <select id="aiProvider">
+      <option value="openai">OpenAI — GPT-4o (vision)</option>
+      <option value="anthropic">Anthropic — Claude</option>
+    </select>
+    <label>API key</label>
+    <input type="password" id="aiKey" placeholder="paste your key — saved on this device">
+    <p class="muted" id="aiState" style="margin-top:10px">AI recognition is <b>off</b>. Add a key to enable it.</p>
+    <button class="btn ghost" id="forgetKey" style="margin-top:8px;display:none;padding:10px;font-size:13px">Forget saved key</button>
+
+    <h3 style="font-family:'Sora',sans-serif;font-size:14px;margin:22px 0 6px">Connected services</h3>
+    <div id="svcStatus"></div>
+    <p class="muted" style="margin-top:10px;font-size:11.5px">Sealed, graded &amp; eBay data run on secure server keys (PriceCharting, eBay) configured in Netlify, shared for everyone using this app.</p>
+
+    <button class="btn" id="settingsClose" style="margin-top:20px">Done</button>
+  </div>
+
   <!-- STEP 1: CAPTURE -->
   <div class="panel" id="step1">
     <div class="modes" id="modes">
-      <button class="mode on" data-mode="single"><span class="mi">🃏</span>Single card</button>
-      <button class="mode" data-mode="multi"><span class="mi">🗂️</span>Multiple cards</button>
-      <button class="mode" data-mode="sealed"><span class="mi">📦</span>Pack / box</button>
-      <button class="mode" data-mode="deals"><span class="mi">🔎</span>Find deals</button>
+      <button class="mode on" data-mode="single"><span class="mi"><svg class="ic" viewBox="0 0 24 24"><rect x="5" y="3.5" width="14" height="17" rx="2.5"/><path d="M9 8h6M9 12h6"/></svg></span>Single card</button>
+      <button class="mode" data-mode="multi"><span class="mi"><svg class="ic" viewBox="0 0 24 24"><rect x="8.5" y="6" width="11" height="14.5" rx="2.2"/><path d="M5 17V6.2a2 2 0 0 1 2-2h8.5"/></svg></span>Multiple cards</button>
+      <button class="mode" data-mode="sealed"><span class="mi"><svg class="ic" viewBox="0 0 24 24"><path d="M21 8.5l-9-5-9 5v7l9 5 9-5z"/><path d="M3 8.5l9 5 9-5M12 13.5V21"/></svg></span>Pack / box</button>
+      <button class="mode" data-mode="deals"><span class="mi"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5L16 16"/></svg></span>Find deals</button>
     </div>
     <div class="camwrap" id="camwrap">
-      <div class="hint" id="camHint"><span class="ico">📸</span><span id="hintText">Tap “Use camera” to scan a card on the shelf, or upload a photo.</span></div>
+      <div class="hint" id="camHint"><span class="ico"><svg class="ic" viewBox="0 0 24 24" style="width:36px;height:36px;stroke-width:1.5"><path d="M3 8a2 2 0 0 1 2-2h2l1.4-2h7.2L17 6h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.6"/></svg></span><span id="hintText">Tap “Use camera” to scan a card on the shelf, or upload a photo.</span></div>
       <video id="video" playsinline autoplay muted></video>
       <img id="preview" alt="captured">
       <div class="reticle" id="reticle" style="display:none"></div>
@@ -205,22 +267,10 @@
       <button class="btn ghost" id="uploadBtn">Upload photo</button>
     </div>
     <input type="file" id="fileIn" accept="image/*" capture="environment" class="hidden">
-    <button class="btn gold hidden" id="snap" style="margin-top:11px">Capture 📷</button>
+    <button class="btn gold hidden" id="snap" style="margin-top:11px">Capture</button>
     <button class="btn ghost hidden" id="manualSealed" style="margin-top:11px">Or type the product name instead →</button>
 
-    <details>
-      <summary>AI auto-recognition (optional — uses your API key)</summary>
-      <p class="muted" style="margin-top:10px">Paste an AI API key and CardScout reads the card(s)/product straight from your photo. Your key stays in this browser only and is sent only to the AI provider you choose. <b>Multiple-cards</b> and photo-based <b>pack/box</b> detection need a key; single cards and manual entry work without one.</p>
-      <label>AI provider</label>
-      <select id="aiProvider">
-        <option value="openai">OpenAI (gpt-4o-mini — vision)</option>
-        <option value="anthropic">Anthropic (Claude)</option>
-      </select>
-      <label>API key</label>
-      <input type="password" id="aiKey" placeholder="sk-... (saved on this device)">
-      <p class="muted" id="aiState" style="margin-top:10px">AI recognition is <b>off</b>. Add a key to enable it.</p>
-      <button class="btn ghost" id="forgetKey" style="margin-top:8px;display:none;padding:9px;font-size:12.5px">Forget saved key</button>
-    </details>
+    <p class="muted" style="margin-top:14px;font-size:12.5px">AI photo recognition is optional. Add your Claude or OpenAI key in <a href="#" id="openSettingsLink">Settings</a> to auto-read cards from photos. Single cards &amp; manual search work without it.</p>
     <div class="step-dots"><i class="on"></i><i></i><i></i></div>
   </div>
 
@@ -257,10 +307,10 @@
     </select>
     <h2 class="eyebrow" style="margin-top:22px"><span class="n">$</span> Worldwide market value</h2>
     <div class="valuegrid">
-      <div class="vbox"><div class="lbl">🇺🇸 US · TCGplayer</div><div class="num" id="usVal">—</div><div class="sub" id="usSub">market price</div></div>
-      <div class="vbox"><div class="lbl">🇪🇺 EU · Cardmarket</div><div class="num" id="euVal">—</div><div class="sub" id="euSub">trend price</div></div>
+      <div class="vbox"><div class="lbl">US · TCGplayer</div><div class="num" id="usVal">—</div><div class="sub" id="usSub">market price</div></div>
+      <div class="vbox"><div class="lbl">EU · Cardmarket</div><div class="num" id="euVal">—</div><div class="sub" id="euSub">trend price</div></div>
     </div>
-    <div class="vbox wide"><div class="lbl">⭐ Blended market value (this condition)</div><div class="num" id="blendVal" style="color:var(--accent)">—</div><div class="sub" id="blendSub"></div></div>
+    <div class="vbox wide"><div class="lbl">Blended market value (this condition)</div><div class="num" id="blendVal" style="color:var(--accent)">—</div><div class="sub" id="blendSub"></div></div>
     <h2 class="eyebrow" style="margin-top:22px"><span class="n">£</span> Your buy price</h2>
     <p class="muted">How much of market value are you willing to pay? Lower % = more margin when you resell.</p>
     <input type="range" min="30" max="90" value="60" step="1" class="slider" id="buyPct">
@@ -268,9 +318,9 @@
       <span>Pay <span class="sliderval" id="buyPctTxt">60%</span> of market</span>
       <span>Margin ≈ <span class="sliderval" id="marginTxt">40%</span></span>
     </div>
-    <div class="offer"><div class="lbl">💰 Suggested max buy price</div><div class="big" id="offerVal">—</div><div class="rng" id="offerRng"></div></div>
+    <div class="offer"><div class="lbl">Suggested max buy price</div><div class="big" id="offerVal">—</div><div class="rng" id="offerRng"></div></div>
     <details style="margin-top:14px"><summary>Full price breakdown</summary><table id="breakTbl"></table></details>
-    <details id="gradedDetails" style="margin-top:10px"><summary>💎 PSA / graded value</summary>
+    <details id="gradedDetails" style="margin-top:10px"><summary>PSA / graded value</summary>
       <div id="gradedLive"></div>
       <p class="muted" style="margin-top:8px">Or open real <b>sold</b> listings for this exact card at a chosen grade:</p>
       <label>Grade</label>
@@ -281,7 +331,7 @@
       <button class="btn ghost" id="gradedBtn" style="margin-top:10px">See graded sold prices →</button>
     </details>
     <div class="row" style="margin-top:16px">
-      <button class="btn gold" id="cardShare">📋 Share valuation</button>
+      <button class="btn gold" id="cardShare">Share valuation</button>
       <button class="btn ghost" id="resetBtn">← Scan another</button>
     </div>
     <div class="fxnote" id="fxNote"></div>
@@ -293,7 +343,7 @@
     <h2 class="eyebrow"><span class="n">2</span> Your stack</h2>
     <div id="batchThinking" class="hidden" style="text-align:center"><div class="spin"></div><p class="muted" id="batchThinkTxt">Reading all the cards in your photo…</p></div>
     <div id="batchEmpty" class="muted">Take or upload one photo with several cards laid out, and/or add sealed packs &amp; boxes manually — CardScout totals the whole pile.</div>
-    <button class="btn ghost" id="addManual" style="margin-top:12px">➕ Add pack / sealed / manual item</button>
+    <button class="btn ghost" id="addManual" style="margin-top:12px">+ Add pack / sealed / manual item</button>
     <div id="batchList" style="margin-top:12px"></div>
     <div id="batchControls" class="hidden">
       <label>Condition of the cards (applied to cards only — manual items use the price you enter)</label>
@@ -309,15 +359,15 @@
         <span>Margin ≈ <span class="sliderval" id="batchMarginTxt">40%</span></span>
       </div>
       <input type="range" min="30" max="90" value="60" step="1" class="slider" id="batchPct">
-      <div class="offer" style="margin-top:12px"><div class="lbl">💰 Total offer to the shop</div><div class="big" id="totBuy">—</div><div class="rng" id="totProfit"></div></div>
+      <div class="offer" style="margin-top:12px"><div class="lbl">Total offer to the shop</div><div class="big" id="totBuy">—</div><div class="rng" id="totProfit"></div></div>
       <div class="totbar" style="margin-top:12px">
         <div class="vbox"><div class="lbl">Items</div><div class="num" id="totCount">0</div></div>
         <div class="vbox"><div class="lbl">Total resale</div><div class="num" id="totResale" style="color:var(--accent)">—</div></div>
         <div class="vbox"><div class="lbl">Profit if sold</div><div class="num" id="totProfitNum" style="color:#bdf5cf">—</div></div>
       </div>
       <div class="row" style="margin-top:14px">
-        <button class="btn gold" id="batchShare">📋 Copy / share</button>
-        <button class="btn ghost" id="batchCsv">⬇ CSV</button>
+        <button class="btn gold" id="batchShare">Copy / share</button>
+        <button class="btn ghost" id="batchCsv">Download CSV</button>
       </div>
     </div>
     <button class="btn ghost" id="batchReset" style="margin-top:12px">← Start over</button>
@@ -342,10 +392,10 @@
     <button class="btn" id="sealedGo" style="margin-top:14px">Show live market prices</button>
     <div id="sealedResult" style="margin-top:6px"></div>
     <div style="border-top:1px solid var(--line);margin-top:18px;padding-top:8px">
-      <h2 class="eyebrow" style="margin-bottom:6px"><span class="n">💎</span> Worth opening?</h2>
+      <h2 class="eyebrow" style="margin-bottom:6px"><span class="n"><svg class="ic" viewBox="0 0 24 24"><path d="M6 3h12l3 6-9 12-9-12z"/><path d="M3 9h18M9 3 6 9l6 12 6-12-3-6"/></svg></span> Worth opening?</h2>
       <label>Price you'd pay for it (£) — optional, for the verdict</label>
       <input id="boxPrice" type="number" inputmode="decimal" placeholder="e.g. 110">
-      <button class="btn gold" id="analyzeBox" style="margin-top:12px">💎 What's inside &amp; is it worth opening?</button>
+      <button class="btn gold" id="analyzeBox" style="margin-top:12px">What's inside &amp; is it worth opening?</button>
       <div id="insideResult" style="margin-top:6px"></div>
     </div>
     <button class="btn ghost" id="sealedReset" style="margin-top:16px">← Scan another</button>
@@ -353,10 +403,10 @@
 
   <!-- DEALS -->
   <div class="panel hidden" id="dealsStep">
-    <h2 class="eyebrow"><span class="n">🔎</span> Find deals on eBay</h2>
+    <h2 class="eyebrow"><span class="n"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5 16 16"/></svg></span> Find deals on eBay</h2>
     <div class="modes" style="grid-template-columns:1fr 1fr" id="dealsToggle">
-      <button class="mode on" data-deal="find"><span class="mi">🏷️</span>Find singles</button>
-      <button class="mode" data-deal="lot"><span class="mi">🗂️</span>Analyse a lot</button>
+      <button class="mode on" data-deal="find"><span class="mi"><svg class="ic" viewBox="0 0 24 24"><path d="M20.6 13.4 12 22l-9-9V4a1 1 0 0 1 1-1h9z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></span>Find singles</button>
+      <button class="mode" data-deal="lot"><span class="mi"><svg class="ic" viewBox="0 0 24 24"><rect x="8.5" y="6" width="11" height="14.5" rx="2.2"/><path d="M5 17V6.2a2 2 0 0 1 2-2h8.5"/></svg></span>Analyse a lot</button>
     </div>
 
     <div id="dealFind">
@@ -378,6 +428,29 @@
     Single &amp; multi-card prices are live from TCGplayer (US) &amp; Cardmarket (EU) via the Pokémon TCG API, converted to GBP.
     Sealed packs/boxes link to live eBay sold listings &amp; TCGplayer. Treat suggestions as a guide — final value depends on condition, grading &amp; local demand.
   </p>
+</div>
+
+<div class="overlay hidden" id="loginOverlay">
+  <div class="loginbox">
+    <span class="lb-logo">
+      <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="pb2t" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff6173"/><stop offset="1" stop-color="#e1273f"/></linearGradient>
+          <linearGradient id="pb2b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6f9ff"/><stop offset="1" stop-color="#ccd6ec"/></linearGradient>
+        </defs>
+        <circle cx="20" cy="20" r="18.5" fill="#0b0f1a"/>
+        <path d="M2.4 20a17.6 17.6 0 0 1 35.2 0z" fill="url(#pb2t)"/>
+        <path d="M37.6 20a17.6 17.6 0 0 1-35.2 0z" fill="url(#pb2b)"/>
+        <rect x="2.2" y="18.5" width="35.6" height="3" fill="#0b0f1a"/>
+        <circle cx="20" cy="20" r="6.1" fill="#0b0f1a"/><circle cx="20" cy="20" r="4.1" fill="#fff"/>
+      </svg>
+    </span>
+    <h3>CardScout</h3>
+    <p class="muted" style="margin:0 0 18px">Enter the access code to continue.</p>
+    <input type="password" id="loginCode" placeholder="Access code" style="text-align:center;letter-spacing:2px">
+    <button class="btn" id="loginBtn" style="margin-top:12px">Unlock</button>
+    <p class="muted" id="loginErr" style="color:var(--red);margin-top:10px;display:none">That code didn’t match — try again.</p>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -573,7 +646,7 @@ async function loadGraded(c){
     if(!d.enabled){ box.innerHTML='<div class="muted" style="margin-bottom:8px">💡 Live graded prices (PSA 10/9, CGC, BGS) turn on with a PriceCharting subscription. Until then, use the sold-listing links below.</div>'; return; }
     if(!d.best){ box.innerHTML='<div class="muted" style="margin-bottom:8px">No PriceCharting match for this card — use the sold links below.</div>'; return; }
     const b=d.best; const g=v=> v!=null? gbp(v*FX.USDGBP) : '—';
-    box.innerHTML=`<div class="vbox wide"><div class="lbl">💎 Graded value · PriceCharting</div>
+    box.innerHTML=`<div class="vbox wide"><div class="lbl">Graded value · PriceCharting</div>
       <div class="sub" style="margin:3px 0 10px;color:var(--muted)">${b.name} · ${b.set}</div>
       <div class="valuegrid">
         <div class="vbox"><div class="lbl">Ungraded</div><div class="num" style="font-size:18px">${g(b.ungraded)}</div></div>
@@ -777,7 +850,7 @@ async function showSealed(){
       let items=d.items.slice();
       if(!/case/i.test(type)){ const nc=items.filter(i=>!/case/i.test(i.name)); if(nc.length) items=nc; }
       const best=items[0]; sealedMktGBP=best.market*FX.USDGBP;
-      priceHtml=`<div class="offer" style="margin-top:14px"><div class="lbl">📦 Live market price · ${d.matched}</div><div class="big" style="font-size:38px">${gbp(sealedMktGBP)}</div><div class="rng">${best.name} · $${best.market.toFixed(2)} TCGplayer market</div></div>`;
+      priceHtml=`<div class="offer" style="margin-top:14px"><div class="lbl">Live market price ·${d.matched}</div><div class="big" style="font-size:38px">${gbp(sealedMktGBP)}</div><div class="rng">${best.name} · $${best.market.toFixed(2)} TCGplayer market</div></div>`;
       if(items.length>1){
         priceHtml+='<div class="vbox wide" style="margin-top:10px"><div class="lbl">Other sealed products in this set</div>';
         items.slice(1,5).forEach(i=>{ priceHtml+=`<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:6px 0;border-top:1px solid var(--line)"><span style="color:var(--muted)">${i.name}</span><b style="white-space:nowrap">${gbp(i.market*FX.USDGBP)}</b></div>`; });
@@ -789,9 +862,9 @@ async function showSealed(){
   }catch(e){ priceHtml='<div class="muted" style="margin-top:12px">Live price service unavailable right now — use the eBay sold links below.</div>'; }
   $('#sealedResult').innerHTML = priceHtml + `
     <div class="muted" style="margin:14px 0 4px">Cross-check against real sold prices:</div>
-    <a class="linkbtn" href="${eUK}" target="_blank" rel="noopener">🇬🇧 eBay UK — sold prices <span>›</span><small>What it actually sold for in the UK</small></a>
-    <a class="linkbtn" href="${eUS}" target="_blank" rel="noopener">🇺🇸 eBay US — sold prices <span>›</span><small>Largest market, USD</small></a>
-    <a class="linkbtn" href="${tcg}" target="_blank" rel="noopener">🛒 TCGplayer — product page <span>›</span><small>US retailer listings</small></a>`;
+    <a class="linkbtn" href="${eUK}" target="_blank" rel="noopener">eBay UK — sold prices <span>›</span><small>What it actually sold for in the UK</small></a>
+    <a class="linkbtn" href="${eUS}" target="_blank" rel="noopener">eBay US — sold prices <span>›</span><small>Largest market, USD</small></a>
+    <a class="linkbtn" href="${tcg}" target="_blank" rel="noopener">TCGplayer — product page <span>›</span><small>US retailer listings</small></a>`;
   $('#sealedResult').scrollIntoView({behavior:'smooth'});
 }
 // ---------- SEALED EV / "worth opening" ----------
@@ -834,7 +907,7 @@ $('#analyzeBox').onclick=async ()=>{
   $('#insideResult').innerHTML='<div class="spin"></div><p class="muted" style="text-align:center">Finding the biggest hits in this set…</p>';
   const hits=await findTopHits(term);
   if(!hits.length){ $('#insideResult').innerHTML='<div class="errbox">Couldn’t match that to a set in the card database. Try just the set name (e.g. “151”, “Surging Sparks”, “Obsidian Flames”).</div>'; return; }
-  let html='<div class="vbox wide" style="margin-top:14px"><div class="lbl">💎 Biggest current hits in this set</div><div class="sub" style="margin-top:4px;color:var(--muted)">Live prices — these are the cards you’re chasing when you open it.</div></div><div class="results" style="margin-top:10px">';
+  let html='<div class="vbox wide" style="margin-top:14px"><div class="lbl">Biggest current hits in this set</div><div class="sub" style="margin-top:4px;color:var(--muted)">Live prices — these are the cards you’re chasing when you open it.</div></div><div class="results" style="margin-top:10px">';
   hits.forEach(h=> html+=`<div class="cardpick"><img src="${h.c.images.small}" loading="lazy"><div class="meta"><b>${h.c.name}</b><span>${h.c.rarity||''} · <b style="color:var(--accent)">${gbp(h.gbp)}</b></span></div></div>`);
   html+='</div>';
   $('#insideResult').innerHTML=html;
@@ -844,9 +917,9 @@ $('#analyzeBox').onclick=async ()=>{
     const price=$('#boxPrice').value.trim();
     const list=hits.map(h=>`${h.c.name} ${gbp(h.gbp)}`).join('; ');
     const prompt=`You advise a UK Pokemon TCG reseller deciding whether to buy a sealed product to flip or open. Product: "${term} ${$('#sealedType').value}". ${price?('They can buy it sealed for about £'+price+'. '):''}The most valuable single cards currently in this set are: ${list}. Give a concise, REALISTIC verdict for the UK market. Cover, briefly: (1) VERDICT: Pass, Flip sealed, or Open & sell singles. (2) A rough expected value if opened — be honest that the big hits are rare, most packs are low value, and at retail price opening usually loses to EV; clearly call it an estimate, not a guarantee. (3) One line of reasoning. Under 110 words, plain text, no markdown headings.`;
-    const v=document.createElement('div'); v.className='vbox wide'; v.style.marginTop='12px'; v.innerHTML='<div class="lbl">🤖 Is it worth it?</div><div class="spin"></div>';
+    const v=document.createElement('div'); v.className='vbox wide'; v.style.marginTop='12px'; v.innerHTML='<div class="lbl">Is it worth it?</div><div class="spin"></div>';
     $('#insideResult').appendChild(v);
-    try{ const txt=await aiText(prompt); v.innerHTML='<div class="lbl">🤖 Is it worth it? <span style="color:var(--faint);font-weight:500;text-transform:none;letter-spacing:0">· AI estimate</span></div><div style="margin-top:8px;font-size:13.5px;line-height:1.65;white-space:pre-wrap">'+txt.replace(/[<>]/g,m=>m=='<'?'&lt;':'&gt;')+'</div><div class="muted" style="margin-top:10px;font-size:11.5px">⚠️ Opening sealed product is high-variance — treat this as a guide, not a promise. Most boxes bought at shop price don’t beat their cost.</div>'; }
+    try{ const txt=await aiText(prompt); v.innerHTML='<div class="lbl">Is it worth it? <span style="color:var(--faint);font-weight:500;text-transform:none;letter-spacing:0">· AI estimate</span></div><div style="margin-top:8px;font-size:13.5px;line-height:1.65;white-space:pre-wrap">'+txt.replace(/[<>]/g,m=>m=='<'?'&lt;':'&gt;')+'</div><div class="muted" style="margin-top:10px;font-size:11.5px">⚠️ Opening sealed product is high-variance — treat this as a guide, not a promise. Most boxes bought at shop price don’t beat their cost.</div>'; }
     catch(e){ const msg=(e&&e.message)||'error'; v.innerHTML='<div class="errbox"><b>Verdict unavailable</b><br>'+msg+'<br><span style="color:#ffd6db">'+aiErrHint(msg)+'</span></div>'; }
   }
   $('#insideResult').scrollIntoView({behavior:'smooth'});
@@ -901,7 +974,7 @@ $('#lotFetchBtn').onclick=async()=>{
   let html=`<div class="vbox wide"><div class="lbl">📦 ${it.title||'Lot'}</div><div class="sub" style="margin-top:4px">Asking ${ask} · ${it.images.length} photo(s)</div></div>
     <div class="results" style="margin-top:10px;grid-template-columns:repeat(3,1fr)">`;
   it.images.slice(0,9).forEach(src=>{ html+=`<img src="${src}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:1px solid var(--line)">`; });
-  html+='</div><button class="btn gold" id="lotScanBtn" style="margin-top:12px">🤖 Scan photos for valuable cards</button><div id="lotScan" style="margin-top:8px"></div>';
+  html+='</div><button class="btn gold" id="lotScanBtn" style="margin-top:12px">Scan photos for valuable cards</button><div id="lotScan" style="margin-top:8px"></div>';
   $('#lotResult').innerHTML=html; $('#lotScanBtn').onclick=scanLot;
 };
 async function scanLot(){
@@ -925,10 +998,47 @@ async function scanLot(){
     const ask=ebGBP(it.price,it.currency);
     const col=(ask!=null && total>ask)?'#5cf0a6':'#ffd6db';
     const verdict = ask!=null ? `Readable cards ≈ <b style="color:${col}">${gbp(total)}</b> vs asking ${gbp(ask)} — ${total>ask?'🔥 worth a look':'below asking on readable cards alone'}.` : `Readable cards ≈ <b>${gbp(total)}</b>.`;
-    out.innerHTML=`<div class="offer" style="margin-top:6px"><div class="lbl">💎 Readable cards value</div><div class="big" style="font-size:34px">${gbp(total)}</div><div class="rng">${verdict}</div></div>
+    out.innerHTML=`<div class="offer" style="margin-top:6px"><div class="lbl">Readable cards value</div><div class="big" style="font-size:34px">${gbp(total)}</div><div class="rng">${verdict}</div></div>
       <div class="muted" style="margin:10px 0">${list.length} card(s) read across the photos. Lot photos are low-res — treat this as a shortlist; there may be more (or less) than the AI could read.</div>${rows}`;
   }catch(e){ out.innerHTML='<div class="errbox">Scan failed: '+e.message+'</div>'; }
 }
+
+// ---------- SETTINGS + LOGIN ----------
+function openSettings(){ $('#settingsStep').classList.remove('hidden'); $('#settingsStep').scrollIntoView({behavior:'smooth'}); loadSvcStatus(); }
+$('#settingsBtn').onclick=openSettings;
+$('#settingsClose').onclick=()=>$('#settingsStep').classList.add('hidden');
+if($('#openSettingsLink')) $('#openSettingsLink').onclick=(e)=>{ e.preventDefault(); openSettings(); };
+async function svcOn(url){ try{ const r=await fetch(url); const d=await r.json(); return !!d.enabled; }catch(e){ return false; } }
+function svcRow(name,desc,on){ return `<div class="setrow"><span class="dot2 ${on?'on':'off'}"></span><div class="si"><div class="st">${name}</div><div class="sd">${desc}</div></div></div>`; }
+async function loadSvcStatus(){
+  const box=$('#svcStatus');
+  box.innerHTML = svcRow('Live card prices','TCGplayer + Cardmarket (free)', true) + svcRow('Sealed pack/box prices','TCGCSV market data (free)', true) + svcRow('Checking graded &amp; eBay…','',false);
+  const [pc, eb] = await Promise.all([ svcOn('/.netlify/functions/pcprice?q=x'), svcOn('/.netlify/functions/ebay?mode=search&q=x') ]);
+  box.innerHTML = svcRow('Live card prices','TCGplayer + Cardmarket (free)', true)
+    + svcRow('Sealed pack/box prices','TCGCSV market data (free)', true)
+    + svcRow('Graded prices · PriceCharting', pc?'Connected — PSA / CGC / BGS live':'Off — add PRICECHARTING_TOKEN in Netlify', pc)
+    + svcRow('eBay deal finder & lots', eb?'Connected — live eBay search':'Off — add EBAY_CLIENT_ID / SECRET in Netlify', eb);
+}
+async function checkGate(){
+  try{
+    const r=await fetch('/.netlify/functions/login'); const d=await r.json();
+    if(!d.enabled) return;
+    if(localStorage.getItem('cs_unlocked')==='1') return;
+    $('#loginOverlay').classList.remove('hidden');
+  }catch(e){}
+}
+async function doLogin(){
+  const code=$('#loginCode').value.trim(); if(!code) return; $('#loginErr').style.display='none';
+  try{
+    const r=await fetch('/.netlify/functions/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})});
+    const d=await r.json();
+    if(d.ok){ localStorage.setItem('cs_unlocked','1'); $('#loginOverlay').classList.add('hidden'); }
+    else { $('#loginErr').style.display='block'; }
+  }catch(e){ $('#loginErr').textContent='Login service unavailable.'; $('#loginErr').style.display='block'; }
+}
+$('#loginBtn').onclick=doLogin;
+$('#loginCode').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+checkGate();
 
 applyMode();
 </script>
