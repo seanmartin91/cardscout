@@ -229,7 +229,15 @@
   <!-- SETTINGS -->
   <div class="panel hidden" id="settingsStep">
     <h2 class="eyebrow"><span class="n"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 4v2M12 18v2M4 12h2M18 12h2M6 6l1.5 1.5M16.5 16.5L18 18M18 6l-1.5 1.5M7.5 16.5L6 18"/></svg></span> Settings</h2>
-    <h3 style="font-family:'Sora',sans-serif;font-size:14px;margin:0 0 4px">AI recognition</h3>
+    <h3 style="font-family:'Sora',sans-serif;font-size:14px;margin:0 0 4px">Region &amp; currency</h3>
+    <p class="muted">All prices and the eBay deal finder follow this region.</p>
+    <select id="curSel">
+      <option value="CAD">Canada — CAD (C$)</option>
+      <option value="GBP">United Kingdom — GBP (£)</option>
+      <option value="USD">United States — USD ($)</option>
+    </select>
+
+    <h3 style="font-family:'Sora',sans-serif;font-size:14px;margin:22px 0 4px">AI recognition</h3>
     <p class="muted">Add a Claude or OpenAI key to read cards &amp; products from photos and run lot scans. Stored only on this device — sent only to the provider you pick.</p>
     <label>AI provider</label>
     <select id="aiProvider">
@@ -393,7 +401,7 @@
     <div id="sealedResult" style="margin-top:6px"></div>
     <div style="border-top:1px solid var(--line);margin-top:18px;padding-top:8px">
       <h2 class="eyebrow" style="margin-bottom:6px"><span class="n"><svg class="ic" viewBox="0 0 24 24"><path d="M6 3h12l3 6-9 12-9-12z"/><path d="M3 9h18M9 3 6 9l6 12 6-12-3-6"/></svg></span> Worth opening?</h2>
-      <label>Price you'd pay for it (£) — optional, for the verdict</label>
+      <label>Price you'd pay for it — optional, for the verdict</label>
       <input id="boxPrice" type="number" inputmode="decimal" placeholder="e.g. 110">
       <button class="btn gold" id="analyzeBox" style="margin-top:12px">What's inside &amp; is it worth opening?</button>
       <div id="insideResult" style="margin-top:6px"></div>
@@ -458,27 +466,28 @@
 <script>
 const $ = s => document.querySelector(s);
 const toast = (m)=>{const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2800);};
-let FX = {USDGBP:0.79, EURGBP:0.85};
+const CUR_DEFS = { CAD:{sym:'C$', mkt:'EBAY_CA', ebay:'ebay.ca', name:'Canada'}, GBP:{sym:'£', mkt:'EBAY_GB', ebay:'ebay.co.uk', name:'UK'}, USD:{sym:'$', mkt:'EBAY_US', ebay:'ebay.com', name:'US'} };
+let CUR = localStorage.getItem('cs_cur') || 'CAD';
+let RATES = {USD:1, GBP:0.79, EUR:0.92, CAD:1.36};
+let FX = {USD:1, EUR:1}; // USD->CUR and EUR->CUR multipliers
 let capturedDataURL = null;
 let selectedCard = null;
 let mode = 'single';
 let batchCards = []; // {card, finishKey}
 let manualItems = []; // {name, value}  (sealed packs/boxes or any manual line)
 
-// ---------- FX ----------
+// ---------- FX / currency ----------
+function applyRates(){ FX.USD = RATES[CUR]||1; FX.EUR = (RATES[CUR]||1)/(RATES.EUR||1); }
+function conv(amount, from){ if(amount==null) return null; return amount*((RATES[CUR]||1)/(RATES[from]||1)); }
+const sym = ()=> CUR_DEFS[CUR].sym;
+const gbp = n => sym()+ (Number(n)>=100? Number(n).toFixed(0): Number(n).toFixed(2));
 async function loadFX(){
-  try{
-    const r = await fetch('https://open.er-api.com/v6/latest/USD'); const j = await r.json();
-    if(j && j.rates && j.rates.GBP){
-      FX.USDGBP = j.rates.GBP; FX.EURGBP = j.rates.GBP / j.rates.EUR;
-      const d = new Date((j.time_last_update_unix||Date.now()/1000)*1000);
-      const t = `FX live: £1 = $${(1/FX.USDGBP).toFixed(2)} / €${(1/FX.EURGBP).toFixed(2)} · updated ${d.toLocaleDateString()}`;
-      $('#fxNote').textContent=t; $('#fxNote2').textContent=t;
-    }
-  }catch(e){ $('#fxNote').textContent = 'FX: using offline fallback rates.'; }
+  try{ const r = await fetch('https://open.er-api.com/v6/latest/USD'); const j = await r.json(); if(j && j.rates) RATES = j.rates; }catch(e){}
+  applyRates();
+  const t = `Prices shown in ${CUR} (${CUR_DEFS[CUR].name}) · live FX, updated ${new Date().toLocaleDateString()}`;
+  if($('#fxNote')) $('#fxNote').textContent=t; if($('#fxNote2')) $('#fxNote2').textContent=t;
 }
 loadFX();
-const gbp = n => '£'+ (n>=100? n.toFixed(0): n.toFixed(2));
 
 // ---------- MODE ----------
 document.querySelectorAll('.mode').forEach(b=>{
@@ -645,7 +654,7 @@ async function loadGraded(c){
     const d=await r.json();
     if(!d.enabled){ box.innerHTML='<div class="muted" style="margin-bottom:8px">💡 Live graded prices (PSA 10/9, CGC, BGS) turn on with a PriceCharting subscription. Until then, use the sold-listing links below.</div>'; return; }
     if(!d.best){ box.innerHTML='<div class="muted" style="margin-bottom:8px">No PriceCharting match for this card — use the sold links below.</div>'; return; }
-    const b=d.best; const g=v=> v!=null? gbp(v*FX.USDGBP) : '—';
+    const b=d.best; const g=v=> v!=null? gbp(v*FX.USD) : '—';
     box.innerHTML=`<div class="vbox wide"><div class="lbl">Graded value · PriceCharting</div>
       <div class="sub" style="margin:3px 0 10px;color:var(--muted)">${b.name} · ${b.set}</div>
       <div class="valuegrid">
@@ -668,10 +677,10 @@ function buildFinishes(c){
 function priceCard(c, finishKey){
   let usUSD=null, usLabel='—'; const tp=(c.tcgplayer&&c.tcgplayer.prices)||{};
   if(tp[finishKey]){ const p=tp[finishKey]; usUSD=p.market||p.mid||p.low||null; usLabel=p.market?'market':(p.mid?'mid':'low'); }
-  const usGBP = usUSD!=null ? usUSD*FX.USDGBP : null;
+  const usGBP = usUSD!=null ? usUSD*FX.USD : null;
   let euEUR=null, euLabel='—'; const cm=(c.cardmarket&&c.cardmarket.prices)||{};
   if(cm.trendPrice){ euEUR=cm.trendPrice; euLabel='trend'; } else if(cm.averageSellPrice){ euEUR=cm.averageSellPrice; euLabel='avg'; } else if(cm.avg7){ euEUR=cm.avg7; euLabel='7d avg'; }
-  const euGBP = euEUR!=null ? euEUR*FX.EURGBP : null;
+  const euGBP = euEUR!=null ? euEUR*FX.EUR : null;
   const vals=[usGBP,euGBP].filter(v=>v!=null);
   const blendNM = vals.length? vals.reduce((a,b)=>a+b,0)/vals.length : null;
   return {usUSD,usGBP,usLabel,euEUR,euGBP,euLabel,blendNM};
@@ -704,7 +713,7 @@ $('#cardShare').onclick=()=>{
 $('#gradedBtn').onclick=()=>{
   if(!selectedCard) return; const c=selectedCard; const g=$('#gradeSel').value;
   const q=`${c.name} ${c.set.name} ${c.number} ${g}`.replace(/\s+/g,' ').trim();
-  window.open(`https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(q)}&LH_Sold=1&LH_Complete=1`,'_blank','noopener');
+  window.open(`https://www.${CUR_DEFS[CUR].ebay}/sch/i.html?_nkw=${encodeURIComponent(q)}&LH_Sold=1&LH_Complete=1`,'_blank','noopener');
 };
 function resetSingle(){ selectedCard=null; capturedDataURL=null; $('#step3').classList.add('hidden'); $('#step2').classList.add('hidden');
   $('#results').innerHTML=''; $('#searchStatus').textContent=''; $('#qName').value=''; $('#qSet').value=''; $('#qNum').value='';
@@ -782,7 +791,7 @@ function renderBatch(){
 }
 $('#addManual').onclick=()=>{
   const name=prompt('Item name (e.g. “151 Booster Box”):'); if(!name||!name.trim()) return;
-  const raw=prompt('Market / resale value in £ (what it sells for — e.g. from eBay sold prices):');
+  const raw=prompt('Market / resale value in your currency (what it sells for — e.g. from eBay sold prices):');
   const v=parseFloat(String(raw).replace(/[^0-9.]/g,''));
   if(!(v>0)){ toast('Enter a number greater than 0.'); return; }
   manualItems.push({name:name.trim(), value:v});
@@ -837,7 +846,7 @@ async function showSealed(){
   const base=$('#sealedQuery').value.trim(); const type=$('#sealedType').value;
   if(!base){ toast('Type the product / set name first.'); return; }
   const q=`Pokemon ${base} ${type}`.replace(/\s+/g,' ').trim();
-  const eUK=`https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(q)}&LH_Sold=1&LH_Complete=1`;
+  const eUK=`https://www.${CUR_DEFS[CUR].ebay}/sch/i.html?_nkw=${encodeURIComponent(q)}&LH_Sold=1&LH_Complete=1`;
   const eUS=`https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(q)}&LH_Sold=1&LH_Complete=1`;
   const tcg=`https://www.tcgplayer.com/search/pokemon/product?q=${encodeURIComponent(base+' '+type)}&productLineName=pokemon`;
   $('#sealedResult').innerHTML='<div class="spin"></div><p class="muted" style="text-align:center">Fetching live sealed market price…</p>';
@@ -849,11 +858,11 @@ async function showSealed(){
     if(d && d.items && d.items.length){
       let items=d.items.slice();
       if(!/case/i.test(type)){ const nc=items.filter(i=>!/case/i.test(i.name)); if(nc.length) items=nc; }
-      const best=items[0]; sealedMktGBP=best.market*FX.USDGBP;
+      const best=items[0]; sealedMktGBP=best.market*FX.USD;
       priceHtml=`<div class="offer" style="margin-top:14px"><div class="lbl">Live market price ·${d.matched}</div><div class="big" style="font-size:38px">${gbp(sealedMktGBP)}</div><div class="rng">${best.name} · $${best.market.toFixed(2)} TCGplayer market</div></div>`;
       if(items.length>1){
         priceHtml+='<div class="vbox wide" style="margin-top:10px"><div class="lbl">Other sealed products in this set</div>';
-        items.slice(1,5).forEach(i=>{ priceHtml+=`<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:6px 0;border-top:1px solid var(--line)"><span style="color:var(--muted)">${i.name}</span><b style="white-space:nowrap">${gbp(i.market*FX.USDGBP)}</b></div>`; });
+        items.slice(1,5).forEach(i=>{ priceHtml+=`<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:6px 0;border-top:1px solid var(--line)"><span style="color:var(--muted)">${i.name}</span><b style="white-space:nowrap">${gbp(i.market*FX.USD)}</b></div>`; });
         priceHtml+='</div>';
       }
     } else {
@@ -862,7 +871,7 @@ async function showSealed(){
   }catch(e){ priceHtml='<div class="muted" style="margin-top:12px">Live price service unavailable right now — use the eBay sold links below.</div>'; }
   $('#sealedResult').innerHTML = priceHtml + `
     <div class="muted" style="margin:14px 0 4px">Cross-check against real sold prices:</div>
-    <a class="linkbtn" href="${eUK}" target="_blank" rel="noopener">eBay UK — sold prices <span>›</span><small>What it actually sold for in the UK</small></a>
+    <a class="linkbtn" href="${eUK}" target="_blank" rel="noopener">eBay ${CUR_DEFS[CUR].name} — sold prices <span>›</span><small>What it actually sold for locally</small></a>
     <a class="linkbtn" href="${eUS}" target="_blank" rel="noopener">eBay US — sold prices <span>›</span><small>Largest market, USD</small></a>
     <a class="linkbtn" href="${tcg}" target="_blank" rel="noopener">TCGplayer — product page <span>›</span><small>US retailer listings</small></a>`;
   $('#sealedResult').scrollIntoView({behavior:'smooth'});
@@ -881,7 +890,7 @@ async function aiText(prompt){
   }
 }
 function cleanSet(s){ return (s||'').replace(/booster box|elite trainer box|booster bundle|booster pack|premium|collection box|\bbox\b|\betb\b|\btin\b|pok[eé]mon/gi,'').replace(/[^A-Za-z0-9 &]/g,' ').replace(/\s+/g,' ').trim(); }
-function cardBestGBP(c){ let best=0; const tp=(c.tcgplayer&&c.tcgplayer.prices)||{}; Object.values(tp).forEach(p=>{ const m=p.market||p.mid||0; if(m*FX.USDGBP>best) best=m*FX.USDGBP; }); const cm=(c.cardmarket&&c.cardmarket.prices)||{}; if(cm.trendPrice && cm.trendPrice*FX.EURGBP>best) best=cm.trendPrice*FX.EURGBP; return best; }
+function cardBestGBP(c){ let best=0; const tp=(c.tcgplayer&&c.tcgplayer.prices)||{}; Object.values(tp).forEach(p=>{ const m=p.market||p.mid||0; if(m*FX.USD>best) best=m*FX.USD; }); const cm=(c.cardmarket&&c.cardmarket.prices)||{}; if(cm.trendPrice && cm.trendPrice*FX.EUR>best) best=cm.trendPrice*FX.EUR; return best; }
 async function resolveSetId(term){
   const t=term.toLowerCase().trim();
   try{
@@ -942,14 +951,14 @@ async function aiVisionUrl(prompt, imageUrl){
 }
 document.querySelectorAll('#dealsToggle .mode').forEach(b=>{ b.onclick=()=>{ document.querySelectorAll('#dealsToggle .mode').forEach(x=>x.classList.remove('on')); b.classList.add('on'); const d=b.dataset.deal; $('#dealFind').classList.toggle('hidden', d!=='find'); $('#dealLot').classList.toggle('hidden', d!=='lot'); }; });
 function ebayGate(){ return '<div class="errbox">eBay deal-finding isn’t switched on yet. It needs free eBay developer API keys (EBAY_CLIENT_ID / EBAY_CLIENT_SECRET) added to Netlify. Ask me to walk you through it.</div>'; }
-const ebGBP=(v,cur)=> v==null?null : (cur==='GBP'?v : cur==='USD'?v*FX.USDGBP : cur==='EUR'?v*FX.EURGBP : v);
+const ebGBP=(v,cur)=> conv(v, cur||'USD');
 
 $('#dealSearchBtn').onclick=async()=>{
   const term=$('#dealQ').value.trim(); if(!term){ toast('Type a card to hunt for.'); return; }
   $('#dealResults').innerHTML='<div class="spin"></div><p class="muted" style="text-align:center">Searching eBay &amp; checking market value…</p>';
   let mkt=null;
   try{ const num=(term.match(/(\d+)\/\d+/)||[])[1]||''; const c=await findOne(cleanCardName(term.replace(/\d+\/\d+/,'')),'',num); if(c){ const p=priceCard(c, finishKeysOf(c).length?preferFinish(finishKeysOf(c)):'_cm'); mkt=p.blendNM; } }catch(e){}
-  let d; try{ const r=await fetch('/.netlify/functions/ebay?mode=search&limit=24&q='+encodeURIComponent(term)); d=await r.json(); }catch(e){ $('#dealResults').innerHTML='<div class="errbox">Couldn’t reach the deal service.</div>'; return; }
+  let d; try{ const r=await fetch('/.netlify/functions/ebay?mode=search&limit=24&mkt='+CUR_DEFS[CUR].mkt+'&q='+encodeURIComponent(term)); d=await r.json(); }catch(e){ $('#dealResults').innerHTML='<div class="errbox">Couldn’t reach the deal service.</div>'; return; }
   if(!d.enabled){ $('#dealResults').innerHTML=ebayGate(); return; }
   if(!d.items||!d.items.length){ $('#dealResults').innerHTML='<div class="muted">No eBay listings found for that search.</div>'; return; }
   let html = mkt!=null ? `<div class="muted" style="margin-bottom:8px">Market value ≈ <b style="color:var(--accent)">${gbp(mkt)}</b> · bargains flagged 🔥</div>` : '<div class="muted" style="margin-bottom:8px">Couldn’t auto-match a market value — sorted by price.</div>';
@@ -966,7 +975,7 @@ $('#dealSearchBtn').onclick=async()=>{
 $('#lotFetchBtn').onclick=async()=>{
   const u=$('#lotUrl').value.trim(); if(!u){ toast('Paste an eBay lot link.'); return; }
   $('#lotResult').innerHTML='<div class="spin"></div><p class="muted" style="text-align:center">Pulling the listing photos…</p>';
-  let d; try{ const r=await fetch('/.netlify/functions/ebay?mode=item&id='+encodeURIComponent(u)); d=await r.json(); }catch(e){ $('#lotResult').innerHTML='<div class="errbox">Couldn’t reach the deal service.</div>'; return; }
+  let d; try{ const r=await fetch('/.netlify/functions/ebay?mode=item&mkt='+CUR_DEFS[CUR].mkt+'&id='+encodeURIComponent(u)); d=await r.json(); }catch(e){ $('#lotResult').innerHTML='<div class="errbox">Couldn’t reach the deal service.</div>'; return; }
   if(!d.enabled){ $('#lotResult').innerHTML=ebayGate(); return; }
   if(!d.item){ $('#lotResult').innerHTML='<div class="errbox">Couldn’t load that listing — check the link is a normal eBay item URL.</div>'; return; }
   const it=d.item; window._lot=it;
@@ -1021,6 +1030,11 @@ function closeSettings(){
 $('#settingsBtn').onclick=openSettings;
 $('#settingsClose').onclick=closeSettings;
 if($('#openSettingsLink')) $('#openSettingsLink').onclick=(e)=>{ e.preventDefault(); openSettings(); };
+(function(){ const s=$('#curSel'); if(!s) return; s.value=CUR;
+  s.onchange=async ()=>{ CUR=s.value; try{localStorage.setItem('cs_cur',CUR);}catch(e){} await loadFX();
+    if(selectedCard) recompute(); if(batchCards.length||manualItems.length) renderBatch();
+    toast('Switched to '+CUR+' — '+CUR_DEFS[CUR].name); };
+})();
 async function svcOn(url){ try{ const r=await fetch(url); const d=await r.json(); return !!d.enabled; }catch(e){ return false; } }
 function svcRow(name,desc,on){ return `<div class="setrow"><span class="dot2 ${on?'on':'off'}"></span><div class="si"><div class="st">${name}</div><div class="sd">${desc}</div></div></div>`; }
 async function loadSvcStatus(){
