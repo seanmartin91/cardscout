@@ -269,6 +269,15 @@
     </div>
     <div class="offer"><div class="lbl">💰 Suggested max buy price</div><div class="big" id="offerVal">—</div><div class="rng" id="offerRng"></div></div>
     <details style="margin-top:14px"><summary>Full price breakdown</summary><table id="breakTbl"></table></details>
+    <details style="margin-top:10px"><summary>💎 PSA / graded value</summary>
+      <p class="muted" style="margin-top:8px">Graded (slabbed) cards sell for far more, and graded prices aren’t in the free database. Pick a grade to open real <b>sold</b> listings for this exact card — the true market for slabs.</p>
+      <label>Grade</label>
+      <select id="gradeSel">
+        <option>PSA 10</option><option>PSA 9</option><option>PSA 8</option>
+        <option>CGC 10</option><option>CGC 9.5</option><option>BGS 9.5</option><option>BGS 10</option>
+      </select>
+      <button class="btn ghost" id="gradedBtn" style="margin-top:10px">See graded sold prices →</button>
+    </details>
     <div class="row" style="margin-top:16px">
       <button class="btn gold" id="cardShare">📋 Share valuation</button>
       <button class="btn ghost" id="resetBtn">← Scan another</button>
@@ -453,7 +462,7 @@ async function aiVision(prompt){
   if(provider==='openai'){
     const r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
-      body:JSON.stringify({model:'gpt-4o-mini',messages:[{role:'user',content:[
+      body:JSON.stringify({model:'gpt-4o',messages:[{role:'user',content:[
         {type:'text',text:prompt},{type:'image_url',image_url:{url:capturedDataURL}}]}],max_tokens:700})});
     const j=await r.json(); if(j.error) throw new Error(j.error.message); return j.choices[0].message.content;
   } else {
@@ -488,18 +497,31 @@ async function runAI(){
     $('#aiThinking').classList.remove('hidden');
   }
 }
+function cleanCardName(s){ return (s||'').replace(/\b(unlimited|1st edition|first edition|shadowless|reverse holo|holofoil|holo|promo|full art|alt art|secret rare|edition)\b/gi,'').replace(/\s+/g,' ').trim(); }
 $('#searchBtn').onclick = searchCards;
 async function searchCards(){
-  const name=$('#qName').value.trim(); const set=$('#qSet').value.trim();
+  const name=cleanCardName($('#qName').value.trim()); const set=$('#qSet').value.trim();
   let num=$('#qNum').value.trim().split('/')[0].trim();
   if(!name){ toast('Type at least a card name.'); return; }
-  const parts=[`name:"${name}"`]; if(set) parts.push(`set.name:"${set}"`); if(num) parts.push(`number:${num}`);
   $('#searchStatus').innerHTML='<div class="spin"></div>'; $('#results').innerHTML='';
+  const words=name.split(' ').filter(Boolean);
+  const parts=[`name:"${name}"`]; if(set) parts.push(`set.name:"${set}"`); if(num) parts.push(`number:${num}`);
+  const tries=[
+    parts.join(' '),                                   // exact + filters
+    `name:"${name}"`,                                  // exact name only
+    words.map(w=>`name:${w}*`).join(' '),              // wildcard each word
+    words.map(w=>`name:${w}~`).join(' '),              // fuzzy each word (typos)
+    `name:*${words[0]}*`                               // loose contains on first word
+  ];
   try{
-    let r=await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(parts.join(' '))}&pageSize=12&orderBy=-set.releaseDate`); let j=await r.json();
-    if((!j.data||!j.data.length)&&(set||num)){ r=await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent('name:"'+name+'"')}&pageSize=12&orderBy=-set.releaseDate`); j=await r.json(); }
-    if(!j.data||!j.data.length){ $('#searchStatus').textContent='No matches. Try a different spelling or drop the set/number.'; return; }
-    $('#searchStatus').textContent=`${j.data.length} match${j.data.length>1?'es':''} — tap the right one:`; renderResults(j.data);
+    let data=[];
+    for(const q of tries){
+      const r=await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(q)}&pageSize=20&orderBy=-set.releaseDate`);
+      const j=await r.json();
+      if(j.data && j.data.length){ data=j.data; break; }
+    }
+    if(!data.length){ $('#searchStatus').innerHTML='No matches. Check spelling (e.g. “Pidgeot”, “Charizard”). Tip: “unlimited / 1st edition” isn’t part of the card name — leave it out, then pick the right printing from the results.'; return; }
+    $('#searchStatus').textContent=`${data.length} match${data.length>1?'es':''} — tap the right one:`; renderResults(data);
   }catch(e){ $('#searchStatus').textContent='Search failed: '+e.message; }
 }
 function renderResults(cards){
@@ -558,6 +580,11 @@ $('#cardShare').onclick=()=>{
   else if(navigator.clipboard){ navigator.clipboard.writeText(text).then(()=>toast('Valuation copied to clipboard.')).catch(()=>toast('Copy failed — long-press to select.')); }
   else toast('Sharing not supported on this browser.');
 };
+$('#gradedBtn').onclick=()=>{
+  if(!selectedCard) return; const c=selectedCard; const g=$('#gradeSel').value;
+  const q=`${c.name} ${c.set.name} ${c.number} ${g}`.replace(/\s+/g,' ').trim();
+  window.open(`https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(q)}&LH_Sold=1&LH_Complete=1`,'_blank','noopener');
+};
 function resetSingle(){ selectedCard=null; capturedDataURL=null; $('#step3').classList.add('hidden'); $('#step2').classList.add('hidden');
   $('#results').innerHTML=''; $('#searchStatus').textContent=''; $('#qName').value=''; $('#qSet').value=''; $('#qNum').value='';
   $('#preview').style.display='none'; $('#camHint').style.display='block'; window.scrollTo({top:0,behavior:'smooth'}); }
@@ -573,7 +600,7 @@ async function findOne(name,set,num){
 async function runMulti(){
   $('#batchEmpty').classList.add('hidden'); $('#batchControls').classList.add('hidden'); $('#batchList').innerHTML='';
   $('#batchThinking').classList.remove('hidden'); $('#batchThinkTxt').textContent='Reading all the cards in your photo…';
-  const prompt='List EVERY distinct Pokemon trading card visible in this photo. Respond ONLY with a JSON array, no prose: [{"name":"","set":"","number":""}, ...]. name=Pokemon/card name, set=set name if legible, number=collector number if legible (e.g. 4/102). Include each card once.';
+  const prompt='You are reading a photo of several Pokemon cards laid out. List ONLY cards whose NAME you can clearly read — never guess a name you cannot read. For each, give the exact card name, plus the set name and collector number (small text in a bottom corner, e.g. 4/102) ONLY if clearly legible, otherwise leave those blank. Respond ONLY with a JSON array, no prose: [{"name":"","set":"","number":""}, ...].';
   try{
     const text=await aiVision(prompt);
     const m=text.match(/\[[\s\S]*\]/); let arr=m?JSON.parse(m[0]):[];
@@ -607,8 +634,13 @@ function renderBatch(){
     const row=document.createElement('div'); row.className='brow';
     row.innerHTML=`<img src="${bc.card.images.small}"><div class="bi"><b>${bc.card.name}</b><span>${bc.card.set.name} · #${bc.card.number}</span></div>
       <div class="bp"><div class="buy">${nm?gbp(buy):'—'}</div><div class="mk">${nm?'mkt '+gbp(resale):'no price'}</div></div>
-      <button class="x" title="remove">✕</button>`;
-    row.querySelector('.x').onclick=()=>{ batchCards.splice(idx,1); refreshBatch(); };
+      <button class="x edit" title="fix this card">✎</button><button class="x" title="remove">✕</button>`;
+    row.querySelector('.x:not(.edit)').onclick=()=>{ batchCards.splice(idx,1); refreshBatch(); };
+    row.querySelector('.edit').onclick=async()=>{
+      const nn=prompt('Correct card name:', bc.card.name); if(!nn||!nn.trim()) return;
+      try{ const nc=await findOne(cleanCardName(nn),'',''); if(nc){ const keys=finishKeysOf(nc); batchCards[idx]={card:nc, finishKey: keys.length?preferFinish(keys):'_cm'}; renderBatch(); toast('Updated to '+nc.name); } else toast('No match for “'+nn+'”.'); }
+      catch(e){ toast('Search failed.'); }
+    };
     wrap.appendChild(row);
   });
   manualItems.forEach((mi,idx)=>{
@@ -678,21 +710,40 @@ async function runSealed(){
   }catch(e){ const msg=(e&&e.message)||'unknown error'; $('#sealedThinking').classList.add('hidden');
     $('#sealedResult').innerHTML='<div class="errbox"><b>AI recognition failed</b><br>'+msg+'<br><span style="color:#ffd6db">'+aiErrHint(msg)+' Type the product name above instead.</span></div>'; }
 }
+let sealedMktGBP = null;
 $('#sealedGo').onclick=showSealed;
-function showSealed(){
+async function showSealed(){
   const base=$('#sealedQuery').value.trim(); const type=$('#sealedType').value;
   if(!base){ toast('Type the product / set name first.'); return; }
   const q=`Pokemon ${base} ${type}`.replace(/\s+/g,' ').trim();
   const eUK=`https://www.ebay.co.uk/sch/i.html?_nkw=${encodeURIComponent(q)}&LH_Sold=1&LH_Complete=1`;
   const eUS=`https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(q)}&LH_Sold=1&LH_Complete=1`;
   const tcg=`https://www.tcgplayer.com/search/pokemon/product?q=${encodeURIComponent(base+' '+type)}&productLineName=pokemon`;
-  $('#sealedResult').innerHTML=`
-    <div class="vbox wide" style="margin-top:14px"><div class="lbl">📦 ${q}</div>
-      <div class="sub" style="margin-top:6px;color:var(--muted)">Sealed product prices aren’t in the free card database, so here are live market sources for this exact item. eBay <b>sold</b> listings show what people actually paid — the best guide for a buy offer.</div></div>
-    <a class="linkbtn" href="${eUK}" target="_blank" rel="noopener">🇬🇧 eBay UK — sold prices <span>›</span><small>Real recent UK sale prices for this product</small></a>
-    <a class="linkbtn" href="${eUS}" target="_blank" rel="noopener">🇺🇸 eBay US — sold prices <span>›</span><small>Largest market, sold listings in USD</small></a>
-    <a class="linkbtn" href="${tcg}" target="_blank" rel="noopener">🛒 TCGplayer — market price <span>›</span><small>US retailer market price for sealed product</small></a>
-    <div class="muted" style="margin-top:12px">Tip: read the median of recent <b>sold</b> prices, then offer well below it to leave resale margin.</div>`;
+  $('#sealedResult').innerHTML='<div class="spin"></div><p class="muted" style="text-align:center">Fetching live sealed market price…</p>';
+  sealedMktGBP=null;
+  let priceHtml='';
+  try{
+    const r=await fetch('/.netlify/functions/sealed?set='+encodeURIComponent(base)+'&type='+encodeURIComponent(type));
+    const d=await r.json();
+    if(d && d.items && d.items.length){
+      let items=d.items.slice();
+      if(!/case/i.test(type)){ const nc=items.filter(i=>!/case/i.test(i.name)); if(nc.length) items=nc; }
+      const best=items[0]; sealedMktGBP=best.market*FX.USDGBP;
+      priceHtml=`<div class="offer" style="margin-top:14px"><div class="lbl">📦 Live market price · ${d.matched}</div><div class="big" style="font-size:38px">${gbp(sealedMktGBP)}</div><div class="rng">${best.name} · $${best.market.toFixed(2)} TCGplayer market</div></div>`;
+      if(items.length>1){
+        priceHtml+='<div class="vbox wide" style="margin-top:10px"><div class="lbl">Other sealed products in this set</div>';
+        items.slice(1,5).forEach(i=>{ priceHtml+=`<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:6px 0;border-top:1px solid var(--line)"><span style="color:var(--muted)">${i.name}</span><b style="white-space:nowrap">${gbp(i.market*FX.USDGBP)}</b></div>`; });
+        priceHtml+='</div>';
+      }
+    } else {
+      priceHtml='<div class="muted" style="margin-top:12px">No exact sealed match in the TCGplayer data for that name — try the set name only (e.g. “Surging Sparks”), or use the eBay sold links below.</div>';
+    }
+  }catch(e){ priceHtml='<div class="muted" style="margin-top:12px">Live price service unavailable right now — use the eBay sold links below.</div>'; }
+  $('#sealedResult').innerHTML = priceHtml + `
+    <div class="muted" style="margin:14px 0 4px">Cross-check against real sold prices:</div>
+    <a class="linkbtn" href="${eUK}" target="_blank" rel="noopener">🇬🇧 eBay UK — sold prices <span>›</span><small>What it actually sold for in the UK</small></a>
+    <a class="linkbtn" href="${eUS}" target="_blank" rel="noopener">🇺🇸 eBay US — sold prices <span>›</span><small>Largest market, USD</small></a>
+    <a class="linkbtn" href="${tcg}" target="_blank" rel="noopener">🛒 TCGplayer — product page <span>›</span><small>US retailer listings</small></a>`;
   $('#sealedResult').scrollIntoView({behavior:'smooth'});
 }
 // ---------- SEALED EV / "worth opening" ----------
