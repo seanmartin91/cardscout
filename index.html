@@ -432,7 +432,8 @@
 
     <div id="dealLot" class="hidden">
       <label>Paste the listing's photo links — one per line (no eBay account needed)</label>
-      <textarea id="lotImgs" rows="4" placeholder="On the listing, right-click each photo → Copy image address, and paste them here (one per line). Or use Upload photos below." style="width:100%;background:rgba(8,11,20,.7);border:1px solid var(--line-strong);color:var(--txt);padding:13px 15px;border-radius:13px;font-size:13.5px;font-family:inherit;outline:none;resize:vertical"></textarea>
+      <div class="muted" style="margin:2px 0 8px;font-size:12.5px">📁 From a daily lot folder? Open <b>cardscout-links.txt</b>, select all (Ctrl/Cmd+A), copy, and paste it straight in here — no need to download any images.</div>
+      <textarea id="lotImgs" rows="4" placeholder="Paste image links here, one per line (e.g. the contents of cardscout-links.txt). Or use Upload photos below." style="width:100%;background:rgba(8,11,20,.7);border:1px solid var(--line-strong);color:var(--txt);padding:13px 15px;border-radius:13px;font-size:13.5px;font-family:inherit;outline:none;resize:vertical"></textarea>
       <input id="lotAsk" type="number" inputmode="decimal" placeholder="Asking price (optional, for the verdict)" style="margin-top:10px">
       <div class="row" style="margin-top:12px">
         <button class="btn gold" id="lotManualBtn">Scan the photos</button>
@@ -1115,32 +1116,36 @@ async function scanImages(imgs, ask, out){
     if(!list.length){ out.innerHTML='<div class="muted">No clearly-readable cards spotted — lot pics are often low-res. Worth a manual look if the price is right.</div>'; return; }
     const t=$('#lotScanTxt'); if(t) t.textContent='Pricing the cards found…';
     const items=[];
-    for(const f of list){ try{ const c=await findOne(cleanCardName(f.name), f.set||'', f.number||'', f.era, typeof f.holo==='boolean'?f.holo:undefined); if(c){ const keys=finishKeysOf(c); items.push({card:c, finishKey: keys.length?preferFinish(keys):'_cm'}); } }catch(e){} }
+    for(const f of list){ try{ const c=await findOne(cleanCardName(f.name), f.set||'', f.number||'', f.era, typeof f.holo==='boolean'?f.holo:undefined); if(c){ const keys=finishKeysOf(c); items.push({card:c, finishKey: keys.length?preferFinish(keys):'_cm', guessed: !f.number || !f.set}); } }catch(e){} }
     if(!items.length){ out.innerHTML='<div class="muted">Couldn’t price any of the detected cards. Try again or use Single mode.</div>'; return; }
     scanState={items, ask, out}; renderScan();
   }catch(e){ out.innerHTML='<div class="errbox">Scan failed: '+e.message+'</div>'; }
 }
 function renderScan(){
-  if(!scanState) return; const {items, ask, out}=scanState; let rows='', total=0, noPrice=0;
-  let anyEst=false;
-  items.forEach((it,idx)=>{ const c=it.card;
-    const eds=editionOptions(c);
-    const ed = eds ? (it.edition||'unlimited') : null;
-    let v=0, est=false;
-    if(ed){ const e=editionPrice(c, ed); if(e){ v=e.nm; est=e.est; } }
-    else { v=priceCard(c, it.finishKey).blendNM||0; }
-    if(est) anyEst=true; total+=v;
+  if(!scanState) return; const {items, ask, out}=scanState;
+  // pass 1: value every card
+  const calc=items.map(it=>{ const c=it.card; const eds=editionOptions(c); const ed=eds?(it.edition||'unlimited'):null;
+    let v=0, est=false; if(ed){ const e=editionPrice(c,ed); if(e){ v=e.nm; est=e.est; } } else { v=priceCard(c,it.finishKey).blendNM||0; }
+    return {it,c,eds,ed,v,est}; });
+  const nz=calc.map(x=>x.v).filter(v=>v>0).sort((a,b)=>a-b);
+  const median=nz.length?nz[Math.floor(nz.length/2)]:0;
+  let rows='', confident=0, flagged=0, noPrice=0, anyEst=false;
+  calc.forEach((x,idx)=>{ const {it,c,eds,ed,v,est}=x;
+    // a match is "suspect" if the photo gave no set/number (a guess) or the value is a wild outlier vs the rest of the lot
+    const suspect = v>0 && (it.guessed===true || (v>50 && median>0 && v>4*median));
+    if(est) anyEst=true; if(v && !suspect) confident+=v; if(suspect) flagged++;
     let cell;
-    if(v){ cell=`<div class="buy">${gbp(v)}${est?'<span style="font-size:9px;font-weight:700;color:#ffb86b;margin-left:3px">est.</span>':''}</div>`; }
+    if(v){ if(suspect){ cell=`<div class="buy" style="color:#ffb86b">${gbp(v)}<span style="font-size:9px;font-weight:700;margin-left:3px">?verify</span></div>`; }
+      else { cell=`<div class="buy">${gbp(v)}${est?'<span style="font-size:9px;font-weight:700;color:#ffb86b;margin-left:3px">est.</span>':''}</div>`; } }
     else { noPrice++; const eb=`https://www.${CUR_DEFS[CUR].ebay}/sch/i.html?_nkw=${encodeURIComponent(c.name+' '+c.set.name+' '+c.number)}&LH_Sold=1&LH_Complete=1`; cell=`<a href="${eb}" target="_blank" rel="noopener" style="font-size:11.5px;font-weight:700;color:var(--blue);white-space:nowrap">check eBay ›</a>`; }
     let edsel='';
     if(eds){ edsel=`<select class="edsel" data-i="${idx}" style="margin-top:4px;font-size:11px;padding:2px 5px;border-radius:6px;background:#16203200;color:#9fb4d6;border:1px solid #2c3a52;display:inline-block;max-width:150px">`+eds.map(e=>`<option value="${e.v}"${e.v===ed?' selected':''}>${e.t}</option>`).join('')+`</select>`; }
-    rows+=`<div class="brow"><img src="${c.images.small}"><div class="bi"><b>${c.name}</b><span>${c.set.name} · #${c.number}</span>${edsel}</div><div class="bp">${cell}</div><button class="x edit" data-i="${idx}" title="fix this card">✎</button></div>`;
+    rows+=`<div class="brow"${suspect?' style="border:1px solid rgba(255,184,107,.3)"':''}><img src="${c.images.small}"><div class="bi"><b>${c.name}</b><span>${c.set.name} · #${c.number}</span>${edsel}</div><div class="bp">${cell}</div><button class="x edit" data-i="${idx}" title="fix this card">✎</button></div>`;
   });
-  const col=(ask!=null && total>ask)?'#5cf0a6':'#ffd6db';
-  const verdict = ask!=null ? `Priced cards ≈ <b style="color:${col}">${gbp(total)}</b> vs asking ${gbp(ask)} — ${total>ask?'worth a look':'below asking on priced cards alone'}.` : `Priced cards ≈ <b>${gbp(total)}</b>.`;
-  out.innerHTML=`<div class="offer" style="margin-top:6px"><div class="lbl">Priced cards value</div><div class="big" style="font-size:34px">${gbp(total)}</div><div class="rng">${verdict}</div></div>
-    <div class="muted" style="margin:10px 0">${items.length} card(s).${noPrice?` ${noPrice} had no live price (new sets) — tap “check eBay”.`:''} For old WOTC holos pick the edition (Unlimited / Shadowless / 1st Ed). ${anyEst?'“est.” = scaled from Unlimited; tap ✎ then the eBay link to confirm. ':''}Tap ✎ to fix a wrong name/number.</div>${rows}`;
+  const col=(ask!=null && confident>ask)?'#5cf0a6':'#ffd6db';
+  const verdict = ask!=null ? `Confident value ≈ <b style="color:${col}">${gbp(confident)}</b> vs asking ${gbp(ask)} — ${confident>ask?'worth a closer look':'below asking on the cards we’re sure of'}.` : `Confident value ≈ <b>${gbp(confident)}</b> (cards we’re sure of).`;
+  out.innerHTML=`<div class="offer" style="margin-top:6px"><div class="lbl">Confident value</div><div class="big" style="font-size:34px">${gbp(confident)}</div><div class="rng">${verdict}</div></div>
+    <div class="muted" style="margin:10px 0">${items.length} card(s) read.${flagged?` <b style="color:#ffb86b">${flagged} flagged “?verify”</b> — the photo couldn’t confirm the set/number so these are likely misreads; they’re NOT in the total. Tap ✎ to correct them.`:''}${noPrice?` ${noPrice} had no live price.`:''} For old WOTC holos pick the edition. Lot photos are low-res — treat this as a shortlist, not a precise appraisal.</div>${rows}`;
   out.querySelectorAll('.edsel').forEach(s=>{ s.onchange=()=>{ scanState.items[+s.dataset.i].edition=s.value; renderScan(); }; });
   out.querySelectorAll('.edit').forEach(b=>{ b.onclick=async()=>{
     const i=+b.dataset.i; const cur=scanState.items[i].card;
