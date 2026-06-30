@@ -1004,9 +1004,22 @@ async function scanLot(){
 }
 
 // ---------- SETTINGS + LOGIN ----------
-function openSettings(){ $('#settingsStep').classList.remove('hidden'); $('#settingsStep').scrollIntoView({behavior:'smooth'}); loadSvcStatus(); }
+function openSettings(){
+  ['step1','step2','step3','batchStep','sealedStep','dealsStep'].forEach(id=>{ const e=$('#'+id); if(e) e.classList.add('hidden'); });
+  const disc=document.querySelector('.disclaimer'); if(disc) disc.classList.add('hidden');
+  $('#settingsStep').classList.remove('hidden');
+  window.scrollTo({top:0,behavior:'smooth'});
+  loadSvcStatus();
+}
+function closeSettings(){
+  $('#settingsStep').classList.add('hidden');
+  $('#step1').classList.remove('hidden');
+  const disc=document.querySelector('.disclaimer'); if(disc) disc.classList.remove('hidden');
+  applyMode();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
 $('#settingsBtn').onclick=openSettings;
-$('#settingsClose').onclick=()=>$('#settingsStep').classList.add('hidden');
+$('#settingsClose').onclick=closeSettings;
 if($('#openSettingsLink')) $('#openSettingsLink').onclick=(e)=>{ e.preventDefault(); openSettings(); };
 async function svcOn(url){ try{ const r=await fetch(url); const d=await r.json(); return !!d.enabled; }catch(e){ return false; } }
 function svcRow(name,desc,on){ return `<div class="setrow"><span class="dot2 ${on?'on':'off'}"></span><div class="si"><div class="st">${name}</div><div class="sd">${desc}</div></div></div>`; }
