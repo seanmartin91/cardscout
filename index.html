@@ -679,7 +679,15 @@ async function loadGraded(c){
 }
 (function(){ const gd=$('#gradedDetails'); if(gd) gd.addEventListener('toggle', function(){ if(this.open && selectedCard && this.dataset.loadedFor!==selectedCard.id){ this.dataset.loadedFor=selectedCard.id; loadGraded(selectedCard); } }); })();
 function finishKeysOf(c){ return Object.keys((c.tcgplayer&&c.tcgplayer.prices)||{}); }
-function preferFinish(keys){ return keys.find(k=>/holofoil/i.test(k)&&!/reverse|1st/i.test(k))||keys.find(k=>/normal/i.test(k))||keys[0]; }
+function preferFinish(keys){
+  // For raw cards default to the cheaper/common printing: avoid 1st Edition unless it's the only option.
+  const non1st = keys.filter(k=>!/1st|first/i.test(k));
+  const pool = non1st.length ? non1st : keys;
+  return pool.find(k=>/holofoil/i.test(k)&&!/reverse/i.test(k))
+      || pool.find(k=>/normal/i.test(k))
+      || pool.find(k=>/unlimited/i.test(k))
+      || pool[0];
+}
 function buildFinishes(c){
   const sel=$('#finishSel'); sel.innerHTML=''; const keys=finishKeysOf(c);
   if(keys.length){ keys.forEach(k=>{ const o=document.createElement('option'); o.value=k; o.textContent=k.replace(/([A-Z])/g,' $1').replace(/^./,m=>m.toUpperCase()); sel.appendChild(o); }); sel.value=preferFinish(keys); }
@@ -732,17 +740,18 @@ function resetSingle(){ selectedCard=null; capturedDataURL=null; $('#step3').cla
   $('#preview').style.display='none'; $('#camHint').style.display='block'; window.scrollTo({top:0,behavior:'smooth'}); }
 
 // ---------- MULTI ----------
-async function findOne(name,set,num){
+async function findOne(name,set,num,era){
+  const order = era==='vintage' ? 'set.releaseDate' : '-set.releaseDate'; // vintage -> oldest printing first
   const parts=[`name:"${name}"`]; if(set) parts.push(`set.name:"${set}"`); if(num) parts.push(`number:${String(num).split('/')[0].trim()}`);
-  let r=await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(parts.join(' '))}&pageSize=8&orderBy=-set.releaseDate`); let j=await r.json();
-  if((!j.data||!j.data.length)&&(set||num)){ r=await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent('name:"'+name+'"')}&pageSize=8&orderBy=-set.releaseDate`); j=await r.json(); }
+  let r=await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(parts.join(' '))}&pageSize=8&orderBy=${order}`); let j=await r.json();
+  if((!j.data||!j.data.length)&&(set||num)){ r=await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent('name:"'+name+'"')}&pageSize=12&orderBy=${order}`); j=await r.json(); }
   if(!j.data||!j.data.length) return null;
   return j.data.find(c=>c.tcgplayer||c.cardmarket) || j.data[0];
 }
 async function runMulti(){
   $('#batchEmpty').classList.add('hidden'); $('#batchControls').classList.add('hidden'); $('#batchList').innerHTML='';
   $('#batchThinking').classList.remove('hidden'); $('#batchThinkTxt').textContent='Reading all the cards in your photo…';
-  const prompt='You are reading a photo of several Pokemon cards laid out. List ONLY cards whose NAME you can clearly read — never guess a name you cannot read. For each, give the exact card name, plus the set name and collector number (small text in a bottom corner, e.g. 4/102) ONLY if clearly legible, otherwise leave those blank. Respond ONLY with a JSON array, no prose: [{"name":"","set":"","number":""}, ...].';
+  const prompt='You are reading a photo of several Pokemon cards laid out. For EACH card whose NAME you can clearly read, give: name (never guess a name you cannot read); set and number ONLY if clearly legible, otherwise ""; era ("vintage" for 1999-2003 WOTC-style cards — yellow border, old layout, e.g. Base, Jungle, Fossil, Team Rocket, Gym, Neo — otherwise "modern"). NEVER guess a set you cannot read. Respond ONLY with a JSON array, no prose: [{"name":"","set":"","number":"","era":""}, ...].';
   try{
     const text=await aiVision(prompt);
     const m=text.match(/\[[\s\S]*\]/); let arr=m?JSON.parse(m[0]):[];
@@ -751,7 +760,7 @@ async function runMulti(){
     batchCards=[];
     for(let i=0;i<arr.length;i++){
       $('#batchThinkTxt').textContent=`Pricing card ${i+1} of ${arr.length}…`;
-      try{ const c=await findOne(arr[i].name,arr[i].set,arr[i].number); if(c){ const keys=finishKeysOf(c); batchCards.push({card:c, finishKey: keys.length?preferFinish(keys):'_cm'}); } }catch(e){}
+      try{ const c=await findOne(arr[i].name,arr[i].set,arr[i].number,arr[i].era); if(c){ const keys=finishKeysOf(c); batchCards.push({card:c, finishKey: keys.length?preferFinish(keys):'_cm'}); } }catch(e){}
     }
     $('#batchThinking').classList.add('hidden');
     if(!batchCards.length){ $('#batchEmpty').classList.remove('hidden'); $('#batchEmpty').innerHTML='<div class="errbox">Couldn’t price any of the detected cards. Try again or use Single mode.</div>'; return; }
@@ -1005,20 +1014,20 @@ async function scanImages(imgs, ask, out){
   imgs=(imgs||[]).filter(Boolean).slice(0,8);
   if(!imgs.length){ out.innerHTML='<div class="errbox">No photos to scan — paste image links or upload photos.</div>'; return; }
   out.innerHTML='<div class="spin"></div><p class="muted" id="lotScanTxt" style="text-align:center">Reading the photos…</p>';
-  const prompt='This is a photo from a Pokemon card lot. List ONLY cards whose name you can clearly read — never guess. Respond ONLY with a JSON array: [{"name":"","set":"","number":""}, ...]. Leave set/number blank if not legible.';
+  const prompt='Photo from a Pokemon card lot. For EACH card whose name you can clearly read, give: name; set (ONLY if the set symbol/name is clearly legible, otherwise ""); number (ONLY if legible, otherwise ""); era ("vintage" for 1999-2003 WOTC-style cards — yellow border, old layout, sets like Base, Jungle, Fossil, Team Rocket, Gym Heroes, Gym Challenge, Neo — otherwise "modern"). NEVER guess a set you cannot read; leave it "" instead. Respond ONLY with a JSON array: [{"name":"","set":"","number":"","era":""}, ...].';
   const found={};
   try{
     for(let i=0;i<imgs.length;i++){
       const t=$('#lotScanTxt'); if(t) t.textContent=`Reading photo ${i+1} of ${imgs.length}…`;
       let text=''; try{ text=await aiVisionUrl(prompt, imgs[i]); }catch(e){ if(/api key/i.test(e.message)){ out.innerHTML='<div class="errbox">'+e.message+'</div>'; return; } continue; }
       const m=text.match(/\[[\s\S]*\]/); let arr=m?JSON.parse(m[0]):[];
-      arr.forEach(o=>{ if(o&&o.name){ const k=(o.name+'|'+(o.number||'')).toLowerCase(); if(!found[k]) found[k]={name:o.name,set:o.set,number:o.number}; } });
+      arr.forEach(o=>{ if(o&&o.name){ const k=(o.name+'|'+(o.number||'')).toLowerCase(); if(!found[k]) found[k]={name:o.name,set:o.set,number:o.number,era:o.era}; } });
     }
     const list=Object.values(found).slice(0,30);
     if(!list.length){ out.innerHTML='<div class="muted">No clearly-readable cards spotted — lot pics are often low-res. Worth a manual look if the price is right.</div>'; return; }
     const t=$('#lotScanTxt'); if(t) t.textContent='Pricing the cards found…';
     let rows='', total=0, noPrice=0;
-    for(const f of list){ try{ const c=await findOne(cleanCardName(f.name), f.set||'', f.number||''); if(c){
+    for(const f of list){ try{ const c=await findOne(cleanCardName(f.name), f.set||'', f.number||'', f.era); if(c){
       const p=priceCard(c, finishKeysOf(c).length?preferFinish(finishKeysOf(c)):'_cm'); const v=p.blendNM||0; total+=v;
       let cell;
       if(v){ cell=`<div class="buy">${gbp(v)}</div>`; }
