@@ -506,11 +506,12 @@ async function searchCards(){
   $('#searchStatus').innerHTML='<div class="spin"></div>'; $('#results').innerHTML='';
   const words=name.split(' ').filter(Boolean);
   const parts=[`name:"${name}"`]; if(set) parts.push(`set.name:"${set}"`); if(num) parts.push(`number:${num}`);
+  const pre=w=>w.length>5?w.slice(0,5):w;              // prefix tolerant of end-of-word typos
   const tries=[
     parts.join(' '),                                   // exact + filters
     `name:"${name}"`,                                  // exact name only
-    words.map(w=>`name:${w}*`).join(' '),              // wildcard each word
-    words.map(w=>`name:${w}~`).join(' '),              // fuzzy each word (typos)
+    words.map(w=>`name:${w}*`).join(' '),              // wildcard each whole word
+    words.map(w=>`name:${pre(w)}*`).join(' '),         // truncated-prefix wildcard (Pidgeon->Pidge*->Pidgey/Pidgeot)
     `name:*${words[0]}*`                               // loose contains on first word
   ];
   try{
