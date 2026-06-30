@@ -698,7 +698,9 @@ function preferFinish(keys){
 }
 function buildFinishes(c){
   const sel=$('#finishSel'); sel.innerHTML=''; const keys=finishKeysOf(c);
-  if(keys.length){ keys.forEach(k=>{ const o=document.createElement('option'); o.value=k; o.textContent=k.replace(/([A-Z])/g,' $1').replace(/^./,m=>m.toUpperCase()); sel.appendChild(o); }); sel.value=preferFinish(keys); }
+  const eds=editionOptions(c);
+  if(eds){ eds.forEach(e=>{ const o=document.createElement('option'); o.value='ed:'+e.v; o.textContent=e.t; sel.appendChild(o); }); sel.value='ed:unlimited'; }
+  else if(keys.length){ keys.forEach(k=>{ const o=document.createElement('option'); o.value=k; o.textContent=k.replace(/([A-Z])/g,' $1').replace(/^./,m=>m.toUpperCase()); sel.appendChild(o); }); sel.value=preferFinish(keys); }
   else { const o=document.createElement('option'); o.value='_cm'; o.textContent='Standard (EU data only)'; sel.appendChild(o); }
 }
 // shared price calc
@@ -713,17 +715,51 @@ function priceCard(c, finishKey){
   const blendNM = vals.length? vals.reduce((a,b)=>a+b,0)/vals.length : null;
   return {usUSD,usGBP,usLabel,euEUR,euGBP,euLabel,blendNM};
 }
+// ---------- WOTC edition pricing (1st Edition / Shadowless / Unlimited) ----------
+// Vintage WOTC holos (Base..Neo, ~1999-2003) come in multiple editions whose value differs a lot,
+// but the data feed usually carries only the Unlimited holofoil price. We use the real 1st-Edition
+// number when the card has one, otherwise estimate Shadowless/1st from typical market multipliers.
+const ED_MULT = { shadowless: 2.4, '1st': 6.5 };
+function vintageHolo(c){
+  const yr=new Date((c.set&&c.set.releaseDate)||'2099').getFullYear();
+  const hasHolo=finishKeysOf(c).some(k=>/holofoil/i.test(k)&&!/reverse/i.test(k));
+  return yr<=2003 && hasHolo;
+}
+function editionOptions(c){
+  if(!vintageHolo(c)) return null;
+  const opts=[{v:'unlimited',t:'Unlimited'}];
+  if(/^base$/i.test(c.set.name)) opts.push({v:'shadowless',t:'Shadowless'});
+  opts.push({v:'1st',t:'1st Edition'});
+  return opts.length>1?opts:null;
+}
+function editionPrice(c, ed){
+  const base=priceCard(c, preferFinish(finishKeysOf(c))).blendNM;
+  if(base==null) return null;
+  if(ed==='shadowless') return {nm:base*ED_MULT.shadowless, est:true};
+  if(ed==='1st'){
+    const tp=(c.tcgplayer&&c.tcgplayer.prices)||{};
+    const k1=Object.keys(tp).find(k=>/1stedition/i.test(k));
+    if(k1){ const p=tp[k1]; const mv=p.market||p.mid||p.low; if(mv) return {nm:mv*FX.USD, est:false}; }
+    return {nm:base*ED_MULT['1st'], est:true};
+  }
+  return {nm:base, est:false};
+}
+// unified: sel may be a real finish key, '_cm', or 'ed:unlimited|shadowless|1st'
+function pricePicked(c, sel){
+  if(sel && sel.indexOf('ed:')===0){ const e=editionPrice(c, sel.slice(3)); if(e) return {usUSD:null,usGBP:e.nm,usLabel:'edition',euEUR:null,euGBP:null,euLabel:'—',blendNM:e.nm,est:e.est}; }
+  return priceCard(c, sel);
+}
 $('#finishSel').onchange=recompute; $('#condSel').onchange=recompute; $('#buyPct').oninput=recompute;
 function recompute(){
   if(!selectedCard) return; const c=selectedCard;
   const cond=parseFloat($('#condSel').value); const buyPct=parseInt($('#buyPct').value);
   $('#buyPctTxt').textContent=buyPct+'%'; $('#marginTxt').textContent=(100-buyPct)+'%';
-  const p=priceCard(c,$('#finishSel').value);
-  $('#usVal').textContent=p.usGBP!=null?gbp(p.usGBP):'—'; $('#usSub').textContent=p.usUSD!=null?`${p.usLabel} · $${p.usUSD.toFixed(2)}`:'no US data';
+  const p=pricePicked(c,$('#finishSel').value);
+  $('#usVal').textContent=p.usGBP!=null?gbp(p.usGBP):'—'; $('#usSub').textContent=p.usUSD!=null?`${p.usLabel} · $${p.usUSD.toFixed(2)}`:(p.est?'estimated from Unlimited':'no US data');
   $('#euVal').textContent=p.euGBP!=null?gbp(p.euGBP):'—'; $('#euSub').textContent=p.euEUR!=null?`${p.euLabel} · €${p.euEUR.toFixed(2)}`:'no EU data';
   if(p.blendNM==null){ $('#blendVal').textContent='No price data'; $('#offerVal').textContent='—'; $('#offerRng').textContent=''; $('#breakTbl').innerHTML=''; return; }
   const blendCond=p.blendNM*cond; $('#blendVal').textContent=gbp(blendCond);
-  $('#blendSub').textContent=`NM ${gbp(p.blendNM)} × ${$('#condSel').selectedOptions[0].text} (${Math.round(cond*100)}%)`;
+  $('#blendSub').textContent=`NM ${gbp(p.blendNM)} × ${$('#condSel').selectedOptions[0].text} (${Math.round(cond*100)}%)`+(p.est?' · edition est.':'');
   const offer=blendCond*(buyPct/100); $('#offerVal').textContent=gbp(offer);
   const lo=blendCond*((buyPct-12)/100), hi=blendCond*((buyPct+8)/100);
   $('#offerRng').textContent=`Walk-away range ${gbp(Math.max(0,lo))} – ${gbp(hi)} · resell ≈ ${gbp(blendCond)}`;
@@ -1070,16 +1106,26 @@ async function scanImages(imgs, ask, out){
 }
 function renderScan(){
   if(!scanState) return; const {items, ask, out}=scanState; let rows='', total=0, noPrice=0;
-  items.forEach((it,idx)=>{ const c=it.card; const p=priceCard(c, it.finishKey); const v=p.blendNM||0; total+=v;
+  let anyEst=false;
+  items.forEach((it,idx)=>{ const c=it.card;
+    const eds=editionOptions(c);
+    const ed = eds ? (it.edition||'unlimited') : null;
+    let v=0, est=false;
+    if(ed){ const e=editionPrice(c, ed); if(e){ v=e.nm; est=e.est; } }
+    else { v=priceCard(c, it.finishKey).blendNM||0; }
+    if(est) anyEst=true; total+=v;
     let cell;
-    if(v){ cell=`<div class="buy">${gbp(v)}</div>`; }
+    if(v){ cell=`<div class="buy">${gbp(v)}${est?'<span style="font-size:9px;font-weight:700;color:#ffb86b;margin-left:3px">est.</span>':''}</div>`; }
     else { noPrice++; const eb=`https://www.${CUR_DEFS[CUR].ebay}/sch/i.html?_nkw=${encodeURIComponent(c.name+' '+c.set.name+' '+c.number)}&LH_Sold=1&LH_Complete=1`; cell=`<a href="${eb}" target="_blank" rel="noopener" style="font-size:11.5px;font-weight:700;color:var(--blue);white-space:nowrap">check eBay ›</a>`; }
-    rows+=`<div class="brow"><img src="${c.images.small}"><div class="bi"><b>${c.name}</b><span>${c.set.name} · #${c.number}</span></div><div class="bp">${cell}</div><button class="x edit" data-i="${idx}" title="fix this card">✎</button></div>`;
+    let edsel='';
+    if(eds){ edsel=`<select class="edsel" data-i="${idx}" style="margin-top:4px;font-size:11px;padding:2px 5px;border-radius:6px;background:#16203200;color:#9fb4d6;border:1px solid #2c3a52;display:inline-block;max-width:150px">`+eds.map(e=>`<option value="${e.v}"${e.v===ed?' selected':''}>${e.t}</option>`).join('')+`</select>`; }
+    rows+=`<div class="brow"><img src="${c.images.small}"><div class="bi"><b>${c.name}</b><span>${c.set.name} · #${c.number}</span>${edsel}</div><div class="bp">${cell}</div><button class="x edit" data-i="${idx}" title="fix this card">✎</button></div>`;
   });
   const col=(ask!=null && total>ask)?'#5cf0a6':'#ffd6db';
   const verdict = ask!=null ? `Priced cards ≈ <b style="color:${col}">${gbp(total)}</b> vs asking ${gbp(ask)} — ${total>ask?'worth a look':'below asking on priced cards alone'}.` : `Priced cards ≈ <b>${gbp(total)}</b>.`;
   out.innerHTML=`<div class="offer" style="margin-top:6px"><div class="lbl">Priced cards value</div><div class="big" style="font-size:34px">${gbp(total)}</div><div class="rng">${verdict}</div></div>
-    <div class="muted" style="margin:10px 0">${items.length} card(s).${noPrice?` ${noPrice} had no live price (new sets) — tap “check eBay”.`:''} Tap ✎ to fix a wrong name/number. Lot photos are low-res — treat as a shortlist.</div>${rows}`;
+    <div class="muted" style="margin:10px 0">${items.length} card(s).${noPrice?` ${noPrice} had no live price (new sets) — tap “check eBay”.`:''} For old WOTC holos pick the edition (Unlimited / Shadowless / 1st Ed). ${anyEst?'“est.” = scaled from Unlimited; tap ✎ then the eBay link to confirm. ':''}Tap ✎ to fix a wrong name/number.</div>${rows}`;
+  out.querySelectorAll('.edsel').forEach(s=>{ s.onchange=()=>{ scanState.items[+s.dataset.i].edition=s.value; renderScan(); }; });
   out.querySelectorAll('.edit').forEach(b=>{ b.onclick=async()=>{
     const i=+b.dataset.i; const cur=scanState.items[i].card;
     const nn=prompt('Fix this card — type the name and number (e.g. "Hitmonlee 22/62"):', cur.name+' '+cur.number); if(!nn||!nn.trim()) return;
