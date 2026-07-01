@@ -1129,7 +1129,7 @@ async function scanImages(imgs, ask, out){
   }catch(e){ out.innerHTML='<div class="errbox">Scan failed: '+e.message+'</div>'; }
 }
 function renderScan(){
-  if(!scanState) return; const {items, ask, out}=scanState; const showAll=!!scanState.showAll;
+  if(!scanState) return; const {items, ask, out}=scanState; const showAll = scanState.showAll!==false; // show ALL cards by default
   // pass 1: value every card and classify holo/rare vs bulk common
   const calc=items.map((it,idx)=>{ const c=it.card; const eds=editionOptions(c); const ed=eds?(it.edition||'unlimited'):null;
     let v=0, est=false; if(ed){ const e=editionPrice(c,ed); if(e){ v=e.nm; est=e.est; } } else { v=priceCard(c,it.finishKey).blendNM||0; }
@@ -1158,7 +1158,7 @@ function renderScan(){
   const toggle = bulkCount? `<button class="btn ghost" id="toggleBulk" style="margin:6px 0 2px">${showAll?'Hide bulk commons':'Show '+bulkCount+' bulk common(s) ≈ '+gbp(bulkVal)}</button>` : '';
   const dlbtn = `<button class="btn ghost" id="lotCsv" style="margin:6px 0 2px">⬇ Download CSV</button>`;
   out.innerHTML=`<div class="offer" style="margin-top:6px"><div class="lbl">Key cards (holos &amp; rares)</div><div class="big" style="font-size:34px">${gbp(confident)}</div><div class="rng">${verdict}</div></div>
-    <div class="muted" style="margin:10px 0">Showing the ${showAll?'':'holos & rares — '}${bulkCount?(showAll?'':bulkCount+' bulk common(s) hidden. '):''}${flagged?`<b style="color:#ffb86b">${flagged} flagged “?verify”</b> (set/number couldn’t be confirmed — likely a misread; not in the total). `:''}For old WOTC holos pick the edition · tap ✎ to fix · low-res lot photos = shortlist, not an appraisal.</div><div style="display:flex;gap:8px;flex-wrap:wrap">${toggle}${dlbtn}</div>${rows}`;
+    <div class="muted" style="margin:10px 0">${items.length} card(s) found.${bulkCount?` ${bulkCount} are low-value bulk (marked “bulk”).`:''} ${flagged?`<b style="color:#ffb86b">${flagged} flagged “?verify”</b> — likely a misread, not counted. `:''}Headline = holos & rares${bulkVal?`; +${gbp(bulkVal)} bulk = <b>${gbp(confident+bulkVal)}</b> all-in`:''}. Tap ✎ to fix · pick edition on WOTC holos · low-res photos = shortlist.</div><div style="display:flex;gap:8px;flex-wrap:wrap">${toggle}${dlbtn}</div>${rows}`;
   const tb=$('#toggleBulk'); if(tb) tb.onclick=()=>{ scanState.showAll=!scanState.showAll; renderScan(); };
   const cb=$('#lotCsv'); if(cb) cb.onclick=exportScanCsv;
   out.querySelectorAll('.edsel').forEach(s=>{ s.onchange=()=>{ scanState.items[+s.dataset.i].edition=s.value; renderScan(); }; });
