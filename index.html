@@ -431,9 +431,9 @@
     </div>
 
     <div id="dealLot" class="hidden">
-      <label>Paste the photo links — one per line (no eBay account needed)</label>
-      <div class="muted" style="margin:2px 0 8px;font-size:12.5px">✅ From a daily lot folder, open <b>cardscout-links.txt</b>, select all (Ctrl/Cmd+A), copy, and paste it here — then tap Scan. No file download needed. (You can also paste an eBay listing link, but eBay often blocks that; photo links are reliable.)</div>
-      <textarea id="lotImgs" rows="4" placeholder="Paste photo links here, one per line (the contents of cardscout-links.txt). Or use Upload photos below." style="width:100%;background:rgba(8,11,20,.7);border:1px solid var(--line-strong);color:var(--txt);padding:13px 15px;border-radius:13px;font-size:13.5px;font-family:inherit;outline:none;resize:vertical"></textarea>
+      <label>Paste the eBay listing link — CardScout pulls the photos for you</label>
+      <div class="muted" style="margin:2px 0 8px;font-size:12.5px">✅ Just paste the <b>eBay listing link</b> (or item number) and tap Scan — CardScout fetches all the photos automatically. From a daily lot folder it's in <b>listing-link.txt</b> / lot.md. You can still paste photo links or upload photos.</div>
+      <textarea id="lotImgs" rows="3" placeholder="Paste the eBay listing link (e.g. https://www.ebay.ca/itm/123456789). Or photo links, one per line. Or Upload photos below." style="width:100%;background:rgba(8,11,20,.7);border:1px solid var(--line-strong);color:var(--txt);padding:13px 15px;border-radius:13px;font-size:13.5px;font-family:inherit;outline:none;resize:vertical"></textarea>
       <input id="lotAsk" type="number" inputmode="decimal" placeholder="Asking price (optional, for the verdict)" style="margin-top:10px">
       <div class="row" style="margin-top:12px">
         <button class="btn gold" id="lotManualBtn">Scan the photos</button>
@@ -1173,11 +1173,17 @@ async function lotManualScan(){
   const isImageLinks = /i\.ebayimg\.com\/.+s-l\d+/i.test(raw) || /\.(jpg|jpeg|png|webp)(\?|$)/i.test(raw);
   if(listing && !isImageLinks){
     out.innerHTML='<div class="spin"></div><p class="muted" style="text-align:center">Pulling the listing’s photos…</p>';
+    const mkt=(CUR_DEFS[CUR]&&CUR_DEFS[CUR].mkt)||'EBAY_CA';
     try{
-      const r=await fetch('/.netlify/functions/lotpull?url='+encodeURIComponent(listing[1]));
-      const d=await r.json();
-      if(d.images&&d.images.length){ scanImages(d.images, ask, out); return; }
-      out.innerHTML='<div class="errbox">Couldn’t pull photos from that listing. Paste the photo links instead, or upload photos.</div>';
+      // official eBay API first (needs keys) — returns all listing photos, no scraping block
+      let r=await fetch('/.netlify/functions/ebay?mode=item&id='+encodeURIComponent(listing[1])+'&mkt='+mkt);
+      let d=await r.json();
+      let imgs=(d&&d.item&&d.item.images)||[];
+      if((!imgs.length)){ // fall back to the scraper puller
+        r=await fetch('/.netlify/functions/lotpull?url='+encodeURIComponent(listing[1])); d=await r.json(); imgs=(d&&d.images)||[];
+      }
+      if(imgs.length){ if(ask==null && d.item && d.item.price!=null) ask=ebGBP(d.item.price, d.item.currency||'USD'); scanImages(imgs, ask, out); return; }
+      out.innerHTML='<div class="errbox">Couldn’t pull photos from that listing. Paste the photo links (cardscout-links.txt) instead, or upload photos.</div>';
     }catch(e){ out.innerHTML='<div class="errbox">Listing puller unavailable. Paste the photo links instead, or upload photos.</div>'; }
     return;
   }
