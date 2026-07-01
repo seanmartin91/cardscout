@@ -42,7 +42,7 @@ exports.handler = async (event) => {
   const mode = q.mode || 'search';
   try {
     const tok = await getToken();
-    const H = { 'Authorization': 'Bearer ' + tok, 'X-EBAY-C-MARKETPLACE-ID': MKT, 'Content-Type': 'application/json' };
+    const H = { 'Authorization': 'Bearer ' + tok, 'X-EBAY-C-MARKETPLACE-ID': (q.mkt || MKT), 'Content-Type': 'application/json' };
 
     if (mode === 'item') {
       const id = legacyId(q.id);
@@ -50,7 +50,11 @@ exports.handler = async (event) => {
       const d = await r.json();
       if (d.errors) return { statusCode: 200, headers: CORS, body: JSON.stringify({ enabled: true, item: null, error: d.errors[0] && d.errors[0].message }) };
       const images = [d.image && d.image.imageUrl, ...((d.additionalImages || []).map(i => i.imageUrl))].filter(Boolean);
-      return { statusCode: 200, headers: CORS, body: JSON.stringify({ enabled: true, item: { title: d.title, price: num(d.price && d.price.value), currency: d.price && d.price.currency, url: d.itemWebUrl, images } }) };
+      // Pull the seller's own words — title + description + condition + item specifics — a lot listing usually names every card here.
+      const strip = s => String(s || '').replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;/gi, ' ').replace(/\s+/g, ' ').trim();
+      const aspects = (d.localizedAspects || []).map(a => `${a.name}: ${a.value}`).join('; ');
+      const desc = (strip(d.shortDescription) + ' ' + strip(d.description)).trim().slice(0, 4000);
+      return { statusCode: 200, headers: CORS, body: JSON.stringify({ enabled: true, item: { title: d.title, price: num(d.price && d.price.value), currency: d.price && d.price.currency, url: d.itemWebUrl, images, condition: d.condition || null, conditionDescription: strip(d.conditionDescription) || null, aspects, description: desc } }) };
     }
 
     const term = q.q || '';
