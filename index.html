@@ -1099,11 +1099,12 @@ $('#lotFetchBtn').onclick=async()=>{
   html+='</div><button class="btn gold" id="lotScanBtn" style="margin-top:12px">Scan photos for valuable cards</button><div id="lotScan" style="margin-top:8px"></div>';
   $('#lotResult').innerHTML=html; $('#lotScanBtn').onclick=scanLot;
 };
-async function scanImages(imgs, ask, out){
+async function scanImages(imgs, ask, out, ctx){
   imgs=(imgs||[]).filter(Boolean).slice(0,8);
   if(!imgs.length){ out.innerHTML='<div class="errbox">No photos to scan — paste image links or upload photos.</div>'; return; }
   out.innerHTML='<div class="spin"></div><p class="muted" id="lotScanTxt" style="text-align:center">Reading the photos…</p>';
-  const prompt='Photo from a Pokemon card lot. It may hold 20-40 cards laid out in overlapping rows — scan the ENTIRE image methodically, row by row, left to right, and list EVERY card you can name, including ones partly covered by the card in front of them. Do not stop after the obvious few. For EACH card whose name you can clearly read, give: name; set (ONLY if the set symbol/name is clearly legible, otherwise ""); number (ONLY if legible, otherwise ""); era ("vintage" for 1999-2003 WOTC-style cards — yellow border, old layout, sets like Base, Jungle, Fossil, Team Rocket, Gym Heroes, Gym Challenge, Neo — otherwise "modern"); holo (true if the artwork has a shiny/holographic/foil sheen, false for a flat matte non-foil card — look carefully, this decides common vs rare). NEVER guess a set you cannot read; leave it "" instead. Respond ONLY with a JSON array: [{"name":"","set":"","number":"","era":"","holo":false}, ...].';
+  const ctxTxt = (ctx&&ctx.trim()) ? `IMPORTANT — the eBay seller's own listing text (title + description) is below. It usually names the exact cards, sets, numbers and condition in this lot. TRUST this text over the blurry photos when they conflict, and use it to fill in cards/sets/numbers you can't read in the photos. Listing text: """${ctx.trim().slice(0,3500)}"""\n\n` : '';
+  const prompt=ctxTxt+'Photo from a Pokemon card lot. It may hold 20-40 cards laid out in overlapping rows — scan the ENTIRE image methodically, row by row, left to right, and list EVERY card you can name, including ones partly covered by the card in front of them. Do not stop after the obvious few. Combine what you see with the listing text above. For EACH card give: name; set (from the listing text or a clearly legible symbol, else ""); number (from the listing text or if legible, else ""); era ("vintage" for 1999-2003 WOTC-style cards — Base, Jungle, Fossil, Team Rocket, Gym Heroes, Gym Challenge, Neo — otherwise "modern"); holo (true if shiny/holographic/foil, false if flat matte). NEVER invent a set; leave it "" if unknown. Respond ONLY with a JSON array: [{"name":"","set":"","number":"","era":"","holo":false}, ...].';
   const found={}; let keyErr=null, done=0;
   try{
     // Read photos in parallel (limited concurrency) — much faster than one at a time
@@ -1202,14 +1203,15 @@ async function lotManualScan(){
     out.innerHTML='<div class="spin"></div><p class="muted" style="text-align:center">Pulling the listing’s photos…</p>';
     const mkt=(CUR_DEFS[CUR]&&CUR_DEFS[CUR].mkt)||'EBAY_CA';
     try{
-      // official eBay API first (needs keys) — returns all listing photos, no scraping block
+      // official eBay API first (needs keys) — returns all listing photos + the seller's title/description text
       let r=await fetch('/.netlify/functions/ebay?mode=item&id='+encodeURIComponent(listing[1])+'&mkt='+mkt);
       let d=await r.json();
-      let imgs=(d&&d.item&&d.item.images)||[];
-      if((!imgs.length)){ // fall back to the scraper puller
-        r=await fetch('/.netlify/functions/lotpull?url='+encodeURIComponent(listing[1])); d=await r.json(); imgs=(d&&d.images)||[];
+      let item=d&&d.item; let imgs=(item&&item.images)||[];
+      let ctx = item ? [item.title, item.condition&&('Condition: '+item.condition), item.conditionDescription, item.aspects, item.description].filter(Boolean).join(' — ') : '';
+      if(!imgs.length){ // fall back to the scraper puller
+        r=await fetch('/.netlify/functions/lotpull?url='+encodeURIComponent(listing[1])); const d2=await r.json(); imgs=(d2&&d2.images)||[]; if(!ctx && d2&&d2.title) ctx=d2.title;
       }
-      if(imgs.length){ if(ask==null && d.item && d.item.price!=null) ask=ebGBP(d.item.price, d.item.currency||'USD'); scanImages(imgs, ask, out); return; }
+      if(imgs.length){ if(ask==null && item && item.price!=null) ask=ebGBP(item.price, item.currency||'USD'); scanImages(imgs, ask, out, ctx); return; }
       out.innerHTML='<div class="errbox">Couldn’t pull photos from that listing. Paste the photo links (cardscout-links.txt) instead, or upload photos.</div>';
     }catch(e){ out.innerHTML='<div class="errbox">Listing puller unavailable. Paste the photo links instead, or upload photos.</div>'; }
     return;
