@@ -263,6 +263,7 @@
       <button class="mode" data-mode="multi"><span class="mi"><svg class="ic" viewBox="0 0 24 24"><rect x="8.5" y="6" width="11" height="14.5" rx="2.2"/><path d="M5 17V6.2a2 2 0 0 1 2-2h8.5"/></svg></span>Multiple cards</button>
       <button class="mode" data-mode="sealed"><span class="mi"><svg class="ic" viewBox="0 0 24 24"><path d="M21 8.5l-9-5-9 5v7l9 5 9-5z"/><path d="M3 8.5l9 5 9-5M12 13.5V21"/></svg></span>Pack / box</button>
       <button class="mode" data-mode="deals"><span class="mi"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5L16 16"/></svg></span>Find deals</button>
+      <button class="mode" data-mode="lots"><span class="mi"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span>Best lots</button>
     </div>
     <div class="camwrap" id="camwrap">
       <div class="hint" id="camHint"><span class="ico"><svg class="ic" viewBox="0 0 24 24" style="width:36px;height:36px;stroke-width:1.5"><path d="M3 8a2 2 0 0 1 2-2h2l1.4-2h7.2L17 6h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.6"/></svg></span><span id="hintText">Tap “Use camera” to scan a card on the shelf, or upload a photo.</span></div>
@@ -451,6 +452,19 @@
     </div>
   </div>
 
+  <div class="panel hidden" id="lotsStep">
+    <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:4px">
+      <h3 style="margin:0;font-size:17px">Best lots the scout found</h3>
+      <button class="btn ghost" id="lotsRefresh" style="padding:6px 12px">↻</button>
+    </div>
+    <div class="muted" id="lotsMeta" style="margin-bottom:10px"></div>
+    <div id="lotsList"></div>
+    <div class="row" style="margin-top:14px;gap:8px">
+      <button class="btn gold" id="lotsCsv">⬇ Export CSV (flip tracker)</button>
+      <button class="btn ghost" id="lotsClear">Clear</button>
+    </div>
+  </div>
+
   <p class="disclaimer">
     Single &amp; multi-card prices are live from TCGplayer (US) &amp; Cardmarket (EU) via the Pokémon TCG API, converted to GBP.
     Sealed packs/boxes link to live eBay sold listings &amp; TCGplayer. Treat suggestions as a guide — final value depends on condition, grading &amp; local demand.
@@ -516,7 +530,38 @@ document.querySelectorAll('.mode').forEach(b=>{
     b.classList.add('on'); mode=b.dataset.mode; applyMode();
   };
 });
-function hideAll(){ ['step2','step3','batchStep','sealedStep','dealsStep'].forEach(id=>$('#'+id).classList.add('hidden')); }
+function hideAll(){ ['step2','step3','batchStep','sealedStep','dealsStep','lotsStep'].forEach(id=>{const e=$('#'+id); if(e) e.classList.add('hidden');}); }
+// ---------- BEST LOTS (populated by the daily scout via localStorage; readable in-app) ----------
+function loadBestLots(){ try{ return JSON.parse(localStorage.getItem('cs_bestlots')||'[]'); }catch(e){ return []; } }
+// The scheduled agent calls this (in this same browser) to save what it found & valued:
+window.cardscoutSetLots=function(arr){ try{ localStorage.setItem('cs_bestlots', JSON.stringify(arr||[])); }catch(e){} try{ if(mode==='lots') renderBestLots(); }catch(e){} return (arr||[]).length; };
+window.cardscoutAddLot=function(o){ const a=loadBestLots(); a.push(o); return window.cardscoutSetLots(a); };
+function renderBestLots(){
+  const lots=loadBestLots().slice().sort((a,b)=>((b.net==null?-1e9:b.net)-(a.net==null?-1e9:a.net)));
+  const meta=$('#lotsMeta'), list=$('#lotsList'); if(!meta||!list) return;
+  if(!lots.length){ meta.textContent=''; list.innerHTML='<div class="muted">No lots yet. The daily scout writes its finds here after it runs (8am &amp; 6pm). You can also scan a lot under <b>Find deals</b> and tap “Save to Best Lots”.</div>'; return; }
+  meta.innerHTML=`${lots.length} lot(s) · ranked by est. net profit · updated ${lots[0]&&lots[0].date||''}`;
+  list.innerHTML=lots.map(L=>{
+    const buy=/buy/i.test(L.verdict||''), pass=/pass/i.test(L.verdict||'');
+    const col= buy?'#5cf0a6' : pass?'#ffd6db' : '#ffe08a';
+    return `<a class="brow" href="${L.url||'#'}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit;align-items:flex-start;margin-bottom:8px">
+      <div class="bi" style="flex:1"><b>${(L.title||'').slice(0,80)}</b><span>Asking ${gbp(L.asking||0)} · value ≈ ${gbp(L.resale!=null?L.resale:(L.value||0))}${L.roi!=null?` · ROI ${Math.round(L.roi)}%`:''}</span>${L.notes?`<span style="color:var(--faint);font-size:11px">${L.notes.slice(0,120)}</span>`:''}</div>
+      <div class="bp"><div class="buy" style="color:${col}">${L.net!=null?gbp(L.net):'—'}</div><div class="mk" style="color:${col};font-weight:700">${L.verdict||'Watch'}</div></div></a>`;
+  }).join('');
+}
+function exportBestLotsCsv(){
+  const lots=loadBestLots(); if(!lots.length){ toast('No lots to export yet.'); return; }
+  const head=['Date found','Lot title','eBay link','Asking $','Est. resale $','Est. net profit $','Est. ROI %','Status','Actual cost $','Actual sold $','Actual profit $','Notes'];
+  const f2=n=>(n||n===0)?(Math.round(n*100)/100).toFixed(2):'';
+  const rows=[head, ...lots.map(L=>[L.date||'', L.title||'', L.url||'', f2(L.asking), f2(L.resale!=null?L.resale:L.value), f2(L.net), L.roi!=null?Math.round(L.roi)+'%':'', L.verdict||'Watch', '', '', '', L.notes||''])];
+  const csv=rows.map(r=>r.map(x=>{x=String(x==null?'':x);return /[",\n]/.test(x)?'"'+x.replace(/"/g,'""')+'"':x;}).join(',')).join('\r\n');
+  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'}); const u=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=u; a.download='cardscout-best-lots.csv'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),4000);
+  toast('CSV exported — asking, resale, net profit, ROI & status filled in.');
+}
+if($('#lotsCsv')) $('#lotsCsv').onclick=exportBestLotsCsv;
+if($('#lotsRefresh')) $('#lotsRefresh').onclick=renderBestLots;
+if($('#lotsClear')) $('#lotsClear').onclick=()=>{ if(confirm('Clear the saved Best Lots list?')){ localStorage.removeItem('cs_bestlots'); renderBestLots(); } };
 function applyMode(){
   hideAll();
   $('#manualSealed').classList.toggle('hidden', mode!=='sealed');
@@ -527,6 +572,7 @@ function applyMode(){
     else { $('#batchControls').classList.add('hidden'); $('#batchEmpty').classList.remove('hidden'); } }
   if(mode==='sealed') $('#hintText').textContent='Photo a sealed pack/box, or type the product name below.';
   if(mode==='deals'){ $('#hintText').textContent='Hunt eBay for underpriced singles, or paste a lot listing to scan its photos for hidden gems.'; $('#dealsStep').classList.remove('hidden'); }
+  if(mode==='lots'){ $('#hintText').textContent='Lots your daily scout found and valued — ranked by profit. Export the CSV to fill your flip tracker.'; $('#lotsStep').classList.remove('hidden'); renderBestLots(); }
 }
 
 // ---------- CAMERA ----------
@@ -1194,11 +1240,19 @@ function renderScan(){
   const col=(ask!=null && confident>ask)?'#5cf0a6':'#ffd6db';
   const verdict = ask!=null ? `Key cards ≈ <b style="color:${col}">${gbp(confident)}</b> vs asking ${gbp(ask)} — ${confident>ask?'worth a closer look':'below asking on the cards we’re sure of'}.` : `Key cards ≈ <b>${gbp(confident)}</b> (holos & rares we’re sure of).`;
   const toggle = bulkCount? `<button class="btn ghost" id="toggleBulk" style="margin:6px 0 2px">${showAll?'Hide bulk commons':'Show '+bulkCount+' bulk common(s) ≈ '+gbp(bulkVal)}</button>` : '';
-  const dlbtn = `<button class="btn ghost" id="lotCsv" style="margin:6px 0 2px">⬇ Download CSV</button>`;
+  const dlbtn = `<button class="btn ghost" id="lotCsv" style="margin:6px 0 2px">⬇ Download CSV</button><button class="btn ghost" id="lotSaveBest" style="margin:6px 0 2px">★ Save to Best Lots</button>`;
   out.innerHTML=`<div class="offer" style="margin-top:6px"><div class="lbl">Key cards (holos &amp; rares)</div><div class="big" style="font-size:34px">${gbp(confident)}</div><div class="rng">${verdict}</div></div>
     <div class="muted" style="margin:10px 0">${items.length} card(s) found.${bulkCount?` ${bulkCount} are low-value bulk (marked “bulk”).`:''} ${flagged?`<b style="color:#ffb86b">${flagged} flagged “?verify”</b> — likely a misread, not counted. `:''}Headline = holos & rares${bulkVal?`; +${gbp(bulkVal)} bulk = <b>${gbp(confident+bulkVal)}</b> all-in`:''}. Tap ✎ to fix · pick edition on WOTC holos · low-res photos = shortlist.</div><div style="display:flex;gap:8px;flex-wrap:wrap">${toggle}${dlbtn}</div>${rows}`;
   const tb=$('#toggleBulk'); if(tb) tb.onclick=()=>{ scanState.showAll=!scanState.showAll; renderScan(); };
   const cb=$('#lotCsv'); if(cb) cb.onclick=exportScanCsv;
+  const sb=$('#lotSaveBest'); if(sb) sb.onclick=()=>{
+    const resale=confident+bulkVal; const asking=scanState.ask||0; const net=resale*0.86-asking; const roi=asking?net/asking*100:null;
+    const verdict = net>2?'BUY':(net>-Math.max(2,asking*0.15)?'WATCH':'PASS');
+    const meta=window._lotMeta||{};
+    const notes=`${items.length} cards${flagged?`, ${flagged} ?verify`:''}. Key ${gbp(confident)}${bulkVal?` + ${gbp(bulkVal)} bulk`:''}.`;
+    cardscoutAddLot({date:new Date().toISOString().slice(0,10), title:meta.title||'Scanned lot', url:meta.url||'', asking, resale, net, roi, verdict, notes});
+    toast('Saved to Best Lots ★');
+  };
   out.querySelectorAll('.edsel').forEach(s=>{ s.onchange=()=>{ scanState.items[+s.dataset.i].edition=s.value; renderScan(); }; });
   out.querySelectorAll('.edit').forEach(b=>{ b.onclick=async()=>{
     const i=+b.dataset.i; const cur=scanState.items[i].card;
@@ -1249,7 +1303,7 @@ async function lotManualScan(){
       if(!imgs.length){ // fall back to the scraper puller
         r=await fetch('/.netlify/functions/lotpull?url='+encodeURIComponent(listing[1])); const d2=await r.json(); imgs=(d2&&d2.images)||[]; if(!ctx && d2&&d2.title) ctx=d2.title;
       }
-      if(imgs.length){ if(ask==null && item && item.price!=null) ask=ebGBP(item.price, item.currency||'USD'); scanImages(imgs, ask, out, ctx); return; }
+      if(imgs.length){ if(ask==null && item && item.price!=null) ask=ebGBP(item.price, item.currency||'USD'); window._lotMeta={title:(item&&item.title)||'Scanned lot', url:'https://www.'+CUR_DEFS[CUR].ebay+'/itm/'+listing[1], asking:ask}; scanImages(imgs, ask, out, ctx); return; }
       out.innerHTML='<div class="errbox">Couldn’t pull photos from that listing. Paste the photo links (cardscout-links.txt) instead, or upload photos.</div>';
     }catch(e){ out.innerHTML='<div class="errbox">Listing puller unavailable. Paste the photo links instead, or upload photos.</div>'; }
     return;
