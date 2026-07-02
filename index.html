@@ -540,8 +540,10 @@ document.querySelectorAll('.mode').forEach(b=>{
 function hideAll(){ ['step2','step3','batchStep','sealedStep','dealsStep','lotsStep'].forEach(id=>{const e=$('#'+id); if(e) e.classList.add('hidden');}); }
 // ---------- BEST LOTS (populated by the daily scout via localStorage; readable in-app) ----------
 function loadBestLots(){ try{ return JSON.parse(localStorage.getItem('cs_bestlots')||'[]'); }catch(e){ return []; } }
-// The scheduled agent calls this (in this same browser) to save what it found & valued:
-window.cardscoutSetLots=function(arr){ try{ localStorage.setItem('cs_bestlots', JSON.stringify(arr||[])); }catch(e){} try{ if(mode==='lots') renderBestLots(); }catch(e){} return (arr||[]).length; };
+// Pull the shared list from the backend so it syncs across devices (laptop ↔ phone).
+async function pullBestLots(){ try{ const r=await fetch('/.netlify/functions/lots?t='+Date.now()); const d=await r.json(); if(d&&Array.isArray(d.lots)){ localStorage.setItem('cs_bestlots', JSON.stringify(d.lots)); return true; } }catch(e){} return false; }
+// The scheduled agent calls this to save what it found & valued (writes local + pushes to the shared store):
+window.cardscoutSetLots=function(arr){ arr=arr||[]; try{ localStorage.setItem('cs_bestlots', JSON.stringify(arr)); }catch(e){} try{ fetch('/.netlify/functions/lots',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lots:arr})}); }catch(e){} try{ if(mode==='lots') renderBestLots(); }catch(e){} return arr.length; };
 window.cardscoutAddLot=function(o){ let a=loadBestLots().filter(x=>!(o.url&&x.url&&x.url===o.url)); a.push(o); a=a.slice(-60); return window.cardscoutSetLots(a); };
 // recompute a lot's totals from its card breakdown (verified cards count toward the confident total)
 function recalcLot(L){ if(!L.cards) return L; const allIn=L.cards.reduce((s,c)=>s+(+c.value||0),0); const conf=L.cards.filter(c=>!c.verify).reduce((s,c)=>s+(+c.value||0),0); L.resale=allIn; L.net=conf*0.86-(+L.asking||0); L.roi=(+L.asking)?L.net/L.asking*100:null; L.verdict=L.net>2?'BUY':(L.net>-Math.max(2,(+L.asking||0)*0.15)?'WATCH':'PASS'); return L; }
@@ -586,7 +588,7 @@ function exportBestLotsCsv(){
   toast('CSV exported — asking, resale, net profit, ROI & status filled in.');
 }
 if($('#lotsCsv')) $('#lotsCsv').onclick=exportBestLotsCsv;
-if($('#lotsRefresh')) $('#lotsRefresh').onclick=renderBestLots;
+if($('#lotsRefresh')) $('#lotsRefresh').onclick=()=>{ const m=$('#lotsMeta'); if(m) m.textContent='Syncing…'; pullBestLots().then(()=>renderBestLots()); };
 if($('#lotsClear')) $('#lotsClear').onclick=()=>{ if(confirm('Clear the saved Best Lots list?')){ localStorage.removeItem('cs_bestlots'); renderBestLots(); } };
 function applyMode(){
   hideAll();
@@ -604,7 +606,7 @@ function applyMode(){
     else { $('#batchControls').classList.add('hidden'); $('#batchEmpty').classList.remove('hidden'); } }
   if(mode==='sealed') $('#hintText').textContent='Photo a sealed pack/box, or type the product name below.';
   if(mode==='deals'){ $('#hintText').textContent='Hunt eBay for underpriced singles, or paste a lot listing to scan its photos for hidden gems.'; $('#dealsStep').classList.remove('hidden'); }
-  if(mode==='lots'){ $('#hintText').textContent='Lots your daily scout found and valued — ranked by profit. Export the CSV to fill your flip tracker.'; $('#lotsStep').classList.remove('hidden'); renderBestLots(); }
+  if(mode==='lots'){ $('#hintText').textContent='Lots your daily scout found and valued — ranked by profit. Export the CSV to fill your flip tracker.'; $('#lotsStep').classList.remove('hidden'); renderBestLots(); pullBestLots().then(ok=>{ if(ok) renderBestLots(); }); }
 }
 
 // ---------- CAMERA ----------
