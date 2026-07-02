@@ -16,8 +16,14 @@ const CORS = {
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers: CORS, body: '' };
   let store;
-  try { store = getStore('cardscout-lots'); }
-  catch (e) { return { statusCode: 200, headers: CORS, body: JSON.stringify({ lots: [], error: 'store unavailable' }) }; }
+  try {
+    if (process.env.NETLIFY_BLOBS_SITE_ID && process.env.NETLIFY_BLOBS_TOKEN) {
+      store = getStore({ name: 'cardscout-lots', siteID: process.env.NETLIFY_BLOBS_SITE_ID, token: process.env.NETLIFY_BLOBS_TOKEN });
+    } else {
+      store = getStore('cardscout-lots');
+    }
+  }
+  catch (e) { return { statusCode: 200, headers: CORS, body: JSON.stringify({ lots: [], error: 'store: ' + String(e && e.message || e) }) }; }
 
   try {
     if (event.httpMethod === 'POST') {
