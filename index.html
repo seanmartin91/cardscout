@@ -1074,6 +1074,22 @@ async function aiVisionUrl(prompt, imageUrl){
     const j=await r.json(); if(j.error) throw new Error(j.error.message); return j.content[0].text;
   }
 }
+// Multiple images + prompt in one call — used for the self-verify pass.
+async function aiVisionMulti(prompt, imageUrls){
+  const key=$('#aiKey').value.trim(); const provider=$('#aiProvider').value;
+  if(!key) throw new Error('Add your AI key in Settings.');
+  const imgs=(imageUrls||[]).filter(Boolean).slice(0,6);
+  if(provider==='openai'){
+    const content=[{type:'text',text:prompt}, ...imgs.map(u=>({type:'image_url',image_url:{url:u}}))];
+    const r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:'gpt-4o',messages:[{role:'user',content}],max_tokens:400})});
+    const j=await r.json(); if(j.error) throw new Error(j.error.message); return j.choices[0].message.content;
+  } else {
+    const content=imgs.map(u=>{ let source; if(u.startsWith('data:')){ source={type:'base64',media_type:u.substring(5,u.indexOf(';')),data:u.split(',')[1]}; } else { source={type:'url',url:u}; } return {type:'image',source}; });
+    content.push({type:'text',text:prompt});
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:400,messages:[{role:'user',content}]})});
+    const j=await r.json(); if(j.error) throw new Error(j.error.message); return j.content[0].text;
+  }
+}
 document.querySelectorAll('#dealsToggle .mode').forEach(b=>{ b.onclick=()=>{ document.querySelectorAll('#dealsToggle .mode').forEach(x=>x.classList.remove('on')); b.classList.add('on'); const d=b.dataset.deal; $('#dealFind').classList.toggle('hidden', d!=='find'); $('#dealLot').classList.toggle('hidden', d!=='lot'); }; });
 function ebayGate(){ return '<div class="errbox">eBay deal-finding isn’t switched on yet. It needs free eBay developer API keys (EBAY_CLIENT_ID / EBAY_CLIENT_SECRET) added to Netlify. Ask me to walk you through it.</div>'; }
 const ebGBP=(v,cur)=> conv(v, cur||'USD');
@@ -1138,6 +1154,15 @@ async function scanImages(imgs, ask, out, ctx){
     const settled=await Promise.all(list.map(async f=>{ try{ const c=await findOne(cleanCardName(f.name), f.set||'', f.number||'', f.era, typeof f.holo==='boolean'?f.holo:undefined, f.total||''); if(c){ const keys=finishKeysOf(c); return {card:c, finishKey: keys.length?preferFinish(keys):'_cm', guessed: !f.number && !f.total}; } }catch(e){} return null; }));
     const items=settled.filter(Boolean);
     if(!items.length){ out.innerHTML='<div class="muted">Couldn’t price any of the detected cards. Try again or use Single mode.</div>'; return; }
+    // Self-verify: show the AI the photos + our matched list and ask which don't actually appear.
+    try{
+      const t2=$('#lotScanTxt'); if(t2) t2.textContent='Double-checking the matches…';
+      const listTxt=items.map((it,i)=>`${i+1}. ${it.card.name} — ${it.card.set.name} #${it.card.number}`).join('\n');
+      const vprompt=`These are photo(s) of a Pokemon card lot. I identified these cards as being in it:\n${listTxt}\n\nCarefully check each numbered item against the photo(s). Reply ONLY with a JSON array of the item NUMBERS that are WRONG — a card that does NOT actually appear in any photo, or is clearly a different card/set than what's shown. If every item looks correct, reply []. Example: [2,5]`;
+      const vt=await aiVisionMulti(vprompt, imgs);
+      const vm=vt.match(/\[[\s\S]*?\]/); const bad=vm?JSON.parse(vm[0]):[];
+      if(Array.isArray(bad)) bad.forEach(n=>{ const k=(parseInt(n,10)||0)-1; if(items[k]) items[k].verifyFail=true; });
+    }catch(e){}
     scanState={items, ask, out}; renderScan();
   }catch(e){ out.innerHTML='<div class="errbox">Scan failed: '+e.message+'</div>'; }
 }
@@ -1152,7 +1177,7 @@ function renderScan(){
   const median=nz.length?nz[Math.floor(nz.length/2)]:0;
   let rows='', confident=0, flagged=0, noPrice=0, anyEst=false, bulkCount=0, bulkVal=0, shownCount=0;
   calc.forEach(x=>{ const {it,c,eds,ed,v,est,idx,bulk}=x;
-    const suspect = v>0 && (it.guessed===true || (v>50 && median>0 && v>4*median));
+    const suspect = it.verifyFail===true || (v>0 && (it.guessed===true || (v>50 && median>0 && v>4*median)));
     if(bulk){ bulkCount++; bulkVal+=v; if(!showAll) return; }   // hide bulk commons by default
     shownCount++;
     if(est) anyEst=true; if(v && !suspect && !bulk) confident+=v; if(suspect) flagged++;
