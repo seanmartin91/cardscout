@@ -814,25 +814,37 @@ function resetSingle(){ selectedCard=null; capturedDataURL=null; $('#step3').cla
 
 // ---------- MULTI ----------
 const isHoloCard = c => /holo/i.test(c.rarity||'') || finishKeysOf(c).some(k=>/holofoil/i.test(k)&&!/reverse/i.test(k));
-async function findOne(name,set,num,era,holo){
+async function findOne(name,set,num,era,holo,total){
   const order = era==='vintage' ? 'set.releaseDate' : '-set.releaseDate'; // vintage -> oldest printing first
-  const q = async (withNum) => {
-    const parts=[`name:"${name}"`]; if(set) parts.push(`set.name:"${set}"`); if(withNum&&num) parts.push(`number:${String(num).split('/')[0].trim()}`);
-    const r=await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(parts.join(' '))}&pageSize=12&orderBy=${order}`); const j=await r.json();
-    return (j.data||[]).filter(c=>c.tcgplayer||c.cardmarket);
-  };
-  let cands = await q(true);
-  if(!cands.length && (set||num)) cands = await q(false);
+  const numStr=String(num||''); const numPart=numStr.split('/')[0].trim();
+  // denominator ("/102") pins the set: a card printed x/102 is Base Set etc. Match on the set's printed total.
+  const denom = total || (numStr.includes('/') ? numStr.split('/')[1] : ''); const dt=parseInt(String(denom).replace(/[^0-9]/g,''),10)||0;
+  const fetchCards=async (query,size=15)=>{ const r=await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(query)}&pageSize=${size}&orderBy=${order}`); const j=await r.json(); return (j.data||[]).filter(c=>c.tcgplayer||c.cardmarket); };
+  const totalOk = c => dt && (c.set.printedTotal===dt || c.set.total===dt);
+  const holoOk = c => typeof holo!=='boolean' || isHoloCard(c)===holo;
+  // 1) If we have a denominator, that's the strongest signal — find all printings by name(+number) and prefer the set whose size matches.
+  if(dt){
+    const pool = await fetchCards(`name:"${name}"${numPart?` number:${numPart}`:''}`, 40);
+    let m = pool.filter(c=>totalOk(c)&&holoOk(c)); if(m.length) return m[0];
+    m = pool.filter(c=>totalOk(c)); if(m.length) return m[0];
+    // number may be misread but total is trustworthy: match on set size + holo alone
+    const wide = await fetchCards(`name:"${name}"`, 40);
+    m = wide.filter(c=>totalOk(c)&&holoOk(c)); if(m.length) return m[0];
+    m = wide.filter(c=>totalOk(c)); if(m.length) return m[0];
+  }
+  // 2) precise name+number(+set)
+  const parts=[`name:"${name}"`]; if(set) parts.push(`set.name:"${set}"`); if(numPart) parts.push(`number:${numPart}`);
+  let cands = await fetchCards(parts.join(' '));
+  if(!cands.length && (set||numPart)){ const p2=[`name:"${name}"`]; if(numPart) p2.push(`number:${numPart}`); cands = await fetchCards(p2.join(' ')); }
+  if(!cands.length) cands = await fetchCards(`name:"${name}"`);
   if(!cands.length){ const r=await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent('name:"'+name+'"')}&pageSize=12&orderBy=${order}`); const j=await r.json(); cands=(j.data||[]); }
   if(!cands.length) return null;
-  // Holo-aware: a non-holo common should never resolve to the pricey holo of the same name (and vice-versa).
+  // 3) Holo-aware: a non-holo common should never resolve to the pricey holo of the same name (and vice-versa).
   if(typeof holo==='boolean'){
     const match = cands.filter(c=>isHoloCard(c)===holo);
     if(match.length) return match[0];
-    // number likely misread → re-search by name (+set) WITHOUT the number, pick a holo-consistent printing
-    const parts=[`name:"${name}"`]; if(set) parts.push(`set.name:"${set}"`);
-    const r=await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(parts.join(' '))}&pageSize=20&orderBy=${order}`); const j=await r.json();
-    const alt=(j.data||[]).filter(c=>(c.tcgplayer||c.cardmarket)&&isHoloCard(c)===holo);
+    const parts2=[`name:"${name}"`]; if(set) parts2.push(`set.name:"${set}"`);
+    const alt=(await fetchCards(parts2.join(' '),20)).filter(c=>isHoloCard(c)===holo);
     if(alt.length) return alt[0];
   }
   return cands[0];
@@ -840,7 +852,7 @@ async function findOne(name,set,num,era,holo){
 async function runMulti(){
   $('#batchEmpty').classList.add('hidden'); $('#batchControls').classList.add('hidden'); $('#batchList').innerHTML='';
   $('#batchThinking').classList.remove('hidden'); $('#batchThinkTxt').textContent='Reading all the cards in your photo…';
-  const prompt='You are reading a photo of several Pokemon cards laid out. For EACH card whose NAME you can clearly read, give: name (never guess a name you cannot read); set and number ONLY if clearly legible, otherwise ""; era ("vintage" for 1999-2003 WOTC-style cards — yellow border, old layout, e.g. Base, Jungle, Fossil, Team Rocket, Gym, Neo — otherwise "modern"); holo (true if the artwork has a shiny/holographic/foil sheen, false for a flat matte non-foil card — this decides common vs rare). NEVER guess a set you cannot read. Respond ONLY with a JSON array, no prose: [{"name":"","set":"","number":"","era":"","holo":false}, ...].';
+  const prompt='You are reading a photo of several Pokemon cards laid out. For EACH card whose NAME you can clearly read, give: name (never guess a name you cannot read); set and number ONLY if clearly legible, otherwise ""; total (the set-size number printed AFTER the slash in the collector number — e.g. 102 in "3/102", 62 in "22/62"; usually readable even when the set symbol is not, so always try — else ""); era ("vintage" for 1999-2003 WOTC-style cards — yellow border, old layout, e.g. Base, Jungle, Fossil, Team Rocket, Gym, Neo — otherwise "modern"); holo (true if the artwork has a shiny/holographic/foil sheen, false for a flat matte non-foil card — this decides common vs rare). NEVER guess a set you cannot read. Respond ONLY with a JSON array, no prose: [{"name":"","set":"","number":"","total":"","era":"","holo":false}, ...].';
   try{
     const text=await aiVision(prompt);
     const m=text.match(/\[[\s\S]*\]/); let arr=m?JSON.parse(m[0]):[];
@@ -849,7 +861,7 @@ async function runMulti(){
     batchCards=[];
     for(let i=0;i<arr.length;i++){
       $('#batchThinkTxt').textContent=`Pricing card ${i+1} of ${arr.length}…`;
-      try{ const c=await findOne(arr[i].name,arr[i].set,arr[i].number,arr[i].era, typeof arr[i].holo==='boolean'?arr[i].holo:undefined); if(c){ const keys=finishKeysOf(c); batchCards.push({card:c, finishKey: keys.length?preferFinish(keys):'_cm'}); } }catch(e){}
+      try{ const c=await findOne(arr[i].name,arr[i].set,arr[i].number,arr[i].era, typeof arr[i].holo==='boolean'?arr[i].holo:undefined, arr[i].total||''); if(c){ const keys=finishKeysOf(c); batchCards.push({card:c, finishKey: keys.length?preferFinish(keys):'_cm'}); } }catch(e){}
     }
     $('#batchThinking').classList.add('hidden');
     if(!batchCards.length){ $('#batchEmpty').classList.remove('hidden'); $('#batchEmpty').innerHTML='<div class="errbox">Couldn’t price any of the detected cards. Try again or use Single mode.</div>'; return; }
@@ -1104,7 +1116,7 @@ async function scanImages(imgs, ask, out, ctx){
   if(!imgs.length){ out.innerHTML='<div class="errbox">No photos to scan — paste image links or upload photos.</div>'; return; }
   out.innerHTML='<div class="spin"></div><p class="muted" id="lotScanTxt" style="text-align:center">Reading the photos…</p>';
   const ctxTxt = (ctx&&ctx.trim()) ? `IMPORTANT — the eBay seller's own listing text (title + description) is below. It usually names the exact cards, sets, numbers and condition in this lot. TRUST this text over the blurry photos when they conflict, and use it to fill in cards/sets/numbers you can't read in the photos. Listing text: """${ctx.trim().slice(0,3500)}"""\n\n` : '';
-  const prompt=ctxTxt+'Photo from a Pokemon card lot. It may hold 20-40 cards laid out in overlapping rows — scan the ENTIRE image methodically, row by row, left to right, and list EVERY card you can name, including ones partly covered by the card in front of them. Do not stop after the obvious few. Combine what you see with the listing text above. For EACH card give: name; set (from the listing text or a clearly legible symbol, else ""); number (from the listing text or if legible, else ""); era ("vintage" for 1999-2003 WOTC-style cards — Base, Jungle, Fossil, Team Rocket, Gym Heroes, Gym Challenge, Neo — otherwise "modern"); holo (true if shiny/holographic/foil, false if flat matte). NEVER invent a set; leave it "" if unknown. Respond ONLY with a JSON array: [{"name":"","set":"","number":"","era":"","holo":false}, ...].';
+  const prompt=ctxTxt+'Photo from a Pokemon card lot. It may hold 20-40 cards laid out in overlapping rows — scan the ENTIRE image methodically, row by row, left to right, and list EVERY card you can name, including ones partly covered by the card in front of them. Do not stop after the obvious few. Combine what you see with the listing text above. For EACH card give: name; set (from the listing text or a clearly legible symbol, else ""); number (the collector number before the slash, else ""); total (the set-size number printed AFTER the slash in the collector number — e.g. 102 in "3/102", 62 in "22/62", 64 in "10/64"; this is usually readable even when the set symbol is not, so always try — else ""); era ("vintage" for 1999-2003 WOTC-style cards — Base, Jungle, Fossil, Team Rocket, Gym Heroes, Gym Challenge, Neo — otherwise "modern"); holo (true if shiny/holographic/foil, false if flat matte). NEVER invent a set; leave it "" if unknown. Respond ONLY with a JSON array: [{"name":"","set":"","number":"","total":"","era":"","holo":false}, ...].';
   const found={}; let keyErr=null, done=0;
   try{
     // Read photos in parallel (limited concurrency) — much faster than one at a time
@@ -1114,7 +1126,7 @@ async function scanImages(imgs, ask, out, ctx){
         const i=idx++;
         let text=''; try{ text=await aiVisionUrl(prompt, imgs[i]); }catch(e){ if(/api key/i.test(e.message)) keyErr=e.message; text=''; }
         done++; const t=$('#lotScanTxt'); if(t) t.textContent=`Reading photos… ${done}/${imgs.length}`;
-        try{ const m=text.match(/\[[\s\S]*\]/); (m?JSON.parse(m[0]):[]).forEach(o=>{ if(o&&o.name){ const k=(o.name+'|'+(o.number||'')).toLowerCase(); if(!found[k]) found[k]={name:o.name,set:o.set,number:o.number,era:o.era,holo:o.holo}; } }); }catch(e){}
+        try{ const m=text.match(/\[[\s\S]*\]/); (m?JSON.parse(m[0]):[]).forEach(o=>{ if(o&&o.name){ const k=(o.name+'|'+(o.number||'')).toLowerCase(); if(!found[k]) found[k]={name:o.name,set:o.set,number:o.number,total:o.total,era:o.era,holo:o.holo}; } }); }catch(e){}
       }
     }
     await Promise.all(Array.from({length:Math.min(3,imgs.length)}, reader));
@@ -1123,7 +1135,7 @@ async function scanImages(imgs, ask, out, ctx){
     if(!list.length){ out.innerHTML='<div class="muted">No clearly-readable cards spotted — lot pics are often low-res. Worth a manual look if the price is right.</div>'; return; }
     const t=$('#lotScanTxt'); if(t) t.textContent=`Pricing ${list.length} cards…`;
     // Price all cards in parallel
-    const settled=await Promise.all(list.map(async f=>{ try{ const c=await findOne(cleanCardName(f.name), f.set||'', f.number||'', f.era, typeof f.holo==='boolean'?f.holo:undefined); if(c){ const keys=finishKeysOf(c); return {card:c, finishKey: keys.length?preferFinish(keys):'_cm', guessed: !f.number || !f.set}; } }catch(e){} return null; }));
+    const settled=await Promise.all(list.map(async f=>{ try{ const c=await findOne(cleanCardName(f.name), f.set||'', f.number||'', f.era, typeof f.holo==='boolean'?f.holo:undefined, f.total||''); if(c){ const keys=finishKeysOf(c); return {card:c, finishKey: keys.length?preferFinish(keys):'_cm', guessed: !f.number && !f.total}; } }catch(e){} return null; }));
     const items=settled.filter(Boolean);
     if(!items.length){ out.innerHTML='<div class="muted">Couldn’t price any of the detected cards. Try again or use Single mode.</div>'; return; }
     scanState={items, ask, out}; renderScan();
@@ -1167,9 +1179,10 @@ function renderScan(){
     const i=+b.dataset.i; const cur=scanState.items[i].card;
     const nn=prompt('Fix this card — type the name and number (e.g. "Hitmonlee 22/62"):', cur.name+' '+cur.number); if(!nn||!nn.trim()) return;
     const numm=((nn.match(/(\d+)\s*\/\s*\d+/)||nn.match(/(\d{1,3})\s*$/))||[])[1]||'';
+    const denm=(nn.match(/\d+\s*\/\s*(\d+)/)||[])[1]||'';
     const nm=cleanCardName(nn.replace(/\d+\s*\/\s*\d+/,'').replace(/\d{1,3}\s*$/,'').trim());
     const era=(new Date(cur.set.releaseDate||'2020')<new Date('2005-01-01'))?'vintage':'';
-    try{ const c=await findOne(nm||cur.name, '', numm, era); if(c){ const keys=finishKeysOf(c); scanState.items[i]={card:c, finishKey:keys.length?preferFinish(keys):'_cm'}; renderScan(); toast('Updated to '+c.name+' #'+c.number); } else toast('No match for that — try the exact number.'); }catch(e){ toast('Search failed.'); }
+    try{ const c=await findOne(nm||cur.name, '', numm, era, undefined, denm); if(c){ const keys=finishKeysOf(c); scanState.items[i]={card:c, finishKey:keys.length?preferFinish(keys):'_cm'}; renderScan(); toast('Updated to '+c.name+' #'+c.number); } else toast('No match for that — try the exact number.'); }catch(e){ toast('Search failed.'); }
   }; });
 }
 function exportScanCsv(){
