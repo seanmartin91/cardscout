@@ -564,6 +564,12 @@ if($('#lotsRefresh')) $('#lotsRefresh').onclick=renderBestLots;
 if($('#lotsClear')) $('#lotsClear').onclick=()=>{ if(confirm('Clear the saved Best Lots list?')){ localStorage.removeItem('cs_bestlots'); renderBestLots(); } };
 function applyMode(){
   hideAll();
+  // camera capture UI only applies to the photo modes — hide it for Find deals / Best lots
+  const cam=(mode==='single'||mode==='multi'||mode==='sealed');
+  const cw=$('#camwrap'); if(cw) cw.classList.toggle('hidden', !cam);
+  const cr=$('#startCam')&&$('#startCam').parentElement; if(cr) cr.classList.toggle('hidden', !cam);
+  const cm=document.querySelector('#step1 > p.muted'); if(cm) cm.classList.toggle('hidden', !cam);
+  const cd=document.querySelector('#step1 .step-dots'); if(cd) cd.classList.toggle('hidden', !cam);
   $('#manualSealed').classList.toggle('hidden', mode!=='sealed');
   if(mode==='single') $('#hintText').textContent='Tap “Use camera” to scan a single card, or upload a photo.';
   if(mode==='multi'){ $('#hintText').textContent='Lay several cards out and take ONE photo, and/or add sealed packs & boxes manually below.';
