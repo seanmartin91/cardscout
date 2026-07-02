@@ -665,8 +665,18 @@ $('#aiProvider').addEventListener('change', ()=>{ try{ localStorage.setItem('cs_
 $('#forgetKey').onclick=()=>{ try{ localStorage.removeItem('cs_aiKey'); }catch(e){} $('#aiKey').value=''; updateAiState(); toast('Saved key removed from this device.'); };
 
 // ---------- AI CALL (shared) ----------
+// Shared AI backend — used automatically when the user hasn't set their own key.
+async function backendVision(prompt, images){
+  const r=await fetch('/.netlify/functions/ai-vision',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt, images:(images||[]).filter(Boolean)})});
+  let d={}; try{ d=await r.json(); }catch(e){}
+  if(r.status===429) throw new Error(d.error||'Daily scan limit reached — add your own AI key in Settings.');
+  if(d.enabled===false) throw new Error('add your AI key in Settings — or the built-in AI hasn’t been switched on yet.');
+  if(d.error) throw new Error(d.error);
+  return d.text||'';
+}
 async function aiVision(prompt){
   const key=$('#aiKey').value.trim(); const provider=$('#aiProvider').value;
+  if(!key) return await backendVision(prompt, [capturedDataURL]);
   if(provider==='openai'){
     const r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
@@ -1140,7 +1150,7 @@ $('#sealedReset').onclick=()=>{ capturedDataURL=null; $('#sealedStep').classList
 // ---------- DEALS (eBay) ----------
 async function aiVisionUrl(prompt, imageUrl){
   const key=$('#aiKey').value.trim(); const provider=$('#aiProvider').value;
-  if(!key) throw new Error('Add your AI key in Settings to scan photos.');
+  if(!key) return await backendVision(prompt, [imageUrl]);
   if(provider==='openai'){
     const r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
       body:JSON.stringify({model:'gpt-4o',messages:[{role:'user',content:[{type:'text',text:prompt},{type:'image_url',image_url:{url:imageUrl}}]}],max_tokens:700})});
@@ -1157,8 +1167,8 @@ async function aiVisionUrl(prompt, imageUrl){
 // Multiple images + prompt in one call — used for the self-verify pass.
 async function aiVisionMulti(prompt, imageUrls){
   const key=$('#aiKey').value.trim(); const provider=$('#aiProvider').value;
-  if(!key) throw new Error('Add your AI key in Settings.');
   const imgs=(imageUrls||[]).filter(Boolean).slice(0,6);
+  if(!key) return await backendVision(prompt, imgs);
   if(provider==='openai'){
     const content=[{type:'text',text:prompt}, ...imgs.map(u=>({type:'image_url',image_url:{url:u}}))];
     const r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:'gpt-4o',messages:[{role:'user',content}],max_tokens:400})});
@@ -1220,7 +1230,7 @@ async function scanImages(imgs, ask, out, ctx){
     async function reader(){
       while(idx<imgs.length){
         const i=idx++;
-        let text=''; try{ text=await aiVisionUrl(prompt, imgs[i]); }catch(e){ if(/api key/i.test(e.message)) keyErr=e.message; text=''; }
+        let text=''; try{ text=await aiVisionUrl(prompt, imgs[i]); }catch(e){ if(/api key|AI key|switched on|limit reached|Settings/i.test(e.message)) keyErr=e.message; text=''; }
         done++; const t=$('#lotScanTxt'); if(t) t.textContent=`Reading photos… ${done}/${imgs.length}`;
         try{ const m=text.match(/\[[\s\S]*\]/); (m?JSON.parse(m[0]):[]).forEach(o=>{ if(o&&o.name){ const k=(o.name+'|'+(o.number||'')).toLowerCase(); if(!found[k]) found[k]={name:o.name,set:o.set,number:o.number,total:o.total,era:o.era,holo:o.holo}; } }); }catch(e){}
       }
