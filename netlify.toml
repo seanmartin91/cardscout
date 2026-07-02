@@ -6,3 +6,5 @@
 
 [functions]
   node_bundler = "esbuild"
+  # Keep @netlify/blobs unbundled so the function uses Netlify's runtime module (which auto-configures Blobs).
+  external_node_modules = ["@netlify/blobs"]
