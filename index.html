@@ -1491,11 +1491,13 @@ async function findFlips(out){
               if(!(med>0 && market>med*4)) (d.items||[]).forEach(it=>{
               const buy=ebGBP(it.price,it.currency); if(!(buy>0)) return;
               const title=(it.title||'');
-              // drop fakes, proxies, customs, lots, code cards, non-card merch — these fake huge "margins"
-              if(/proxy|custom|fan\s?art|orica|repro|replica|vinyl|sticker|decal|\bmetal\b|gold\s?foil|code\s?card|jumbo|oversized|plush|\bpin\b|\blot\b|bundle|playtest|not\s?real|counterfeit/i.test(title)) return;
+              // drop non-card merch, novelties, fakes, proxies, customs, lots, code cards — these fake huge "margins"
+              if(/magnet|fridge|gold\s?(colou?r|plated|metal|foil|card|series|version)|metal\s?card|colou?rized|24k|22k|silver\s?card|coin|keychain|key\s?ring|lanyard|\bbadge\b|patch|poster|mouse\s?pad|mousepad|\bmug\b|t-?shirt|figure|funko|toploader|binder|portfolio|display\s?case|empty|proxy|custom|fan\s?art|orica|repro|replica|vinyl|sticker|decal|\bmetal\b|code\s?card|jumbo|oversized|plush|\bpin\b|\blot\b|bundle|playtest|not\s?real|counterfeit|\bfake\b|\bcase\b/i.test(title)) return;
               const net=market*SELL_FEE, profit=net-buy, margin=profit/buy;
-              // guardrails: ignore absurdly-cheap (almost always a fake/mismatch) and implausible margins
-              if(buy < market*0.15) return;
+              // guardrails: only worthwhile, plausible flips
+              if(market < 15) return;               // skip low-value cards not worth flipping
+              if(profit < 5) return;                // need meaningful absolute profit
+              if(buy < market*0.15) return;         // absurdly cheap = fake/mismatch
               if(margin < FLIP_MARGIN || margin > 2.5) return;
               hits.push({it, buy, market, profit, margin, card:c});
               });
