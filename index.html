@@ -285,6 +285,13 @@
     <button class="btn ghost hidden" id="manualSealed" style="margin-top:11px">Or type the product name instead →</button>
 
     <p class="muted" style="margin-top:14px;font-size:12.5px">AI photo recognition is optional. Add your Claude or OpenAI key in <a href="#" id="openSettingsLink">Settings</a> to auto-read cards from photos. Single cards &amp; manual search work without it.</p>
+
+    <details style="margin-top:14px" id="flipBox"><summary>🎯 Find profitable single-card flips</summary>
+      <p class="muted" style="margin:8px 0 10px;font-size:12.5px">CardScout sweeps live eBay listings for popular, liquid cards and flags any where you'd net <b>30%+ after fees</b> vs market value — cheapest-margin first. Live prices, updated the moment you tap.</p>
+      <button class="btn gold" id="flipFindBtn">Find profitable flips now</button>
+      <div id="flipResults" style="margin-top:10px"></div>
+    </details>
+
     <div class="step-dots"><i class="on"></i><i></i><i></i></div>
   </div>
 
@@ -1444,6 +1451,59 @@ async function runSniper(watches, out){
 }
 if($('#snipeRun')) $('#snipeRun').onclick=()=>runSniper(null, $('#snipeResults'));
 window.cardscoutRunSniper=()=>runSniper(null, $('#snipeResults'));
+
+// ---------- SINGLES FLIP-FINDER (live eBay sweep of popular liquid cards) ----------
+const FLIP_HUNTS=[
+  'Charizard 4/102','Blastoise 2/102','Venusaur 15/102','Charizard 11/108',
+  'Umbreon VMAX 215/203','Rayquaza VMAX 111/203','Sylveon VMAX 74/203','Leafeon VMAX 8/203',
+  'Charizard VMAX 74/73','Pikachu VMAX 188/185','Gengar VMAX 271/264','Mew VMAX 114/264',
+  'Charizard V 79/73','Lugia V 138/159','Giratina V 130/196','Mewtwo GX 78/73',
+  'Charizard ex 199/165','Mew ex 232/191','Moonbreon 215/203'
+];
+const SELL_FEE=0.87;        // ~13% eBay sell fees/PayPal
+const FLIP_MARGIN=0.30;     // net margin ≥ 30% after fees vs market
+async function findFlips(out){
+  const mkt=(CUR_DEFS[CUR]&&CUR_DEFS[CUR].mkt)||'EBAY_CA';
+  out.innerHTML='<div class="spin"></div><p class="muted" id="flipTxt" style="text-align:center">Sweeping eBay for underpriced cards…</p>';
+  // dedupe hunts (Moonbreon == Umbreon VMAX 215/203)
+  const hunts=[...new Set(FLIP_HUNTS)];
+  let done=0, gated=false; const hits=[];
+  let idx=0;
+  async function worker(){
+    while(idx<hunts.length){
+      const term=hunts[idx++];
+      try{
+        const num=(term.match(/(\d+)\/\d+/)||[])[1]||'';
+        const c=await findOne(cleanCardName(term.replace(/\d+\/\d+/,'')),'',num);
+        if(c){
+          const market=priceCard(c, finishKeysOf(c).length?preferFinish(finishKeysOf(c)):'_cm').blendNM;
+          if(market>0){
+            const r=await fetch('/.netlify/functions/ebay?mode=search&limit=12&mkt='+mkt+'&q='+encodeURIComponent(term));
+            const d=await r.json();
+            if(!d.enabled){ gated=true; }
+            else (d.items||[]).forEach(it=>{
+              const buy=ebGBP(it.price,it.currency); if(!(buy>0)) return;
+              const net=market*SELL_FEE, profit=net-buy, margin=profit/buy;
+              if(margin>=FLIP_MARGIN) hits.push({it, buy, market, profit, margin, card:c});
+            });
+          }
+        }
+      }catch(e){}
+      done++; const t=$('#flipTxt'); if(t) t.textContent=`Checking ${done}/${hunts.length} cards…`;
+    }
+  }
+  await Promise.all(Array.from({length:4}, worker));
+  if(gated && !hits.length){ out.innerHTML=ebayGate(); return; }
+  hits.sort((a,b)=>b.margin-a.margin);
+  if(!hits.length){ out.innerHTML='<div class="muted">No 30%+ flips on the popular list right now — the market’s efficient today. Try again later, or use the Sniper tab to watch specific cards.</div>'; return; }
+  const top=hits.slice(0,20);
+  out.innerHTML=`<div class="muted" style="margin-bottom:8px"><b style="color:#5cf0a6">${hits.length} flip(s)</b> with 30%+ net margin (after ~13% fees). Ranked by margin.</div>`+
+    top.map(h=>`<a class="brow" href="${h.it.url}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">
+      <img src="${h.it.image||(h.card.images&&h.card.images.small)||''}" style="object-fit:cover">
+      <div class="bi"><b>${(h.it.title||'').slice(0,64)}</b><span>buy ${gbp(h.buy)} · market ≈ ${gbp(h.market)} · <b style="color:#5cf0a6">+${gbp(h.profit)} (${Math.round(h.margin*100)}%)</b></span></div>
+      <div class="bp"><div class="buy" style="color:#5cf0a6">+${Math.round(h.margin*100)}%</div><div class="mk">net</div></div></a>`).join('');
+}
+if($('#flipFindBtn')) $('#flipFindBtn').onclick=()=>findFlips($('#flipResults'));
 
 // ---------- SETTINGS + LOGIN ----------
 function openSettings(){
