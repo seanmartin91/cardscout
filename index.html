@@ -1484,10 +1484,20 @@ async function findFlips(out){
             const r=await fetch('/.netlify/functions/ebay?mode=search&limit=12&mkt='+mkt+'&q='+encodeURIComponent(term));
             const d=await r.json();
             if(!d.enabled){ gated=true; }
-            else (d.items||[]).forEach(it=>{
+            else {
+              // market-sanity: if our looked-up market is way above the real eBay going rate, the card match is off — skip
+              const buys=(d.items||[]).map(it=>ebGBP(it.price,it.currency)).filter(v=>v>0).sort((a,b)=>a-b);
+              const med=buys.length?buys[Math.floor(buys.length/2)]:0;
+              if(!(med>0 && market>med*4)) (d.items||[]).forEach(it=>{
               const buy=ebGBP(it.price,it.currency); if(!(buy>0)) return;
+              const title=(it.title||'');
+              // drop fakes, proxies, customs, lots, code cards, non-card merch — these fake huge "margins"
+              if(/proxy|custom|fan\s?art|orica|repro|replica|vinyl|sticker|decal|\bmetal\b|gold\s?foil|code\s?card|jumbo|oversized|plush|\bpin\b|\blot\b|bundle|playtest|not\s?real|counterfeit/i.test(title)) return;
               const net=market*SELL_FEE, profit=net-buy, margin=profit/buy;
-              if(margin>=FLIP_MARGIN) hits.push({it, buy, market, profit, margin, card:c});
+              // guardrails: ignore absurdly-cheap (almost always a fake/mismatch) and implausible margins
+              if(buy < market*0.15) return;
+              if(margin < FLIP_MARGIN || margin > 2.5) return;
+              hits.push({it, buy, market, profit, margin, card:c});
             });
           }
         }
