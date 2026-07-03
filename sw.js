@@ -1,5 +1,5 @@
 // CardScout service worker — keeps the app installable while avoiding stale versions.
-const CACHE = 'cardscout-v1';
+const CACHE = 'cardscout-v3';
 self.addEventListener('install', e => { self.skipWaiting(); });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))));
