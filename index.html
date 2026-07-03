@@ -556,7 +556,11 @@ function renderBestLots(){
   list.innerHTML=lots.map(L=>{
     const buy=/buy/i.test(L.verdict||''), pass=/pass/i.test(L.verdict||'');
     const col= buy?'#5cf0a6' : pass?'#ffd6db' : '#ffe08a'; const k=lotKey(L);
-    const cardsHtml=(L.cards||[]).map((c,ci)=>`<div class="brow" style="padding:7px 10px"><img src="${c.img||''}" style="width:30px;height:42px;object-fit:cover"><div class="bi" style="flex:1"><b style="font-size:13px">${c.name}${c.verify?' <span style="font-size:9px;color:#ffb86b;font-weight:700">?verify</span>':''}</b><span>${c.set} · #${c.num}</span></div><div class="bp"><div class="buy" style="font-size:13px;${c.verify?'color:#ffb86b':''}">${gbp(c.value||0)}</div></div><button class="x cedit" data-k="${encodeURIComponent(k)}" data-c="${ci}" title="fix this card">✎</button></div>`).join('');
+    const cardsHtml=(L.cards||[]).map((c,ci)=>{
+      const wotc=/^(base|jungle|fossil|team rocket|gym heroes|gym challenge|neo )/i.test(c.set||'');
+      const edsel = wotc ? `<select class="bedsel" data-k="${encodeURIComponent(k)}" data-c="${ci}" style="margin-top:3px;font-size:10.5px;padding:1px 5px;border-radius:5px;background:#16203200;color:#9fb4d6;border:1px solid #2c3a52;max-width:130px"><option value="unlimited"${(c.edition||'unlimited')==='unlimited'?' selected':''}>Unlimited</option>${/^base$/i.test(c.set||'')?`<option value="shadowless"${c.edition==='shadowless'?' selected':''}>Shadowless</option>`:''}<option value="1st"${c.edition==='1st'?' selected':''}>1st Edition</option></select>` : '';
+      return `<div class="brow" style="padding:7px 10px"><img src="${c.img||''}" style="width:30px;height:42px;object-fit:cover"><div class="bi" style="flex:1"><b style="font-size:13px">${c.name}${c.verify?' <span style="font-size:9px;color:#ffb86b;font-weight:700">?verify</span>':''}</b><span>${c.set} · #${c.num}</span>${edsel}</div><div class="bp"><div class="buy" style="font-size:13px;${c.verify?'color:#ffb86b':''}">${gbp(c.value||0)}${c.est?'<span style="font-size:8px;color:#ffb86b;margin-left:2px">est</span>':''}</div></div><button class="x cedit" data-k="${encodeURIComponent(k)}" data-c="${ci}" title="fix this card">✎</button></div>`;
+    }).join('');
     return `<div style="border:1px solid var(--line-strong);border-radius:14px;margin-bottom:10px;overflow:hidden">
       <div class="lothead" data-k="${encodeURIComponent(k)}" style="display:flex;gap:10px;align-items:flex-start;padding:12px;cursor:pointer">
         <div class="bi" style="flex:1"><b>${(L.title||'').slice(0,80)}</b><span>Asking ${gbp(L.asking||0)} · value ≈ ${gbp(L.resale!=null?L.resale:0)}${L.roi!=null?` · ROI ${Math.round(L.roi)}%`:''} · ${(L.cards||[]).length} cards ▾</span>${L.notes?`<span style="color:var(--faint);font-size:11px">${(L.notes||'').slice(0,120)}</span>`:''}</div>
@@ -575,6 +579,16 @@ function renderBestLots(){
     const numm=((nn.match(/(\d+)\s*\/\s*\d+/)||nn.match(/(\d{1,3})\s*$/))||[])[1]||''; const denm=(nn.match(/\d+\s*\/\s*(\d+)/)||[])[1]||'';
     const nm=cleanCardName(nn.replace(/\d+\s*\/\s*\d+/,'').replace(/\d{1,3}\s*$/,'').trim());
     try{ const c=await findOne(nm||cur.name,'',numm,'',undefined,denm); if(c){ const keys=finishKeysOf(c); const v=priceCard(c, keys.length?preferFinish(keys):'_cm').blendNM||0; L.cards[ci]={name:c.name,set:c.set.name,num:c.number,value:Math.round(v*100)/100,verify:false,img:(c.images&&c.images.small)||''}; recalcLot(L); cardscoutSetLots(all); renderBestLots(); const lb=[...$('#lotsList').querySelectorAll('.lotbreak')].find(x=>x.dataset.k===b.dataset.k); if(lb) lb.classList.remove('hidden'); toast('Updated to '+c.name+' #'+c.number); } else toast('No match — try the exact number.'); }catch(err){ toast('Search failed.'); }
+  }; });
+  list.querySelectorAll('.bedsel').forEach(s=>{ s.onclick=e=>e.stopPropagation(); s.onchange=async(e)=>{ e.stopPropagation();
+    const key=decodeURIComponent(s.dataset.k), ci=+s.dataset.c, ed=s.value; const all=loadBestLots(); const L=all.find(x=>lotKey(x)===key); if(!L||!L.cards||!L.cards[ci]) return; const cur=L.cards[ci];
+    try{ const c=await findOne(cur.name,'',cur.num,'vintage'); if(!c){ toast('Couldn’t re-price — use ✎ to set the exact card.'); return; }
+      const ep=editionPrice(c,ed); const v=ep?ep.nm:((priceCard(c,preferFinish(finishKeysOf(c))).blendNM)||0);
+      L.cards[ci]=Object.assign({},cur,{value:Math.round(v*100)/100,edition:ed,est:!!(ep&&ep.est),verify:false});
+      recalcLot(L); cardscoutSetLots(all); renderBestLots();
+      const lb=[...$('#lotsList').querySelectorAll('.lotbreak')].find(x=>x.dataset.k===s.dataset.k); if(lb) lb.classList.remove('hidden');
+      toast(cur.name+' → '+({unlimited:'Unlimited',shadowless:'Shadowless','1st':'1st Ed'}[ed])+' '+gbp(v));
+    }catch(err){ toast('Re-price failed.'); }
   }; });
 }
 function exportBestLotsCsv(){
