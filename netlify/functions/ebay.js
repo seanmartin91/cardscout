@@ -60,7 +60,10 @@ exports.handler = async (event) => {
     const term = q.q || '';
     if (!term.trim()) return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'missing ?q=' }) };
     const limit = Math.min(parseInt(q.limit || '24', 10) || 24, 50);
-    const url = `https://api.ebay.com/buy/browse/v1/item_summary/search?q=${encodeURIComponent(term)}&limit=${limit}&filter=${encodeURIComponent('buyingOptions:{FIXED_PRICE}')}&sort=price`;
+    // sort=price (cheapest first, default) is great for singles bargains, but for sealed boxes it
+    // surfaces $1 code-card junk. Pass ?sort=best for eBay best-match (omit the sort param).
+    const sortQS = (q.sort === 'best') ? '' : ('&sort=' + encodeURIComponent(q.sort || 'price'));
+    const url = `https://api.ebay.com/buy/browse/v1/item_summary/search?q=${encodeURIComponent(term)}&limit=${limit}&filter=${encodeURIComponent('buyingOptions:{FIXED_PRICE}')}${sortQS}`;
     const r = await fetch(url, { headers: H });
     const d = await r.json();
     const items = (d.itemSummaries || []).map(it => ({
