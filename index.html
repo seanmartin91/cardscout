@@ -566,7 +566,7 @@ function renderBestLots(){
       </div>
       <div class="lotbreak hidden" data-k="${encodeURIComponent(k)}" style="border-top:1px solid var(--line)">
         ${cardsHtml||'<div class="muted" style="padding:12px">No per-card breakdown saved for this lot.</div>'}
-        <div style="padding:8px 12px"><a href="${L.url||'#'}" target="_blank" rel="noopener" style="font-size:12px;font-weight:700;color:var(--blue)">Open eBay listing ›</a></div>
+        <div style="padding:8px 12px">${/^https?:\/\//i.test(L.url||'')?`<a href="${L.url}" target="_blank" rel="noopener" style="font-size:12px;font-weight:700;color:var(--accent)">Open eBay listing ›</a>`:`<button class="lotlink" data-k="${encodeURIComponent(k)}" style="background:none;border:none;padding:0;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer">+ Add eBay listing link</button>`}</div>
       </div>
     </div>`;
   }).join('');
@@ -577,6 +577,14 @@ function renderBestLots(){
     const numm=((nn.match(/(\d+)\s*\/\s*\d+/)||nn.match(/(\d{1,3})\s*$/))||[])[1]||''; const denm=(nn.match(/\d+\s*\/\s*(\d+)/)||[])[1]||'';
     const nm=cleanCardName(nn.replace(/\d+\s*\/\s*\d+/,'').replace(/\d{1,3}\s*$/,'').trim());
     try{ const c=await findOne(nm||cur.name,'',numm,'',undefined,denm); if(c){ const keys=finishKeysOf(c); const v=priceCard(c, keys.length?preferFinish(keys):'_cm').blendNM||0; L.cards[ci]={name:c.name,set:c.set.name,num:c.number,value:Math.round(v*100)/100,verify:false,img:(c.images&&c.images.small)||''}; recalcLot(L); cardscoutSetLots(all); renderBestLots(); const lb=[...$('#lotsList').querySelectorAll('.lotbreak')].find(x=>x.dataset.k===b.dataset.k); if(lb) lb.classList.remove('hidden'); toast('Updated to '+c.name+' #'+c.number); } else toast('No match — try the exact number.'); }catch(err){ toast('Search failed.'); }
+  }; });
+  list.querySelectorAll('.lotlink').forEach(b=>{ b.onclick=(e)=>{ e.stopPropagation();
+    const key=decodeURIComponent(b.dataset.k); const all=loadBestLots(); const L=all.find(x=>lotKey(x)===key); if(!L) return;
+    const v=prompt('Paste the eBay listing link for this lot:', ''); if(!v||!v.trim()) return;
+    let url=v.trim(); const idm=(url.match(/(\d{9,})/)||[])[1]; if(!/^https?:\/\//i.test(url)&&idm) url='https://www.'+((CUR_DEFS[CUR]&&CUR_DEFS[CUR].ebay)||'ebay.ca')+'/itm/'+idm;
+    if(!/^https?:\/\//i.test(url)){ toast('That doesn’t look like a link.'); return; }
+    L.url=url; cardscoutSetLots(all); renderBestLots();
+    const lb=[...$('#lotsList').querySelectorAll('.lotbreak')].find(x=>x.dataset.k===b.dataset.k); if(lb) lb.classList.remove('hidden'); toast('Listing link saved.');
   }; });
   list.querySelectorAll('.bedsel').forEach(s=>{ s.onclick=e=>e.stopPropagation(); s.onchange=async(e)=>{ e.stopPropagation();
     const key=decodeURIComponent(s.dataset.k), ci=+s.dataset.c, ed=s.value; const all=loadBestLots(); const L=all.find(x=>lotKey(x)===key); if(!L||!L.cards||!L.cards[ci]) return; const cur=L.cards[ci];
@@ -1222,6 +1230,8 @@ $('#lotFetchBtn').onclick=async()=>{
   if(!d.enabled){ $('#lotResult').innerHTML=ebayGate(); return; }
   if(!d.item){ $('#lotResult').innerHTML='<div class="errbox">Couldn’t load that listing — check the link is a normal eBay item URL.</div>'; return; }
   const it=d.item; window._lot=it;
+  const _idm=(u.match(/(\d{9,})/)||[])[1]||'';
+  window._lotMeta={title:it.title||'Scanned lot', url:it.url||(_idm?'https://www.'+CUR_DEFS[CUR].ebay+'/itm/'+_idm:''), asking:(it.price!=null?ebGBP(it.price,it.currency):null)};
   const ask = it.price!=null ? gbp(ebGBP(it.price,it.currency)) : '—';
   let html=`<div class="vbox wide"><div class="lbl">📦 ${it.title||'Lot'}</div><div class="sub" style="margin-top:4px">Asking ${ask} · ${it.images.length} photo(s)</div></div>
     <div class="results" style="margin-top:10px;grid-template-columns:repeat(3,1fr)">`;
@@ -1360,14 +1370,14 @@ async function lotManualScan(){
       if(!imgs.length){ // fall back to the scraper puller
         r=await fetch('/.netlify/functions/lotpull?url='+encodeURIComponent(listing[1])); const d2=await r.json(); imgs=(d2&&d2.images)||[]; if(!ctx && d2&&d2.title) ctx=d2.title;
       }
-      if(imgs.length){ if(ask==null && item && item.price!=null) ask=ebGBP(item.price, item.currency||'USD'); window._lotMeta={title:(item&&item.title)||'Scanned lot', url:'https://www.'+CUR_DEFS[CUR].ebay+'/itm/'+listing[1], asking:ask}; scanImages(imgs, ask, out, ctx); return; }
+      if(imgs.length){ if(ask==null && item && item.price!=null) ask=ebGBP(item.price, item.currency||'USD'); window._lotMeta={title:(item&&item.title)||'Scanned lot', url:(item&&item.url)||('https://www.'+CUR_DEFS[CUR].ebay+'/itm/'+listing[1]), asking:ask}; scanImages(imgs, ask, out, ctx); return; }
       out.innerHTML='<div class="errbox">Couldn’t pull photos from that listing. Paste the photo links (cardscout-links.txt) instead, or upload photos.</div>';
     }catch(e){ out.innerHTML='<div class="errbox">Listing puller unavailable. Paste the photo links instead, or upload photos.</div>'; }
     return;
   }
-  // 2) otherwise treat the box as image links
+  // 2) otherwise treat the box as image links (no listing URL to attach)
   const urls=raw.split(/\s+/).map(s=>s.trim()).filter(s=>/^https?:\/\//i.test(s));
-  if(urls.length){ scanImages(urls, ask, out); }
+  if(urls.length){ window._lotMeta={title:'Scanned lot', url:'', asking:ask}; scanImages(urls, ask, out); }
   else { toast('Paste an eBay listing link or image links, or upload photos.'); }
 }
 if($('#lotManualBtn')) $('#lotManualBtn').onclick=lotManualScan;
