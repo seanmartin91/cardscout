@@ -1498,7 +1498,8 @@ async function findFlips(out){
               if(buy < market*0.15) return;
               if(margin < FLIP_MARGIN || margin > 2.5) return;
               hits.push({it, buy, market, profit, margin, card:c});
-            });
+              });
+            }
           }
         }
       }catch(e){}
