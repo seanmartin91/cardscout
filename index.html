@@ -424,9 +424,10 @@
   <!-- DEALS -->
   <div class="panel hidden" id="dealsStep">
     <h2 class="eyebrow"><span class="n"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5 16 16"/></svg></span> Find deals on eBay</h2>
-    <div class="modes" style="grid-template-columns:1fr 1fr" id="dealsToggle">
+    <div class="modes" style="grid-template-columns:1fr 1fr 1fr" id="dealsToggle">
       <button class="mode on" data-deal="find"><span class="mi"><svg class="ic" viewBox="0 0 24 24"><path d="M20.6 13.4 12 22l-9-9V4a1 1 0 0 1 1-1h9z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></span>Find singles</button>
       <button class="mode" data-deal="lot"><span class="mi"><svg class="ic" viewBox="0 0 24 24"><rect x="8.5" y="6" width="11" height="14.5" rx="2.2"/><path d="M5 17V6.2a2 2 0 0 1 2-2h8.5"/></svg></span>Analyse a lot</button>
+      <button class="mode" data-deal="snipe"><span class="mi"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="2"/></svg></span>Sniper</button>
     </div>
 
     <div id="dealFind">
@@ -437,9 +438,9 @@
     </div>
 
     <div id="dealLot" class="hidden">
-      <label>Paste the eBay listing link — CardScout pulls the photos for you</label>
-      <div class="muted" style="margin:2px 0 8px;font-size:12.5px">✅ Just paste the <b>eBay listing link</b> (or item number) and tap Scan — CardScout fetches all the photos automatically. From a daily lot folder it's in <b>listing-link.txt</b> / lot.md. You can still paste photo links or upload photos.</div>
-      <textarea id="lotImgs" rows="3" placeholder="Paste the eBay listing link (e.g. https://www.ebay.ca/itm/123456789). Or photo links, one per line. Or Upload photos below." style="width:100%;background:rgba(8,11,20,.7);border:1px solid var(--line-strong);color:var(--txt);padding:13px 15px;border-radius:13px;font-size:13.5px;font-family:inherit;outline:none;resize:vertical"></textarea>
+      <label>Paste a lot link — eBay, Facebook Marketplace, Kijiji or Whatnot</label>
+      <div class="muted" style="margin:2px 0 8px;font-size:12.5px">✅ <b>eBay</b> link (or item number) → CardScout pulls the photos automatically. <b>Facebook / Kijiji / Whatnot</b> have no photo API, so paste the link then tap <b>Upload photos</b> to add screenshots — the link stays attached so “Open listing” works. You can also paste photo links directly.</div>
+      <textarea id="lotImgs" rows="3" placeholder="Paste an eBay / Facebook Marketplace / Kijiji / Whatnot listing link. Or photo links, one per line. Or Upload photos below." style="width:100%;background:rgba(8,11,20,.7);border:1px solid var(--line-strong);color:var(--txt);padding:13px 15px;border-radius:13px;font-size:13.5px;font-family:inherit;outline:none;resize:vertical"></textarea>
       <input id="lotAsk" type="number" inputmode="decimal" placeholder="Asking price (optional, for the verdict)" style="margin-top:10px">
       <div class="row" style="margin-top:12px">
         <button class="btn gold" id="lotManualBtn">Scan the photos</button>
@@ -454,6 +455,19 @@
         <button class="btn" id="lotFetchBtn" style="margin-top:12px">Pull the lot photos</button>
         <div id="lotResult" style="margin-top:10px"></div>
       </details>
+    </div>
+
+    <div id="dealSniper" class="hidden">
+      <div class="muted" style="margin:2px 0 10px;font-size:12.5px">Save the cards you're hunting with a max price. Tap <b>Run sniper</b> and CardScout flags any live eBay listing at or under your target — sorted cheapest first. Your watchlist is saved on this device.</div>
+      <label>Card to watch</label>
+      <input id="snipeTerm" placeholder="e.g. Charizard Base Set 4/102">
+      <div class="row" style="margin-top:10px">
+        <input id="snipeMax" type="number" inputmode="decimal" placeholder="Max price you'll pay">
+        <button class="btn" id="snipeAdd" style="flex:0 0 auto;width:auto;padding:14px 18px">＋ Watch</button>
+      </div>
+      <div id="snipeList" style="margin-top:14px"></div>
+      <button class="btn gold" id="snipeRun" style="margin-top:6px">🎯 Run sniper now</button>
+      <div id="snipeResults" style="margin-top:12px"></div>
     </div>
   </div>
 
@@ -566,7 +580,7 @@ function renderBestLots(){
       </div>
       <div class="lotbreak hidden" data-k="${encodeURIComponent(k)}" style="border-top:1px solid var(--line)">
         ${cardsHtml||'<div class="muted" style="padding:12px">No per-card breakdown saved for this lot.</div>'}
-        <div style="padding:8px 12px">${/^https?:\/\//i.test(L.url||'')?`<a href="${L.url}" target="_blank" rel="noopener" style="font-size:12px;font-weight:700;color:var(--accent)">Open eBay listing ›</a>`:`<button class="lotlink" data-k="${encodeURIComponent(k)}" style="background:none;border:none;padding:0;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer">+ Add eBay listing link</button>`}</div>
+        <div style="padding:8px 12px">${/^https?:\/\//i.test(L.url||'')?`<a href="${L.url}" target="_blank" rel="noopener" style="font-size:12px;font-weight:700;color:var(--accent)">Open listing ›</a>`:`<button class="lotlink" data-k="${encodeURIComponent(k)}" style="background:none;border:none;padding:0;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer">+ Add listing link</button>`}</div>
       </div>
     </div>`;
   }).join('');
@@ -1200,7 +1214,7 @@ async function aiVisionMulti(prompt, imageUrls){
     const j=await r.json(); if(j.error) throw new Error(j.error.message); return j.content[0].text;
   }
 }
-document.querySelectorAll('#dealsToggle .mode').forEach(b=>{ b.onclick=()=>{ document.querySelectorAll('#dealsToggle .mode').forEach(x=>x.classList.remove('on')); b.classList.add('on'); const d=b.dataset.deal; $('#dealFind').classList.toggle('hidden', d!=='find'); $('#dealLot').classList.toggle('hidden', d!=='lot'); }; });
+document.querySelectorAll('#dealsToggle .mode').forEach(b=>{ b.onclick=()=>{ document.querySelectorAll('#dealsToggle .mode').forEach(x=>x.classList.remove('on')); b.classList.add('on'); const d=b.dataset.deal; $('#dealFind').classList.toggle('hidden', d!=='find'); $('#dealLot').classList.toggle('hidden', d!=='lot'); $('#dealSniper').classList.toggle('hidden', d!=='snipe'); if(d==='snipe') renderWatchlist(); }; });
 function ebayGate(){ return '<div class="errbox">eBay deal-finding isn’t switched on yet. It needs free eBay developer API keys (EBAY_CLIENT_ID / EBAY_CLIENT_SECRET) added to Netlify. Ask me to walk you through it.</div>'; }
 const ebGBP=(v,cur)=> conv(v, cur||'USD');
 
@@ -1375,7 +1389,15 @@ async function lotManualScan(){
     }catch(e){ out.innerHTML='<div class="errbox">Listing puller unavailable. Paste the photo links instead, or upload photos.</div>'; }
     return;
   }
-  // 2) otherwise treat the box as image links (no listing URL to attach)
+  // 2) Facebook Marketplace / Kijiji / Whatnot — no photo API, so capture the link and ask for screenshots
+  const src = /facebook\.com|fb\.com|fb\.watch|fb\.me/i.test(raw)?'Facebook Marketplace' : /kijiji\./i.test(raw)?'Kijiji' : /whatnot\.com/i.test(raw)?'Whatnot' : '';
+  if(src){
+    const extLink=(raw.match(/https?:\/\/[^\s]+/)||[])[0]||raw.trim();
+    window._lotMeta={title:src+' lot', url:extLink, asking:ask};
+    out.innerHTML=`<div class="vbox wide"><div class="lbl">🔗 ${src} link saved</div><div class="sub" style="margin-top:6px;line-height:1.55">There’s no photo API for ${src}, so CardScout can’t auto-pull the images. Tap <b>Upload photos</b> above and add screenshots of the listing (or paste photo links) — they’ll be scanned and priced, and this ${src} link stays attached so “Open listing” works in Best Lots.</div></div>`;
+    return;
+  }
+  // 3) otherwise treat the box as image links (no listing URL to attach)
   const urls=raw.split(/\s+/).map(s=>s.trim()).filter(s=>/^https?:\/\//i.test(s));
   if(urls.length){ window._lotMeta={title:'Scanned lot', url:'', asking:ask}; scanImages(urls, ask, out); }
   else { toast('Paste an eBay listing link or image links, or upload photos.'); }
@@ -1385,9 +1407,48 @@ if($('#lotUploadBtn')) $('#lotUploadBtn').onclick=()=>$('#lotFile').click();
 if($('#lotFile')) $('#lotFile').onchange=async (e)=>{
   const files=[...e.target.files]; if(!files.length) return;
   const ask=parseFloat($('#lotAsk').value)||null;
+  // keep a Facebook/Kijiji/Whatnot link captured just before (so its "Open listing" works); else default meta
+  if(!(window._lotMeta && window._lotMeta.url)) window._lotMeta={title:'Scanned lot', url:'', asking:ask};
   const urls=await Promise.all(files.map(f=>new Promise(res=>{ const rd=new FileReader(); rd.onload=()=>res(rd.result); rd.readAsDataURL(f); })));
   scanImages(urls, ask, $('#lotManualScan'));
 };
+
+// ---------- DEAL SNIPER (watchlist) ----------
+function loadWatchlist(){ try{ return JSON.parse(localStorage.getItem('cardscout_watchlist')||'[]'); }catch(e){ return []; } }
+function saveWatchlist(a){ try{ localStorage.setItem('cardscout_watchlist', JSON.stringify(a)); }catch(e){} }
+function renderWatchlist(){
+  const el=$('#snipeList'); if(!el) return; const w=loadWatchlist();
+  if(!w.length){ el.innerHTML='<div class="muted" style="font-size:12.5px">No watches yet. Add a card + your max price above.</div>'; return; }
+  el.innerHTML=w.map((x,i)=>`<div class="brow" style="padding:9px 11px"><div class="bi" style="flex:1"><b style="font-size:13.5px">${x.term}</b><span>max ${gbp(x.max)}${x.lastHits!=null?` · last run: ${x.lastHits} hit(s)`:''}</span></div><button class="x wdel" data-i="${i}" title="remove">✕</button></div>`).join('');
+  el.querySelectorAll('.wdel').forEach(b=>{ b.onclick=()=>{ const a=loadWatchlist(); a.splice(+b.dataset.i,1); saveWatchlist(a); renderWatchlist(); }; });
+}
+if($('#snipeAdd')) $('#snipeAdd').onclick=()=>{
+  const term=($('#snipeTerm').value||'').trim(); const max=parseFloat($('#snipeMax').value);
+  if(!term){ toast('Type a card to watch.'); return; }
+  if(!(max>0)){ toast('Set a max price.'); return; }
+  const a=loadWatchlist(); if(a.some(x=>x.term.toLowerCase()===term.toLowerCase())){ toast('Already watching that.'); return; }
+  a.push({term, max, added:Date.now()}); saveWatchlist(a); $('#snipeTerm').value=''; $('#snipeMax').value=''; renderWatchlist(); toast('Added to watchlist ★');
+};
+async function runSniper(watches, out){
+  const w=watches||loadWatchlist();
+  if(!w.length){ if(out) out.innerHTML='<div class="muted">Add a watch first.</div>'; return {total:0}; }
+  if(out) out.innerHTML='<div class="spin"></div><p class="muted" style="text-align:center">Sweeping eBay for under-target listings…</p>';
+  const mkt=(CUR_DEFS[CUR]&&CUR_DEFS[CUR].mkt)||'EBAY_CA'; let allHtml='', grand=0; const store=loadWatchlist();
+  for(const watch of w){
+    let d=null; try{ const r=await fetch('/.netlify/functions/ebay?mode=search&limit=24&mkt='+mkt+'&q='+encodeURIComponent(watch.term)); d=await r.json(); }catch(e){}
+    if(!d||!d.enabled){ if(out) out.innerHTML=ebayGate(); return {total:0,disabled:true}; }
+    const hits=(d.items||[]).map(it=>({it, p:ebGBP(it.price,it.currency)})).filter(x=>x.p!=null && x.p<=watch.max).sort((a,b)=>a.p-b.p);
+    const si=store.findIndex(s=>s.term===watch.term); if(si>=0){ store[si].lastHits=hits.length; store[si].lastRun=Date.now(); }
+    grand+=hits.length;
+    allHtml+=`<div class="vbox wide" style="margin-top:10px"><div class="lbl">🎯 ${watch.term} · ≤ ${gbp(watch.max)}</div><div class="sub" style="margin-top:3px">${hits.length? hits.length+' listing(s) at or under target':'nothing under target right now'}</div></div>`;
+    hits.slice(0,8).forEach(x=>{ const it=x.it; allHtml+=`<a class="brow" href="${it.url}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><img src="${it.image||''}" style="object-fit:cover"><div class="bi"><b>${(it.title||'').slice(0,70)}</b><span>eBay listing ›</span></div><div class="bp"><div class="buy" style="color:#5cf0a6">${gbp(x.p)}</div><div class="mk">${it.currency&&it.currency!=='CAD'?it.currency+' '+(it.price!=null?it.price.toFixed(2):''):'+ ship'}</div></div></a>`; });
+  }
+  saveWatchlist(store); renderWatchlist();
+  if(out) out.innerHTML=(grand?`<div class="muted" style="margin-bottom:6px"><b style="color:#5cf0a6">${grand} deal(s)</b> at or under your targets.</div>`:'<div class="muted">No listings under your targets right now — check back later or raise a max.</div>')+allHtml;
+  return {total:grand};
+}
+if($('#snipeRun')) $('#snipeRun').onclick=()=>runSniper(null, $('#snipeResults'));
+window.cardscoutRunSniper=()=>runSniper(null, $('#snipeResults'));
 
 // ---------- SETTINGS + LOGIN ----------
 function openSettings(){
