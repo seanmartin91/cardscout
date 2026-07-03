@@ -403,6 +403,11 @@
 
   <!-- SEALED -->
   <div class="panel hidden" id="sealedStep">
+    <details id="boxDealsBox" style="margin-bottom:16px" open><summary>📦 Box deals the scout found <span id="boxDealsCount" class="rgn" style="margin-left:6px"></span></summary>
+      <div class="muted" id="boxDealsMeta" style="margin:8px 0;font-size:12px"></div>
+      <div id="boxDealsList"></div>
+      <button class="btn ghost" id="boxDealsRefresh" style="margin-top:8px;padding:8px 12px">↻ Refresh</button>
+    </details>
     <h2 class="eyebrow"><span class="n">2</span> Sealed pack / box value</h2>
     <div id="sealedThinking" class="hidden" style="text-align:center;margin-bottom:6px"><div class="spin"></div><p class="muted">Reading the product from your photo…</p></div>
     <label>Product / set name</label>
@@ -640,7 +645,7 @@ function applyMode(){
     $('#batchStep').classList.remove('hidden');
     if(batchCards.length||manualItems.length){ $('#batchControls').classList.remove('hidden'); $('#batchEmpty').classList.add('hidden'); renderBatch(); }
     else { $('#batchControls').classList.add('hidden'); $('#batchEmpty').classList.remove('hidden'); } }
-  if(mode==='sealed') $('#hintText').textContent='Photo a sealed pack/box, or type the product name below.';
+  if(mode==='sealed'){ $('#hintText').textContent='Photo a sealed pack/box, or type the product name below.'; renderBoxDeals(); pullBoxDeals(); }
   if(mode==='deals'){ $('#hintText').textContent='Hunt eBay for underpriced singles, or paste a lot listing to scan its photos for hidden gems.'; $('#dealsStep').classList.remove('hidden'); }
   if(mode==='lots'){ $('#hintText').textContent='Lots your daily scout found and valued — ranked by profit. Export the CSV to fill your flip tracker.'; $('#lotsStep').classList.remove('hidden'); renderBestLots(); pullBestLots().then(ok=>{ if(ok) renderBestLots(); }); }
 }
@@ -1454,11 +1459,9 @@ window.cardscoutRunSniper=()=>runSniper(null, $('#snipeResults'));
 
 // ---------- SINGLES FLIP-FINDER (live eBay sweep of popular liquid cards) ----------
 const FLIP_HUNTS=[
-  'Charizard 4/102','Blastoise 2/102','Venusaur 15/102','Charizard 11/108',
-  'Umbreon VMAX 215/203','Rayquaza VMAX 111/203','Sylveon VMAX 74/203','Leafeon VMAX 8/203',
-  'Charizard VMAX 74/73','Pikachu VMAX 188/185','Gengar VMAX 271/264','Mew VMAX 114/264',
-  'Charizard V 79/73','Lugia V 138/159','Giratina V 130/196','Mewtwo GX 78/73',
-  'Charizard ex 199/165','Mew ex 232/191','Moonbreon 215/203'
+  'Charizard 4/102','Blastoise 2/102','Umbreon VMAX 215/203','Rayquaza VMAX 111/203',
+  'Charizard VMAX 74/73','Pikachu VMAX 188/185','Gengar VMAX 271/264',
+  'Charizard V 79/73','Giratina V 130/196','Charizard ex 199/165'
 ];
 const SELL_FEE=0.87;        // ~13% eBay sell fees/PayPal
 const FLIP_MARGIN=0.30;     // net margin ≥ 30% after fees vs market
@@ -1492,7 +1495,7 @@ async function findFlips(out){
       done++; const t=$('#flipTxt'); if(t) t.textContent=`Checking ${done}/${hunts.length} cards…`;
     }
   }
-  await Promise.all(Array.from({length:4}, worker));
+  await Promise.all(Array.from({length:5}, worker));
   if(gated && !hits.length){ out.innerHTML=ebayGate(); return; }
   hits.sort((a,b)=>b.margin-a.margin);
   if(!hits.length){ out.innerHTML='<div class="muted">No 30%+ flips on the popular list right now — the market’s efficient today. Try again later, or use the Sniper tab to watch specific cards.</div>'; return; }
@@ -1504,6 +1507,31 @@ async function findFlips(out){
       <div class="bp"><div class="buy" style="color:#5cf0a6">+${Math.round(h.margin*100)}%</div><div class="mk">net</div></div></a>`).join('');
 }
 if($('#flipFindBtn')) $('#flipFindBtn').onclick=()=>findFlips($('#flipResults'));
+
+// ---------- BOX DEALS (scout-populated: in-stock sealed at good prices, CA + US) ----------
+function boxMargin(d){ if(d.margin!=null) return d.margin; if(d.ev!=null && d.price>0) return (d.ev-d.price)/d.price; return null; }
+function renderBoxDeals(){
+  const list=$('#boxDealsList'), meta=$('#boxDealsMeta'), cnt=$('#boxDealsCount'); if(!list) return;
+  let deals=[]; try{ deals=JSON.parse(localStorage.getItem('cardscout_boxdeals')||'[]'); }catch(e){}
+  deals=deals.slice().sort((a,b)=>((boxMargin(b)==null?-1:boxMargin(b))-(boxMargin(a)==null?-1:boxMargin(a))));
+  if(cnt) cnt.textContent=deals.length?deals.length+' found':'';
+  if(!deals.length){ if(meta) meta.textContent='No box deals yet. The scout writes in-stock sealed finds here after it runs (Canada + US retailers & eBay).'; list.innerHTML=''; return; }
+  const upd=localStorage.getItem('cardscout_boxdeals_upd'); if(meta) meta.innerHTML='In-stock sealed boxes/ETBs at good prices'+(upd?` · updated ${new Date(+upd).toLocaleDateString()}`:'')+' · tap to open the store page.';
+  list.innerHTML=deals.map(d=>{ const m=boxMargin(d); const col=(m!=null&&m>=0.15)?'#5cf0a6':(m!=null&&m<0?'#ffd6db':'#ffe08a');
+    const price=d.price!=null?((d.currency&&d.currency!=='CAD')?d.currency+' ':'')+gbp(d.price):'—';
+    return `<a class="brow" ${d.url?`href="${d.url}" target="_blank" rel="noopener"`:''} style="text-decoration:none;color:inherit">
+      <div class="bi" style="flex:1"><b>${d.product||''}${d.inStock===false?' <span style="font-size:9px;color:#ffb86b;font-weight:700">out of stock</span>':''}</b><span>${d.retailer||''}${d.region?' · '+d.region:''} · ${price}${d.ev!=null?` · resale/EV ≈ ${gbp(d.ev)}`:''}</span></div>
+      <div class="bp"><div class="buy" style="color:${col}">${m!=null?(m>0?'+':'')+Math.round(m*100)+'%':(d.verdict||'')}</div><div class="mk">${d.verdict||'watch'}</div></div></a>`; }).join('');
+}
+async function pullBoxDeals(){
+  try{ const r=await fetch('/.netlify/functions/boxdeals'); const d=await r.json(); if(d&&Array.isArray(d.deals)){ localStorage.setItem('cardscout_boxdeals', JSON.stringify(d.deals)); if(d.updated) localStorage.setItem('cardscout_boxdeals_upd', String(d.updated)); } }catch(e){}
+  renderBoxDeals();
+}
+window.cardscoutSetBoxDeals=async function(arr){ const a=Array.isArray(arr)?arr.slice(0,80):[]; localStorage.setItem('cardscout_boxdeals', JSON.stringify(a)); localStorage.setItem('cardscout_boxdeals_upd', String(Date.now()));
+  try{ await fetch('/.netlify/functions/boxdeals',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deals:a})}); }catch(e){}
+  renderBoxDeals(); return a.length; };
+window.cardscoutAddBoxDeal=function(o){ let a=[]; try{a=JSON.parse(localStorage.getItem('cardscout_boxdeals')||'[]');}catch(e){} a=a.filter(x=>!(o.url&&x.url===o.url)); a.push(o); return window.cardscoutSetBoxDeals(a); };
+if($('#boxDealsRefresh')) $('#boxDealsRefresh').onclick=pullBoxDeals;
 
 // ---------- SETTINGS + LOGIN ----------
 function openSettings(){
