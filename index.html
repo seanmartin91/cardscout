@@ -1444,7 +1444,14 @@ async function runSniper(watches, out){
   for(const watch of w){
     let d=null; try{ const r=await fetch('/.netlify/functions/ebay?mode=search&limit=24&mkt='+mkt+'&q='+encodeURIComponent(watch.term)); d=await r.json(); }catch(e){}
     if(!d||!d.enabled){ if(out) out.innerHTML=ebayGate(); return {total:0,disabled:true}; }
-    const hits=(d.items||[]).map(it=>({it, p:ebGBP(it.price,it.currency)})).filter(x=>x.p!=null && x.p<=watch.max).sort((a,b)=>a.p-b.p);
+    // reject "choose/pick your card" bulk listings (their price is the cheapest common, not this card) + merch/novelty junk
+    const junkS=/choose your|pick your|you pick|complete your|select your|your choice|u pick|pick a card|\bsingles\b|lot of|\blot\b|\bbundle\b|magnet|fridge|gold\s?(colou?r|plated|metal|foil|card)|metal\s?card|colou?rized|24k|coin|keychain|key\s?ring|proxy|custom|fan\s?art|orica|repro|replica|sticker|\bpin\b|plush|poster|\bmug\b|figure|funko|counterfeit|\bfake\b|code\s?card|tcg online/i;
+    // require the listing to actually name the card (main word of the watch term, e.g. "Jolteon")
+    const need=(watch.term.match(/[a-z]{4,}/gi)||[]).sort((a,b)=>b.length-a.length)[0];
+    const needRe=need?new RegExp('\\b'+need.replace(/[.*+?^${}()|[\]\\]/g,'')+'\\b','i'):null;
+    const hits=(d.items||[]).map(it=>({it, p:ebGBP(it.price,it.currency)}))
+      .filter(x=>x.p!=null && x.p<=watch.max && !junkS.test(x.it.title||'') && (!needRe || needRe.test(x.it.title||'')))
+      .sort((a,b)=>a.p-b.p);
     const si=store.findIndex(s=>s.term===watch.term); if(si>=0){ store[si].lastHits=hits.length; store[si].lastRun=Date.now(); }
     grand+=hits.length;
     allHtml+=`<div class="vbox wide" style="margin-top:10px"><div class="lbl">🎯 ${watch.term} · ≤ ${gbp(watch.max)}</div><div class="sub" style="margin-top:3px">${hits.length? hits.length+' listing(s) at or under target':'nothing under target right now'}</div></div>`;
