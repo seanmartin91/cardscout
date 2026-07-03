@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#07090f">
+<meta name="theme-color" content="#0B1220">
 <title>CardScout — Pokémon buy-price scanner</title>
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -14,32 +14,34 @@
 <meta name="apple-mobile-web-app-title" content="CardScout">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#07090f; --panel:rgba(22,27,40,.66); --panel-solid:#141a28;
-    --line:rgba(255,255,255,.08); --line-strong:rgba(255,255,255,.14);
-    --txt:#f3f6ff; --muted:#9aa3bd; --faint:#6b7493;
-    --accent:#ffd11a; --accent-deep:#ff9e00;
-    --blue:#6d8bff; --blue-deep:#4361ff;
-    --green:#36e08a;
-    --red:#ff6b7d;
-    --r:20px; --r-sm:13px;
-    --shadow:0 20px 50px -20px rgba(0,0,0,.7);
+    --bg:#0B1220; --panel:rgba(17,26,44,.72); --panel-solid:#111A2C;
+    --line:rgba(255,255,255,.08); --line-strong:#2c3a52;
+    --txt:#E8EDF6; --muted:#8DA0BE; --faint:#66759a;
+    --accent:#2CE28A; --accent-deep:#24c07a;
+    --blue:#2CE28A; --blue-deep:#24c07a;
+    --green:#2CE28A;
+    --amber:#FFB224;
+    --red:#FF5D5D;
+    --paper:#EFEAE0; --paper-ink:#141821;
+    --r:14px; --r-sm:10px;
+    --shadow:0 20px 50px -20px rgba(0,0,0,.75);
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html{-webkit-text-size-adjust:100%}
   body{
-    margin:0;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    margin:0;font-family:'IBM Plex Sans',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     color:var(--txt);background:var(--bg);min-height:100vh;padding-bottom:60px;
     background-image:
-      radial-gradient(900px 500px at 12% -8%, rgba(109,139,255,.20), transparent 60%),
-      radial-gradient(800px 480px at 92% 4%, rgba(255,209,26,.13), transparent 55%),
-      radial-gradient(700px 600px at 50% 115%, rgba(54,224,138,.10), transparent 60%);
+      radial-gradient(900px 520px at 12% -8%, rgba(44,226,138,.10), transparent 60%),
+      radial-gradient(800px 480px at 92% 4%, rgba(44,226,138,.06), transparent 55%),
+      radial-gradient(700px 600px at 50% 115%, rgba(34,48,74,.55), transparent 60%);
     background-attachment:fixed;
   }
-  ::selection{background:rgba(255,209,26,.28)}
-  h1,h2,h3,.brand b{font-family:'Sora','Inter',sans-serif}
+  ::selection{background:rgba(44,226,138,.30);color:#0B1220}
+  h1,h2,h3,.brand b{font-family:'Chakra Petch','IBM Plex Sans',sans-serif;letter-spacing:.01em}
   header{position:sticky;top:0;z-index:40;backdrop-filter:blur(18px) saturate(1.4);
     -webkit-backdrop-filter:blur(18px) saturate(1.4);
     background:linear-gradient(180deg,rgba(7,9,15,.9),rgba(7,9,15,.6));
@@ -63,33 +65,33 @@
     backdrop-filter:blur(20px) saturate(1.3);-webkit-backdrop-filter:blur(20px) saturate(1.3);
     animation:rise .5s cubic-bezier(.2,.8,.2,1) both}
   @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
-  .eyebrow{display:flex;align-items:center;gap:9px;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;
+  .eyebrow{display:flex;align-items:center;gap:9px;font-family:'Chakra Petch',sans-serif;font-size:12px;font-weight:700;
     text-transform:uppercase;letter-spacing:1.4px;color:var(--muted);margin:0 0 16px}
-  .eyebrow .n{width:23px;height:23px;border-radius:8px;display:grid;place-items:center;font-size:12px;
-    background:linear-gradient(135deg,var(--blue),var(--blue-deep));color:#fff;
-    box-shadow:0 4px 12px -3px rgba(67,97,255,.6)}
+  .eyebrow .n{width:23px;height:23px;border-radius:7px;display:grid;place-items:center;font-size:12px;
+    background:rgba(44,226,138,.14);color:var(--accent);border:1px solid rgba(44,226,138,.4)}
   label{font-size:11.5px;font-weight:600;color:var(--muted);display:block;margin:14px 0 7px;letter-spacing:.2px}
   input,select{width:100%;background:rgba(8,11,20,.7);border:1px solid var(--line-strong);color:var(--txt);
     padding:14px 15px;border-radius:var(--r-sm);font-size:15px;font-family:inherit;outline:none;transition:.18s}
   input::placeholder{color:var(--faint)}
-  input:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 4px rgba(109,139,255,.16);background:rgba(8,11,20,.95)}
+  input:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 4px rgba(44,226,138,.16);background:rgba(8,11,20,.95)}
   select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%239aa3bd' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:40px}
   .row{display:flex;gap:11px}.row>*{flex:1}
   button{cursor:pointer;border:none;font-family:inherit}
-  .btn{width:100%;padding:15px;border-radius:14px;font-size:15.5px;font-weight:700;letter-spacing:.2px;
-    background:linear-gradient(135deg,var(--blue),var(--blue-deep));color:#fff;transition:.18s;
-    box-shadow:0 10px 26px -10px rgba(67,97,255,.75),inset 0 1px 0 rgba(255,255,255,.18)}
-  .btn:hover{transform:translateY(-1px);box-shadow:0 16px 32px -12px rgba(67,97,255,.85),inset 0 1px 0 rgba(255,255,255,.2)}
+  .btn{width:100%;padding:15px;border-radius:12px;font-size:15.5px;font-weight:600;letter-spacing:.03em;
+    font-family:'Chakra Petch','IBM Plex Sans',sans-serif;
+    background:var(--accent);color:#08331d;transition:.18s;
+    box-shadow:0 10px 26px -12px rgba(44,226,138,.6)}
+  .btn:hover{transform:translateY(-1px);box-shadow:0 16px 32px -14px rgba(44,226,138,.7)}
   .btn:active{transform:translateY(0)}
-  .btn.gold{background:linear-gradient(135deg,#ffd96b,#ff9e00);color:#1c1404;
-    box-shadow:0 10px 26px -10px rgba(255,158,0,.8),inset 0 1px 0 rgba(255,255,255,.4)}
+  .btn.gold{background:var(--accent);color:#08331d;
+    box-shadow:0 10px 26px -12px rgba(44,226,138,.6)}
   .btn.ghost{background:rgba(255,255,255,.05);border:1px solid var(--line-strong);color:var(--txt);box-shadow:none;font-weight:600}
   .btn.ghost:hover{background:rgba(255,255,255,.09);transform:translateY(-1px)}
   .modes{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:16px;
     background:rgba(8,11,20,.5);border:1px solid var(--line);border-radius:14px;padding:5px}
   .mode{background:transparent;color:var(--muted);padding:9px 2px;border-radius:10px;font-size:11px;font-weight:600;line-height:1.2;transition:.18s}
   .mode .mi{font-size:16px;display:block;margin-bottom:3px}
-  .mode.on{background:linear-gradient(135deg,var(--blue),var(--blue-deep));color:#fff;box-shadow:0 6px 16px -8px rgba(67,97,255,.8)}
+  .mode.on{background:var(--accent);color:#08331d;font-weight:700;box-shadow:0 6px 16px -8px rgba(44,226,138,.55)}
   .camwrap{position:relative;border-radius:18px;overflow:hidden;aspect-ratio:3/4;display:grid;place-items:center;
     background:radial-gradient(circle at 50% 35%,#10141f,#06080e);border:1px solid var(--line)}
   video,#preview{width:100%;height:100%;object-fit:cover;display:none}
@@ -106,7 +108,7 @@
     cursor:pointer;transition:.18s;text-align:left;padding:0;position:relative}
   .cardpick:hover{transform:translateY(-3px);border-color:var(--line-strong);box-shadow:0 14px 30px -16px rgba(0,0,0,.8)}
   .cardpick:active{transform:scale(.98)}
-  .cardpick.sel{border-color:var(--accent);box-shadow:0 0 0 2px rgba(255,209,26,.45),0 14px 30px -16px rgba(0,0,0,.8)}
+  .cardpick.sel{border-color:var(--accent);box-shadow:0 0 0 2px rgba(44,226,138,.5),0 14px 30px -16px rgba(0,0,0,.8)}
   .cardpick img{width:100%;display:block;background:#0a0f1f;aspect-ratio:.72;object-fit:contain}
   .cardpick .meta{padding:9px 11px}
   .cardpick .meta b{font-size:13px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
@@ -115,14 +117,14 @@
   .vbox{background:rgba(8,11,20,.5);border:1px solid var(--line);border-radius:15px;padding:14px}
   .vbox.wide{margin-top:12px}
   .vbox .lbl{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;font-weight:600}
-  .vbox .num{font-family:'Sora',sans-serif;font-size:22px;font-weight:800;margin-top:5px;letter-spacing:-.5px}
+  .vbox .num{font-family:'Chakra Petch',sans-serif;font-size:22px;font-weight:800;margin-top:5px;letter-spacing:-.5px}
   .vbox .sub{font-size:11px;color:var(--faint);margin-top:3px}
   .offer{position:relative;background:linear-gradient(150deg,rgba(54,224,138,.16),rgba(16,40,28,.5));
     border:1px solid rgba(54,224,138,.4);border-radius:18px;padding:22px;text-align:center;overflow:hidden;margin-top:16px}
   .offer::before{content:'';position:absolute;inset:0;background:radial-gradient(400px 120px at 50% -10%,rgba(54,224,138,.3),transparent)}
   .offer>*{position:relative}
   .offer .lbl{font-size:11px;color:#7ff0b3;text-transform:uppercase;letter-spacing:1.2px;font-weight:700}
-  .offer .big{font-family:'Sora',sans-serif;font-size:46px;font-weight:800;color:#c7ffdd;margin:6px 0;line-height:1;letter-spacing:-1.5px;
+  .offer .big{font-family:'Chakra Petch',sans-serif;font-size:46px;font-weight:800;color:#c7ffdd;margin:6px 0;line-height:1;letter-spacing:-1.5px;
     text-shadow:0 4px 24px rgba(54,224,138,.4)}
   .offer .rng{font-size:12.5px;color:#8fe6b3;line-height:1.5}
   .slider{-webkit-appearance:none;appearance:none;height:8px;border-radius:8px;width:100%;margin-top:14px;
@@ -131,14 +133,14 @@
     box-shadow:0 3px 10px rgba(0,0,0,.5),0 0 0 4px rgba(255,255,255,.12);cursor:pointer;transition:.1s}
   .slider::-webkit-slider-thumb:active{transform:scale(1.12)}
   .slider::-moz-range-thumb{width:28px;height:28px;border:none;border-radius:50%;background:#fff;box-shadow:0 3px 10px rgba(0,0,0,.5)}
-  .sliderval{font-weight:800;color:var(--accent);font-family:'Sora',sans-serif}
+  .sliderval{font-weight:800;color:var(--accent);font-family:'Chakra Petch',sans-serif}
   table{width:100%;border-collapse:collapse;font-size:13px;margin-top:4px}
   td{padding:9px 4px;border-bottom:1px solid var(--line)}
   td:last-child{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
   tr:last-child td{border-bottom:none}
   .step-dots{display:flex;gap:7px;justify-content:center;margin-top:16px}
   .step-dots i{width:7px;height:7px;border-radius:50%;background:var(--line-strong);transition:.3s}
-  .step-dots i.on{background:var(--accent);width:22px;border-radius:4px;box-shadow:0 0 12px rgba(255,209,26,.6)}
+  .step-dots i.on{background:var(--accent);width:22px;border-radius:4px;box-shadow:0 0 12px rgba(44,226,138,.55)}
   details{background:rgba(8,11,20,.5);border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:10px;transition:.2s}
   details[open]{border-color:var(--line-strong)}
   summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);list-style:none;display:flex;align-items:center;gap:8px}
@@ -154,10 +156,13 @@
     animation:r 0.8s linear infinite;margin:14px auto}
   @keyframes r{to{transform:rotate(360deg)}}
   .cardhead-img{width:78px;border-radius:11px;box-shadow:0 8px 20px -8px rgba(0,0,0,.8)}
-  a{color:var(--blue)}
+  a{color:var(--accent)}
+  /* trade-ticket: all money & data figures in tabular mono */
+  .vbox .num,.offer .big,.offer .rng,.sliderval,td:last-child,.rgn{font-family:'IBM Plex Mono',monospace!important;font-variant-numeric:tabular-nums}
+  .vbox .num{font-weight:600;letter-spacing:-.3px}
   /* ---- refined icon system ---- */
   .ic{width:1em;height:1em;display:inline-block;vertical-align:-0.13em;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
-  .eyebrow .n .ic{width:13px;height:13px;stroke:#fff;stroke-width:2}
+  .eyebrow .n .ic{width:13px;height:13px;stroke:var(--accent);stroke-width:2}
   .brand .logo{background:none!important;box-shadow:none!important;width:40px;height:40px;display:block}
   .brand .logo svg{width:40px;height:40px;display:block;filter:drop-shadow(0 6px 16px rgba(0,0,0,.5))}
   .gear{margin-left:auto;width:38px;height:38px;border-radius:11px;background:rgba(255,255,255,.05);border:1px solid var(--line-strong);color:var(--muted);display:grid;place-items:center;flex:0 0 auto;transition:.18s}
@@ -176,10 +181,10 @@
   .dot2.on{background:var(--green);box-shadow:0 0 8px rgba(54,224,138,.7)}
   .dot2.off{background:var(--faint)}
   /* ---- login overlay ---- */
-  .overlay{position:fixed;inset:0;z-index:120;background:radial-gradient(720px 520px at 50% -5%,rgba(109,139,255,.20),transparent 60%),var(--bg);display:grid;place-items:center;padding:24px}
+  .overlay{position:fixed;inset:0;z-index:120;background:radial-gradient(720px 520px at 50% -5%,rgba(44,226,138,.16),transparent 60%),var(--bg);display:grid;place-items:center;padding:24px}
   .loginbox{width:100%;max-width:380px;background:var(--panel-solid);border:1px solid var(--line-strong);border-radius:22px;padding:32px 26px;text-align:center;box-shadow:var(--shadow)}
   .loginbox .lb-logo{width:56px;height:56px;margin:0 auto 18px}
-  .loginbox h3{font-family:'Sora',sans-serif;font-size:21px;margin:0 0 6px;letter-spacing:-.3px}
+  .loginbox h3{font-family:'Chakra Petch',sans-serif;font-size:21px;margin:0 0 6px;letter-spacing:-.3px}
   .fxnote{font-size:11px;color:var(--faint);text-align:center;margin-top:10px}
   .disclaimer{color:var(--faint);font-size:12px;text-align:center;margin:18px auto;line-height:1.6;max-width:480px}
   .errbox{text-align:left;background:rgba(255,107,125,.12);border:1px solid rgba(255,107,125,.4);border-radius:12px;padding:13px;color:#ffb3bd;font-size:13px;line-height:1.55}
@@ -191,7 +196,7 @@
   .brow .bi b{font-size:13.5px;font-weight:600;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .brow .bi span{font-size:11px;color:var(--muted)}
   .brow .bp{text-align:right;flex:0 0 auto}
-  .brow .bp .buy{font-family:'Sora',sans-serif;font-weight:800;font-size:15px;color:#bdf5cf}
+  .brow .bp .buy{font-family:'Chakra Petch',sans-serif;font-weight:800;font-size:15px;color:#bdf5cf}
   .brow .bp .mk{font-size:10.5px;color:var(--faint)}
   .brow .x{flex:0 0 auto;color:var(--faint);font-size:18px;background:none;padding:4px 6px}
   .totbar{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:6px}
@@ -210,17 +215,10 @@
   <div class="brand">
     <span class="logo">
       <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" aria-label="CardScout">
-        <defs>
-          <linearGradient id="pbTop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff6173"/><stop offset="1" stop-color="#e1273f"/></linearGradient>
-          <linearGradient id="pbBot" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6f9ff"/><stop offset="1" stop-color="#ccd6ec"/></linearGradient>
-        </defs>
-        <circle cx="20" cy="20" r="18.5" fill="#0b0f1a"/>
-        <path d="M2.4 20a17.6 17.6 0 0 1 35.2 0z" fill="url(#pbTop)"/>
-        <path d="M37.6 20a17.6 17.6 0 0 1-35.2 0z" fill="url(#pbBot)"/>
-        <rect x="2.2" y="18.5" width="35.6" height="3" fill="#0b0f1a"/>
-        <circle cx="20" cy="20" r="6.1" fill="#0b0f1a"/>
-        <circle cx="20" cy="20" r="4.1" fill="#fff"/>
-        <circle cx="20" cy="20" r="1.9" fill="#eef2ff" stroke="#aebbd8" stroke-width=".8"/>
+        <rect x="1.5" y="1.5" width="37" height="37" rx="9" fill="#111A2C" stroke="#22304A" stroke-width="1.5"/>
+        <path d="M9 15V11a2 2 0 0 1 2-2h4" fill="none" stroke="#2CE28A" stroke-width="2.6" stroke-linecap="round"/>
+        <path d="M31 25v4a2 2 0 0 1-2 2h-4" fill="none" stroke="#2CE28A" stroke-width="2.6" stroke-linecap="round"/>
+        <rect x="15.5" y="15.5" width="9" height="9" rx="2" fill="#2CE28A"/>
       </svg>
     </span>
     <div>
@@ -236,7 +234,7 @@
   <!-- SETTINGS -->
   <div class="panel hidden" id="settingsStep">
     <h2 class="eyebrow"><span class="n"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 4v2M12 18v2M4 12h2M18 12h2M6 6l1.5 1.5M16.5 16.5L18 18M18 6l-1.5 1.5M7.5 16.5L6 18"/></svg></span> Settings</h2>
-    <h3 style="font-family:'Sora',sans-serif;font-size:14px;margin:0 0 4px">Region &amp; currency</h3>
+    <h3 style="font-family:'Chakra Petch',sans-serif;font-size:14px;margin:0 0 4px">Region &amp; currency</h3>
     <p class="muted">All prices and the eBay deal finder follow this region.</p>
     <select id="curSel">
       <option value="CAD">Canada — CAD (C$)</option>
@@ -244,7 +242,7 @@
       <option value="USD">United States — USD ($)</option>
     </select>
 
-    <h3 style="font-family:'Sora',sans-serif;font-size:14px;margin:22px 0 4px">AI recognition</h3>
+    <h3 style="font-family:'Chakra Petch',sans-serif;font-size:14px;margin:22px 0 4px">AI recognition</h3>
     <p class="muted">Add a Claude or OpenAI key to read cards &amp; products from photos and run lot scans. Stored only on this device — sent only to the provider you pick.</p>
     <label>AI provider</label>
     <select id="aiProvider">
@@ -256,7 +254,7 @@
     <p class="muted" id="aiState" style="margin-top:10px">AI recognition is <b>off</b>. Add a key to enable it.</p>
     <button class="btn ghost" id="forgetKey" style="margin-top:8px;display:none;padding:10px;font-size:13px">Forget saved key</button>
 
-    <h3 style="font-family:'Sora',sans-serif;font-size:14px;margin:22px 0 6px">Connected services</h3>
+    <h3 style="font-family:'Chakra Petch',sans-serif;font-size:14px;margin:22px 0 6px">Connected services</h3>
     <div id="svcStatus"></div>
     <p class="muted" style="margin-top:10px;font-size:11.5px">Sealed, graded &amp; eBay data run on secure server keys (PriceCharting, eBay) configured in Netlify, shared for everyone using this app.</p>
 
@@ -766,7 +764,7 @@ function renderResults(cards){
 }
 function selectCard(c){
   selectedCard=c; $('#step3').classList.remove('hidden');
-  $('#cardHead').innerHTML=`<img class="cardhead-img" src="${c.images.small}"><div><div style="font-weight:700;font-size:17px;font-family:'Sora',sans-serif">${c.name}</div><div class="muted">${c.set.name} · #${c.number}/${c.set.printedTotal||''}</div><div class="muted">${c.rarity||''} · ${c.set.releaseDate||''}</div></div>`;
+  $('#cardHead').innerHTML=`<img class="cardhead-img" src="${c.images.small}"><div><div style="font-weight:700;font-size:17px;font-family:'Chakra Petch',sans-serif">${c.name}</div><div class="muted">${c.set.name} · #${c.number}/${c.set.printedTotal||''}</div><div class="muted">${c.rarity||''} · ${c.set.releaseDate||''}</div></div>`;
   buildFinishes(c); recompute();
   const gl=$('#gradedLive'); if(gl) gl.innerHTML=''; const gd=$('#gradedDetails'); if(gd){ gd.open=false; gd.dataset.loadedFor=''; }
   window._backImg=null; if($('#gradeNote')) $('#gradeNote').textContent='';
