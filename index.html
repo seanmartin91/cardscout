@@ -357,7 +357,9 @@
       </select>
       <button class="btn ghost" id="gradedBtn" style="margin-top:10px">See graded sold prices →</button>
     </details>
-    <div class="row" style="margin-top:16px">
+    <button class="btn" id="listEbayBtn" style="margin-top:16px">📤 Create eBay listing (to flip it)</button>
+    <div id="ebayListing" class="hidden" style="margin-top:12px"></div>
+    <div class="row" style="margin-top:12px">
       <button class="btn gold" id="cardShare">Share valuation</button>
       <button class="btn ghost" id="resetBtn">← Scan another</button>
     </div>
@@ -639,6 +641,7 @@ function applyMode(){
   const cr=$('#startCam')&&$('#startCam').parentElement; if(cr) cr.classList.toggle('hidden', !cam);
   const cm=document.querySelector('#step1 > p.muted'); if(cm) cm.classList.toggle('hidden', !cam);
   const cd=document.querySelector('#step1 .step-dots'); if(cd) cd.classList.toggle('hidden', !cam);
+  const fb=$('#flipBox'); if(fb) fb.classList.toggle('hidden', mode!=='single');   // single-card flips only under Single card
   $('#manualSealed').classList.toggle('hidden', mode!=='sealed');
   if(mode==='single') $('#hintText').textContent='Tap “Use camera” to scan a single card, or upload a photo.';
   if(mode==='multi'){ $('#hintText').textContent='Lay several cards out and take ONE photo, and/or add sealed packs & boxes manually below.';
@@ -793,6 +796,7 @@ function renderResults(cards){
 }
 function selectCard(c){
   selectedCard=c; $('#step3').classList.remove('hidden');
+  { const el=$('#ebayListing'); if(el){ el.classList.add('hidden'); el.innerHTML=''; } }
   $('#cardHead').innerHTML=`<img class="cardhead-img" src="${c.images.small}"><div><div style="font-weight:700;font-size:17px;font-family:'Chakra Petch',sans-serif">${c.name}</div><div class="muted">${c.set.name} · #${c.number}/${c.set.printedTotal||''}</div><div class="muted">${c.rarity||''} · ${c.set.releaseDate||''}</div></div>`;
   buildFinishes(c); recompute();
   const gl=$('#gradedLive'); if(gl) gl.innerHTML=''; const gd=$('#gradedDetails'); if(gd){ gd.open=false; gd.dataset.loadedFor=''; }
@@ -905,6 +909,52 @@ $('#cardShare').onclick=()=>{
   if(navigator.share){ navigator.share({title:'CardScout valuation',text}).catch(()=>{}); }
   else if(navigator.clipboard){ navigator.clipboard.writeText(text).then(()=>toast('Valuation copied to clipboard.')).catch(()=>toast('Copy failed — long-press to select.')); }
   else toast('Sharing not supported on this browser.');
+};
+// ---------- Create eBay listing (flip it) ----------
+function editionLabel(finishVal){ if(/^ed:1st/.test(finishVal)) return '1st Edition'; if(/^ed:shadowless/.test(finishVal)) return 'Shadowless'; if(/^ed:unlimited/.test(finishVal)) return 'Unlimited'; return ''; }
+function buildEbayListing(){
+  const c=selectedCard; if(!c) return null;
+  const cond=parseFloat($('#condSel').value); const condText=$('#condSel').selectedOptions[0].text;
+  const finishVal=$('#finishSel').value; const p=pricePicked(c,finishVal); if(p.blendNM==null) return null;
+  const resale=Math.round(p.blendNM*cond*100)/100;        // market for this condition
+  const listPrice=Math.round(resale*100)/100;             // list at market for this condition
+  const num=c.number||''; const set=c.set&&c.set.name||''; const total=(c.set&&(c.set.printedTotal||c.set.total))||'';
+  const year=((c.set&&c.set.releaseDate)||'').slice(0,4); const rarity=c.rarity||'';
+  const holo=/holo/i.test(finishVal)||(typeof isHoloCard==='function'&&isHoloCard(c)&&!/reverse/i.test(finishVal));
+  const reverse=/reverse/i.test(finishVal);
+  const ed=editionLabel(finishVal);
+  const numStr=num?(total?num+'/'+total:num):'';
+  // Title ≤ 80 chars
+  let title=[c.name, numStr, set, 'Pokemon Card', ed, reverse?'Reverse Holo':(holo?'Holo':''), condText.replace(/\s*\(.*\)/,'')].filter(Boolean).join(' ');
+  if(title.length>80) title=title.slice(0,80).trim();
+  const specifics=[['Game','Pokémon TCG'],['Character',c.name],['Set',set],['Card Number',num],['Rarity',rarity],['Card Condition',condText],['Language','English'],['Features',reverse?'Reverse Holo':(holo?'Holo':'Non-Holo')],['Finish',ed||'—'],['Year Manufactured',year||'—'],['Professionally Graded','No']].filter(r=>r[1]&&r[1]!=='—' || ['Finish','Year Manufactured'].indexOf(r[0])<0);
+  const desc=`${c.name} — ${set}${numStr?' ('+numStr+')':''}${ed?' · '+ed:''}.\n`+
+    `${reverse?'Reverse Holofoil. ':(holo?'Holofoil. ':'')}Condition: ${condText}.${year?' Released '+year+'.':''}\n\n`+
+    `Genuine Pokémon TCG card. The photos show the exact card you will receive. Shipped securely in a penny sleeve + toploader inside a rigid mailer. Combined shipping available on multiple cards — buy more and save.\n\n`+
+    `Listed via CardScout.`;
+  return {title, listPrice, resale, specifics, desc};
+}
+function copyText(str,label){ if(navigator.clipboard){ navigator.clipboard.writeText(str).then(()=>toast((label||'Text')+' copied.')).catch(()=>toast('Copy failed.')); } else toast('Copy not supported.'); }
+window._ebayL=null;
+if($('#listEbayBtn')) $('#listEbayBtn').onclick=()=>{
+  const L=buildEbayListing(); const box=$('#ebayListing'); if(!box) return;
+  if(!L){ box.classList.remove('hidden'); box.innerHTML='<div class="muted">Need a priced card first — pick a finish with market data.</div>'; return; }
+  window._ebayL=L;
+  const dom=(CUR_DEFS[CUR]&&CUR_DEFS[CUR].ebay)||'ebay.ca';
+  const sellUrl='https://www.'+dom+'/sl/prelist/suggest?query='+encodeURIComponent(L.title);
+  const specHtml=L.specifics.map(r=>`<tr><td style="color:var(--muted)">${r[0]}</td><td style="text-align:right;font-weight:600">${r[1]}</td></tr>`).join('');
+  box.classList.remove('hidden');
+  box.innerHTML=`<div class="vbox wide">
+    <div class="lbl">📤 Ready-to-post eBay listing</div>
+    <div style="margin-top:8px"><div class="lbl">Title</div><div style="font-size:13.5px;font-weight:600;margin:3px 0 6px">${L.title}</div><button class="btn ghost x2" data-copy="title" style="padding:7px 12px;font-size:12.5px;width:auto">Copy title</button></div>
+    <div style="margin-top:12px"><div class="lbl">Suggested price</div><div class="num" style="font-size:22px;color:var(--accent)">${gbp(L.listPrice)}</div><div class="sub">market for this condition · edit on eBay to price under to sell faster</div></div>
+    <div style="margin-top:12px"><div class="lbl">Item specifics</div><table style="margin-top:4px">${specHtml}</table></div>
+    <div style="margin-top:12px"><div class="lbl">Description</div><pre style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;color:var(--txt);background:rgba(8,11,20,.5);border:1px solid var(--line);border-radius:10px;padding:10px;margin:4px 0 6px">${L.desc.replace(/</g,'&lt;')}</pre><button class="btn ghost x2" data-copy="desc" style="padding:7px 12px;font-size:12.5px;width:auto">Copy description</button></div>
+    <a class="btn" href="${sellUrl}" target="_blank" rel="noopener" style="display:block;text-align:center;margin-top:14px;text-decoration:none">Open eBay listing form →</a>
+    <div class="muted" style="margin-top:8px;font-size:11.5px">Opens eBay's create-listing flow pre-searched to this card. Paste the title/description, set your price, and <b>add the photo you took</b>. One-tap auto-publish (with photos) arrives once you connect your eBay account.</div>
+  </div>`;
+  box.querySelectorAll('.x2').forEach(b=>{ b.onclick=()=>{ const k=b.dataset.copy; copyText(k==='title'?window._ebayL.title:window._ebayL.desc, k==='title'?'Title':'Description'); }; });
+  box.scrollIntoView({behavior:'smooth',block:'nearest'});
 };
 // ---------- AI condition grading (front + back) ----------
 async function aiGrade(images){
