@@ -8,3 +8,20 @@
   node_bundler = "esbuild"
   # Keep @netlify/blobs unbundled so the function uses Netlify's runtime module (which auto-configures Blobs).
   external_node_modules = ["@netlify/blobs"]
+
+# Never HTTP-cache the app shell or the service worker, so users always get the latest build
+# and browsers immediately pick up service-worker changes.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+[[headers]]
+  for = "/"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"

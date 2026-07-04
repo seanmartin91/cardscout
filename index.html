@@ -287,7 +287,7 @@
     <p class="muted" style="margin-top:14px;font-size:12.5px">AI photo recognition is optional. Add your Claude or OpenAI key in <a href="#" id="openSettingsLink">Settings</a> to auto-read cards from photos. Single cards &amp; manual search work without it.</p>
 
     <details style="margin-top:14px" id="flipBox"><summary>🎯 Find profitable single-card flips</summary>
-      <p class="muted" style="margin:8px 0 10px;font-size:12.5px">CardScout sweeps live eBay listings for popular, liquid cards and flags any where you'd net <b>30%+ after fees</b> vs market value — cheapest-margin first. Live prices, updated the moment you tap.</p>
+      <p class="muted" style="margin:8px 0 10px;font-size:12.5px">CardScout sweeps live eBay listings for ~25 popular, liquid cards and flags any where you'd net <b>15%+ after fees</b> vs market value — biggest margin first. Live prices, updated the moment you tap.</p>
       <button class="btn gold" id="flipFindBtn">Find profitable flips now</button>
       <div id="flipResults" style="margin-top:10px"></div>
     </details>
@@ -576,48 +576,49 @@ function renderBestLots(){
   const meta=$('#lotsMeta'), list=$('#lotsList'); if(!meta||!list) return;
   if(!lots.length){ meta.textContent=''; list.innerHTML='<div class="muted">No lots yet. The daily scout writes its finds here after it runs (8am &amp; 6pm). You can also scan a lot under <b>Find deals</b> and tap “Save to Best Lots”.</div>'; return; }
   meta.innerHTML=`${lots.length} lot(s) · ranked by est. net profit · tap a lot for the card breakdown`;
-  list.innerHTML=lots.map(L=>{
+  window._blots=lots;
+  list.innerHTML=lots.map((L,li)=>{
     const buy=/buy/i.test(L.verdict||''), pass=/pass/i.test(L.verdict||'');
-    const col= buy?'#5cf0a6' : pass?'#ffd6db' : '#ffe08a'; const k=lotKey(L);
+    const col= buy?'#5cf0a6' : pass?'#ffd6db' : '#ffe08a';
     const cardsHtml=(L.cards||[]).map((c,ci)=>{
       const wotc=/^(base|jungle|fossil|team rocket|gym heroes|gym challenge|neo )/i.test(c.set||'');
-      const edsel = wotc ? `<select class="bedsel" data-k="${encodeURIComponent(k)}" data-c="${ci}" style="margin-top:3px;font-size:10.5px;padding:1px 5px;border-radius:5px;background:#16203200;color:#9fb4d6;border:1px solid #2c3a52;max-width:130px"><option value="unlimited"${(c.edition||'unlimited')==='unlimited'?' selected':''}>Unlimited</option>${/^base$/i.test(c.set||'')?`<option value="shadowless"${c.edition==='shadowless'?' selected':''}>Shadowless</option>`:''}<option value="1st"${c.edition==='1st'?' selected':''}>1st Edition</option></select>` : '';
-      return `<div class="brow" style="padding:7px 10px"><img src="${c.img||''}" style="width:30px;height:42px;object-fit:cover"><div class="bi" style="flex:1"><b style="font-size:13px">${c.name}${c.verify?' <span style="font-size:9px;color:#ffb86b;font-weight:700">?verify</span>':''}</b><span>${c.set} · #${c.num}</span>${edsel}</div><div class="bp"><div class="buy" style="font-size:13px;${c.verify?'color:#ffb86b':''}">${gbp(c.value||0)}${c.est?'<span style="font-size:8px;color:#ffb86b;margin-left:2px">est</span>':''}</div></div><button class="x cedit" data-k="${encodeURIComponent(k)}" data-c="${ci}" title="fix this card">✎</button></div>`;
+      const edsel = wotc ? `<select class="bedsel" data-i="${li}" data-c="${ci}" style="margin-top:3px;font-size:10.5px;padding:1px 5px;border-radius:5px;background:#16203200;color:#9fb4d6;border:1px solid #2c3a52;max-width:130px"><option value="unlimited"${(c.edition||'unlimited')==='unlimited'?' selected':''}>Unlimited</option>${/^base$/i.test(c.set||'')?`<option value="shadowless"${c.edition==='shadowless'?' selected':''}>Shadowless</option>`:''}<option value="1st"${c.edition==='1st'?' selected':''}>1st Edition</option></select>` : '';
+      return `<div class="brow" style="padding:7px 10px"><img src="${c.img||''}" style="width:30px;height:42px;object-fit:cover"><div class="bi" style="flex:1"><b style="font-size:13px">${c.name}${c.verify?' <span style="font-size:9px;color:#ffb86b;font-weight:700">?verify</span>':''}</b><span>${c.set} · #${c.num}</span>${edsel}</div><div class="bp"><div class="buy" style="font-size:13px;${c.verify?'color:#ffb86b':''}">${gbp(c.value||0)}${c.est?'<span style="font-size:8px;color:#ffb86b;margin-left:2px">est</span>':''}</div></div><button class="x cedit" data-i="${li}" data-c="${ci}" title="fix this card">✎</button></div>`;
     }).join('');
     return `<div style="border:1px solid var(--line-strong);border-radius:14px;margin-bottom:10px;overflow:hidden">
-      <div class="lothead" data-k="${encodeURIComponent(k)}" style="display:flex;gap:10px;align-items:flex-start;padding:12px;cursor:pointer">
+      <div class="lothead" data-i="${li}" style="display:flex;gap:10px;align-items:flex-start;padding:12px;cursor:pointer">
         <div class="bi" style="flex:1"><b>${(L.title||'').slice(0,80)}</b><span>Asking ${gbp(L.asking||0)} · value ≈ ${gbp(L.resale!=null?L.resale:0)}${L.roi!=null?` · ROI ${Math.round(L.roi)}%`:''} · ${(L.cards||[]).length} cards ▾</span>${L.notes?`<span style="color:var(--faint);font-size:11px">${(L.notes||'').slice(0,120)}</span>`:''}</div>
         <div class="bp"><div class="buy" style="color:${col}">${L.net!=null?gbp(L.net):'—'}</div><div class="mk" style="color:${col};font-weight:700">${L.verdict||'Watch'}</div></div>
       </div>
-      <div class="lotbreak hidden" data-k="${encodeURIComponent(k)}" style="border-top:1px solid var(--line)">
+      <div class="lotbreak hidden" data-i="${li}" style="border-top:1px solid var(--line)">
         ${cardsHtml||'<div class="muted" style="padding:12px">No per-card breakdown saved for this lot.</div>'}
-        <div style="padding:8px 12px">${/^https?:\/\//i.test(L.url||'')?`<a href="${L.url}" target="_blank" rel="noopener" style="font-size:12px;font-weight:700;color:var(--accent)">Open listing ›</a>`:`<button class="lotlink" data-k="${encodeURIComponent(k)}" style="background:none;border:none;padding:0;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer">+ Add listing link</button>`}</div>
+        <div style="padding:8px 12px">${/^https?:\/\//i.test(L.url||'')?`<a href="${L.url}" target="_blank" rel="noopener" style="font-size:12px;font-weight:700;color:var(--accent)">Open listing ›</a>`:`<button class="lotlink" data-i="${li}" style="background:none;border:none;padding:0;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer">+ Add listing link</button>`}</div>
       </div>
     </div>`;
   }).join('');
-  list.querySelectorAll('.lothead').forEach(h=>{ h.onclick=()=>{ const lb=[...list.querySelectorAll('.lotbreak')].find(x=>x.dataset.k===h.dataset.k); if(lb) lb.classList.toggle('hidden'); }; });
+  list.querySelectorAll('.lothead').forEach(h=>{ h.onclick=()=>{ const lb=[...list.querySelectorAll('.lotbreak')].find(x=>x.dataset.i===h.dataset.i); if(lb) lb.classList.toggle('hidden'); }; });
   list.querySelectorAll('.cedit').forEach(b=>{ b.onclick=async(e)=>{ e.stopPropagation();
-    const key=decodeURIComponent(b.dataset.k), ci=+b.dataset.c; const all=loadBestLots(); const L=all.find(x=>lotKey(x)===key); if(!L||!L.cards||!L.cards[ci]) return; const cur=L.cards[ci];
+    const li=+b.dataset.i, ci=+b.dataset.c; const all=window._blots||loadBestLots(); const L=all[li]; if(!L||!L.cards||!L.cards[ci]) return; const cur=L.cards[ci];
     const nn=prompt('Fix this card — name and number (e.g. "Hitmonlee 22/62"):', cur.name+' '+(cur.num||'')); if(!nn||!nn.trim()) return;
     const numm=((nn.match(/(\d+)\s*\/\s*\d+/)||nn.match(/(\d{1,3})\s*$/))||[])[1]||''; const denm=(nn.match(/\d+\s*\/\s*(\d+)/)||[])[1]||'';
     const nm=cleanCardName(nn.replace(/\d+\s*\/\s*\d+/,'').replace(/\d{1,3}\s*$/,'').trim());
-    try{ const c=await findOne(nm||cur.name,'',numm,'',undefined,denm); if(c){ const keys=finishKeysOf(c); const v=priceCard(c, keys.length?preferFinish(keys):'_cm').blendNM||0; L.cards[ci]={name:c.name,set:c.set.name,num:c.number,value:Math.round(v*100)/100,verify:false,img:(c.images&&c.images.small)||''}; recalcLot(L); cardscoutSetLots(all); renderBestLots(); const lb=[...$('#lotsList').querySelectorAll('.lotbreak')].find(x=>x.dataset.k===b.dataset.k); if(lb) lb.classList.remove('hidden'); toast('Updated to '+c.name+' #'+c.number); } else toast('No match — try the exact number.'); }catch(err){ toast('Search failed.'); }
+    try{ const c=await findOne(nm||cur.name,'',numm,'',undefined,denm); if(c){ const keys=finishKeysOf(c); const v=priceCard(c, keys.length?preferFinish(keys):'_cm').blendNM||0; L.cards[ci]={name:c.name,set:c.set.name,num:c.number,value:Math.round(v*100)/100,verify:false,img:(c.images&&c.images.small)||''}; recalcLot(L); cardscoutSetLots(all); renderBestLots(); const lb=[...$('#lotsList').querySelectorAll('.lotbreak')].find(x=>x.dataset.i===b.dataset.i); if(lb) lb.classList.remove('hidden'); toast('Updated to '+c.name+' #'+c.number); } else toast('No match — try the exact number.'); }catch(err){ toast('Search failed.'); }
   }; });
   list.querySelectorAll('.lotlink').forEach(b=>{ b.onclick=(e)=>{ e.stopPropagation();
-    const key=decodeURIComponent(b.dataset.k); const all=loadBestLots(); const L=all.find(x=>lotKey(x)===key); if(!L) return;
+    const li=+b.dataset.i; const all=window._blots||loadBestLots(); const L=all[li]; if(!L) return;
     const v=prompt('Paste the eBay listing link for this lot:', ''); if(!v||!v.trim()) return;
     let url=v.trim(); const idm=(url.match(/(\d{9,})/)||[])[1]; if(!/^https?:\/\//i.test(url)&&idm) url='https://www.'+((CUR_DEFS[CUR]&&CUR_DEFS[CUR].ebay)||'ebay.ca')+'/itm/'+idm;
     if(!/^https?:\/\//i.test(url)){ toast('That doesn’t look like a link.'); return; }
     L.url=url; cardscoutSetLots(all); renderBestLots();
-    const lb=[...$('#lotsList').querySelectorAll('.lotbreak')].find(x=>x.dataset.k===b.dataset.k); if(lb) lb.classList.remove('hidden'); toast('Listing link saved.');
+    const lb=[...$('#lotsList').querySelectorAll('.lotbreak')].find(x=>x.dataset.i===b.dataset.i); if(lb) lb.classList.remove('hidden'); toast('Listing link saved.');
   }; });
   list.querySelectorAll('.bedsel').forEach(s=>{ s.onclick=e=>e.stopPropagation(); s.onchange=async(e)=>{ e.stopPropagation();
-    const key=decodeURIComponent(s.dataset.k), ci=+s.dataset.c, ed=s.value; const all=loadBestLots(); const L=all.find(x=>lotKey(x)===key); if(!L||!L.cards||!L.cards[ci]) return; const cur=L.cards[ci];
+    const li=+s.dataset.i, ci=+s.dataset.c, ed=s.value; const all=window._blots||loadBestLots(); const L=all[li]; if(!L||!L.cards||!L.cards[ci]) return; const cur=L.cards[ci];
     try{ const c=await findOne(cur.name,'',cur.num,'vintage'); if(!c){ toast('Couldn’t re-price — use ✎ to set the exact card.'); return; }
       const ep=editionPrice(c,ed); const v=ep?ep.nm:((priceCard(c,preferFinish(finishKeysOf(c))).blendNM)||0);
       L.cards[ci]=Object.assign({},cur,{value:Math.round(v*100)/100,edition:ed,est:!!(ep&&ep.est),verify:false});
       recalcLot(L); cardscoutSetLots(all); renderBestLots();
-      const lb=[...$('#lotsList').querySelectorAll('.lotbreak')].find(x=>x.dataset.k===s.dataset.k); if(lb) lb.classList.remove('hidden');
+      const lb=[...$('#lotsList').querySelectorAll('.lotbreak')].find(x=>x.dataset.i===s.dataset.i); if(lb) lb.classList.remove('hidden');
       toast(cur.name+' → '+({unlimited:'Unlimited',shadowless:'Shadowless','1st':'1st Ed'}[ed])+' '+gbp(v));
     }catch(err){ toast('Re-price failed.'); }
   }; });
@@ -1535,12 +1536,15 @@ window.cardscoutRunSniper=()=>runSniper(null, $('#snipeResults'));
 
 // ---------- SINGLES FLIP-FINDER (live eBay sweep of popular liquid cards) ----------
 const FLIP_HUNTS=[
-  'Charizard 4/102','Blastoise 2/102','Umbreon VMAX 215/203','Rayquaza VMAX 111/203',
-  'Charizard VMAX 74/73','Pikachu VMAX 188/185','Gengar VMAX 271/264',
-  'Charizard V 79/73','Giratina V 130/196','Charizard ex 199/165'
+  'Charizard 4/102','Blastoise 2/102','Venusaur 15/102','Charizard 11/108','Chansey 3/102',
+  'Umbreon VMAX 215/203','Rayquaza VMAX 111/203','Sylveon VMAX 74/203','Leafeon VMAX 8/203',
+  'Charizard VMAX 74/73','Pikachu VMAX 188/185','Gengar VMAX 271/264','Mew VMAX 114/264',
+  'Charizard V 79/73','Giratina V 130/196','Lugia V 138/159','Mewtwo V 30/78',
+  'Charizard ex 199/165','Mew ex 232/191','Pikachu ex 238/091','Gengar ex 246/198',
+  'Miraidon ex 253/198','Iono 254/193','Gardevoir ex 245/198','Charmander 168/165'
 ];
 const SELL_FEE=0.87;        // ~13% eBay sell fees/PayPal
-const FLIP_MARGIN=0.30;     // net margin ≥ 30% after fees vs market
+const FLIP_MARGIN=0.15;     // net margin ≥ 15% after fees vs market (surfaces more; 30%+ get highlighted)
 async function findFlips(out){
   const mkt=(CUR_DEFS[CUR]&&CUR_DEFS[CUR].mkt)||'EBAY_CA';
   out.innerHTML='<div class="spin"></div><p class="muted" id="flipTxt" style="text-align:center">Sweeping eBay for underpriced cards…</p>';
@@ -1587,9 +1591,9 @@ async function findFlips(out){
   await Promise.all(Array.from({length:5}, worker));
   if(gated && !hits.length){ out.innerHTML=ebayGate(); return; }
   hits.sort((a,b)=>b.margin-a.margin);
-  if(!hits.length){ out.innerHTML='<div class="muted">No 30%+ flips on the popular list right now — the market’s efficient today. Try again later, or use the Sniper tab to watch specific cards.</div>'; return; }
+  if(!hits.length){ out.innerHTML='<div class="muted">No 15%+ flips on the popular list right now — the market’s efficient this minute. Try again later, or use the Sniper tab to watch specific cards for you.</div>'; return; }
   const top=hits.slice(0,20);
-  out.innerHTML=`<div class="muted" style="margin-bottom:8px"><b style="color:#5cf0a6">${hits.length} flip(s)</b> with 30%+ net margin (after ~13% fees). Ranked by margin.</div>`+
+  out.innerHTML=`<div class="muted" style="margin-bottom:8px"><b style="color:#5cf0a6">${hits.length} flip(s)</b> with 15%+ net margin (after ~13% fees). Ranked by margin.</div>`+
     top.map(h=>`<a class="brow" href="${h.it.url}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">
       <img src="${h.it.image||(h.card.images&&h.card.images.small)||''}" style="object-fit:cover">
       <div class="bi"><b>${(h.it.title||'').slice(0,64)}</b><span>buy ${gbp(h.buy)} · market ≈ ${gbp(h.market)} · <b style="color:#5cf0a6">+${gbp(h.profit)} (${Math.round(h.margin*100)}%)</b></span></div>
@@ -1678,7 +1682,8 @@ $('#loginCode').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); 
 checkGate();
 
 applyMode();
-if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('/sw.js').catch(()=>{}); }); }
+// Service worker caused stale-version problems; run network-only. Unregister any old SW + clear its caches so users always get the latest build.
+if('serviceWorker' in navigator){ navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.update().then(()=>r.unregister()).catch(()=>r.unregister()))).catch(()=>{}); if(window.caches){ caches.keys().then(ks=>ks.forEach(k=>caches.delete(k))).catch(()=>{}); } }
 </script>
 </body>
 </html>

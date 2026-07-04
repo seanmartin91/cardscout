@@ -1,24 +1,13 @@
-// CardScout service worker — keeps the app installable while avoiding stale versions.
-const CACHE = 'cardscout-v3';
-self.addEventListener('install', e => { self.skipWaiting(); });
-self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))));
-  self.clients.claim();
+// CardScout service worker - DISABLED (kill-switch).
+// The caching SW made users get stale builds. This version deletes all caches,
+// unregisters itself, and reloads open tabs so everyone lands on the latest build
+// and then runs with no service worker at all (always fresh from the network).
+self.addEventListener('install', function () { self.skipWaiting(); });
+self.addEventListener('activate', function (event) {
+  event.waitUntil((async function () {
+    try { var keys = await caches.keys(); await Promise.all(keys.map(function (k) { return caches.delete(k); })); } catch (e) {}
+    try { await self.registration.unregister(); } catch (e) {}
+    try { var cs = await self.clients.matchAll({ type: 'window' }); cs.forEach(function (c) { c.navigate(c.url); }); } catch (e) {}
+  })());
 });
-self.addEventListener('fetch', e => {
-  const req = e.request;
-  if (req.method !== 'GET') return;
-  let url; try { url = new URL(req.url); } catch (_) { return; }
-  // App shell: always network-first so users get the latest build; fall back to cache offline.
-  if (req.mode === 'navigate' || url.pathname === '/' || url.pathname.endsWith('/index.html')) {
-    e.respondWith(
-      fetch(req).then(r => { const c = r.clone(); caches.open(CACHE).then(ca => ca.put('/', c)); return r; })
-                .catch(() => caches.match('/'))
-    );
-    return;
-  }
-  // Icons/manifest: cache-first.
-  if (/\.(png|ico|webmanifest)$/.test(url.pathname)) {
-    e.respondWith(caches.match(req).then(c => c || fetch(req).then(r => { const cl = r.clone(); caches.open(CACHE).then(ca => ca.put(req, cl)); return r; })));
-  }
-});
+// No fetch handler - all requests go straight to the network.
