@@ -398,6 +398,8 @@
         <button class="btn gold" id="batchShare">Copy / share</button>
         <button class="btn ghost" id="batchCsv">Download CSV</button>
       </div>
+      <button class="btn" id="batchEbayBtn" style="margin-top:10px">📤 Create eBay listings for these (flip them)</button>
+      <div id="batchEbay" class="hidden" style="margin-top:12px"></div>
     </div>
     <button class="btn ghost" id="batchReset" style="margin-top:12px">← Start over</button>
     <div class="fxnote" id="fxNote2"></div>
@@ -911,11 +913,14 @@ $('#cardShare').onclick=()=>{
   else toast('Sharing not supported on this browser.');
 };
 // ---------- Create eBay listing (flip it) ----------
-function editionLabel(finishVal){ if(/^ed:1st/.test(finishVal)) return '1st Edition'; if(/^ed:shadowless/.test(finishVal)) return 'Shadowless'; if(/^ed:unlimited/.test(finishVal)) return 'Unlimited'; return ''; }
+function editionLabel(finishVal){ if(/^ed:1st|1stedition/i.test(finishVal)) return '1st Edition'; if(/^ed:shadowless|shadowless/i.test(finishVal)) return 'Shadowless'; if(/^ed:unlimited/i.test(finishVal)) return 'Unlimited'; return ''; }
 function buildEbayListing(){
   const c=selectedCard; if(!c) return null;
-  const cond=parseFloat($('#condSel').value); const condText=$('#condSel').selectedOptions[0].text;
-  const finishVal=$('#finishSel').value; const p=pricePicked(c,finishVal); if(p.blendNM==null) return null;
+  return listingFor(c, $('#finishSel').value, parseFloat($('#condSel').value), $('#condSel').selectedOptions[0].text);
+}
+function listingFor(c, finishVal, cond, condText){
+  if(!c) return null;
+  const p=(typeof pricePicked==='function')?pricePicked(c,finishVal):priceCard(c,finishVal); if(!p||p.blendNM==null) return null;
   const resale=Math.round(p.blendNM*cond*100)/100;        // market for this condition
   const listPrice=Math.round(resale*100)/100;             // list at market for this condition
   const num=c.number||''; const set=c.set&&c.set.name||''; const total=(c.set&&(c.set.printedTotal||c.set.total))||'';
@@ -1127,7 +1132,21 @@ $('#batchCsv').onclick=()=>{
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='cardscout-stack.csv'; a.click();
   setTimeout(()=>URL.revokeObjectURL(a.href),1500); toast('CSV downloaded.');
 };
-$('#batchReset').onclick=()=>{ batchCards=[]; manualItems=[]; capturedDataURL=null; $('#batchStep').classList.add('hidden'); $('#batchList').innerHTML=''; $('#batchControls').classList.add('hidden'); $('#batchEmpty').classList.remove('hidden'); $('#batchEmpty').innerHTML='Take or upload one photo with several cards laid out, and/or add sealed packs &amp; boxes manually — CardScout totals the whole pile.'; $('#preview').style.display='none'; $('#camHint').style.display='block'; window.scrollTo({top:0,behavior:'smooth'}); };
+$('#batchReset').onclick=()=>{ batchCards=[]; manualItems=[]; capturedDataURL=null; $('#batchStep').classList.add('hidden'); $('#batchList').innerHTML=''; $('#batchControls').classList.add('hidden'); const be=$('#batchEbay'); if(be){be.classList.add('hidden');be.innerHTML='';} $('#batchEmpty').classList.remove('hidden'); $('#batchEmpty').innerHTML='Take or upload one photo with several cards laid out, and/or add sealed packs &amp; boxes manually — CardScout totals the whole pile.'; $('#preview').style.display='none'; $('#camHint').style.display='block'; window.scrollTo({top:0,behavior:'smooth'}); };
+if($('#batchEbayBtn')) $('#batchEbayBtn').onclick=()=>{
+  const box=$('#batchEbay'); if(!box) return; const cond=parseFloat($('#batchCond').value); const condText=$('#batchCond').selectedOptions[0].text;
+  const dom=(CUR_DEFS[CUR]&&CUR_DEFS[CUR].ebay)||'ebay.ca';
+  const listings=[]; batchCards.forEach(bc=>{ const L=listingFor(bc.card, bc.finishKey, cond, condText); if(L) listings.push(L); });
+  box.classList.remove('hidden');
+  if(!listings.length){ box.innerHTML='<div class="muted">No priced cards in the stack to list yet.</div>'; return; }
+  window._batchL=listings;
+  box.innerHTML=`<div class="vbox wide"><div class="lbl">📤 ${listings.length} eBay listing(s) ready — one per card</div>
+    <div class="muted" style="margin:4px 0 8px;font-size:11.5px">eBay lists one card per listing. Copy each title/price and open the form. Combine shipping so buyers can buy several.</div>`+
+    listings.map((L,i)=>`<div class="brow" style="padding:9px 10px;align-items:center"><div class="bi" style="flex:1"><b style="font-size:12.5px">${L.title}</b><span>${gbp(L.listPrice)} · list at market</span></div><button class="btn ghost bcopy" data-i="${i}" style="width:auto;padding:6px 10px;font-size:11.5px">Copy</button><a class="btn bopen" href="https://www.${dom}/sl/prelist/suggest?query=${encodeURIComponent(L.title)}" target="_blank" rel="noopener" style="width:auto;padding:6px 10px;font-size:11.5px;text-decoration:none;margin-left:6px">List ›</a></div>`).join('')+
+    `<div class="muted" style="margin-top:8px;font-size:11px">Add the photo you took to each listing. One-tap batch auto-publish (with photos) comes when you connect your eBay account.</div></div>`;
+  box.querySelectorAll('.bcopy').forEach(b=>{ b.onclick=()=>{ const L=window._batchL[+b.dataset.i]; copyText(L.title+'\n\n'+L.desc, 'Listing'); }; });
+  box.scrollIntoView({behavior:'smooth',block:'nearest'});
+};
 
 // ---------- SEALED ----------
 async function runSealed(){
