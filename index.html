@@ -806,7 +806,8 @@ function selectCard(c){
   selectedCard=c; $('#step3').classList.remove('hidden');
   { const el=$('#ebayListing'); if(el){ el.classList.add('hidden'); el.innerHTML=''; } }
   $('#cardHead').innerHTML=`<img class="cardhead-img" src="${c.images.small}"><div><div style="font-weight:700;font-size:17px;font-family:'Space Grotesk',sans-serif">${c.name}</div><div class="muted">${c.set.name} · #${c.number}/${c.set.printedTotal||''}</div><div class="muted">${c.rarity||''} · ${c.set.releaseDate||''}</div></div>`;
-  buildFinishes(c); recompute();
+  c._ebayVal=undefined; buildFinishes(c); recompute();
+  ebayMarketValue(c.name,c.number).then(v=>{ if(v && selectedCard===c){ c._ebayVal=v; recompute(); } });
   const gl=$('#gradedLive'); if(gl) gl.innerHTML=''; const gd=$('#gradedDetails'); if(gd){ gd.open=false; gd.dataset.loadedFor=''; }
   window._backImg=null; if($('#gradeNote')) $('#gradeNote').textContent='';
   $('#step3').scrollIntoView({behavior:'smooth'});
@@ -898,6 +899,19 @@ function pricePicked(c, sel){
   return priceCard(c, sel);
 }
 $('#finishSel').onchange=recompute; $('#condSel').onchange=recompute; $('#buyPct').oninput=recompute;
+// Live eBay market value: median of active single-card listings for this exact card (raw, filtered).
+// Closer to real-world value than the TCG feed, which is polluted by graded/1st-ed prices for chase cards.
+async function ebayMarketValue(name,num){
+  try{
+    const q=(name+' '+(num||'')).trim(); const mkt=(CUR_DEFS[CUR]&&CUR_DEFS[CUR].mkt)||'EBAY_CA';
+    const r=await fetch('/.netlify/functions/ebay?mode=search&limit=24&sort=best&mkt='+mkt+'&q='+encodeURIComponent(q));
+    const d=await r.json(); if(!d.enabled||!d.items) return null;
+    const junk=/\bpsa\b|\bcgc\b|\bbgs\b|\bace\b|graded|slab|\blot\b|bundle|proxy|custom|\bfake\b|repro|jumbo|oversized|sticker|\bcoin\b|choose your|pick your|playset/i;
+    const prices=d.items.filter(it=>!junk.test(it.title||'')).map(it=>conv(it.price,it.currency)).filter(v=>v>0).sort((a,b)=>a-b);
+    if(prices.length<3) return null;
+    return Math.round(prices[Math.floor(prices.length/2)]*100)/100;
+  }catch(e){ return null; }
+}
 function recompute(){
   if(!selectedCard) return; const c=selectedCard;
   const cond=parseFloat($('#condSel').value); const buyPct=parseInt($('#buyPct').value);
@@ -906,12 +920,15 @@ function recompute(){
   $('#usVal').textContent=p.usGBP!=null?gbp(p.usGBP):'—'; $('#usSub').textContent=p.usUSD!=null?`${p.usLabel} · $${p.usUSD.toFixed(2)}`:(p.est?'estimated from Unlimited':'no US data');
   $('#euVal').textContent=p.euGBP!=null?gbp(p.euGBP):'—'; $('#euSub').textContent=p.euEUR!=null?`${p.euLabel} · €${p.euEUR.toFixed(2)}`:'no EU data';
   if(p.blendNM==null){ $('#blendVal').textContent='No price data'; $('#offerVal').textContent='—'; $('#offerRng').textContent=''; $('#breakTbl').innerHTML=''; return; }
-  const blendCond=p.blendNM*cond; $('#blendVal').textContent=gbp(blendCond);
-  $('#blendSub').textContent=`NM ${gbp(p.blendNM)} × ${$('#condSel').selectedOptions[0].text} (${Math.round(cond*100)}%)`+(p.est?' · edition est.':'');
+  const finishV=$('#finishSel').value; const usingEd=finishV.indexOf('ed:')===0;
+  const nmVal=(!usingEd && c._ebayVal!=null)? c._ebayVal : p.blendNM;
+  const nmSrc=(!usingEd && c._ebayVal!=null)? 'live eBay median' : 'TCGplayer+Cardmarket';
+  const blendCond=nmVal*cond; $('#blendVal').textContent=gbp(blendCond);
+  $('#blendSub').textContent=`NM ${gbp(nmVal)} (${nmSrc}) × ${$('#condSel').selectedOptions[0].text} (${Math.round(cond*100)}%)`+(p.est?' · edition est.':'');
   const offer=blendCond*(buyPct/100); $('#offerVal').textContent=gbp(offer);
   const lo=blendCond*((buyPct-12)/100), hi=blendCond*((buyPct+8)/100);
   $('#offerRng').textContent=`Walk-away range ${gbp(Math.max(0,lo))} – ${gbp(hi)} · resell ≈ ${gbp(blendCond)}`;
-  const rows=[['US market (TCGplayer)',p.usGBP!=null?gbp(p.usGBP):'—'],['EU market (Cardmarket)',p.euGBP!=null?gbp(p.euGBP):'—'],['Blended NM value',gbp(p.blendNM)],['Condition adjustment',Math.round(cond*100)+'%'],['Adjusted resale value',gbp(blendCond)],['Your buy % of market',buyPct+'%'],['→ Suggested max buy',gbp(offer)],['Est. profit if you resell',gbp(blendCond-offer)]];
+  const rows=[['US market (TCGplayer)',p.usGBP!=null?gbp(p.usGBP):'—'],['EU market (Cardmarket)',p.euGBP!=null?gbp(p.euGBP):'—'],[nmSrc==='live eBay median'?'Live eBay market (median)':'Blended NM value',gbp(nmVal)],['Condition adjustment',Math.round(cond*100)+'%'],['Adjusted resale value',gbp(blendCond)],['Your buy % of market',buyPct+'%'],['→ Suggested max buy',gbp(offer)],['Est. profit if you resell',gbp(blendCond-offer)]];
   $('#breakTbl').innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('');
 }
 $('#resetBtn').onclick=resetSingle;
@@ -1668,7 +1685,7 @@ if($('#openSettingsLink')) $('#openSettingsLink').onclick=(e)=>{ e.preventDefaul
 (function(){ const l=$('#locInput'); if(!l) return; try{ l.value=localStorage.getItem('cs_loc')||''; }catch(e){} l.oninput=()=>{ try{ localStorage.setItem('cs_loc',(l.value||'').trim()); }catch(e){} }; })();
 window.cardscoutLocation=function(){ try{ return localStorage.getItem('cs_loc')||''; }catch(e){ return ''; } };
 // Visible build stamp so you can confirm you're on the latest version
-var BUILD='2026-07-04 · v25';
+var BUILD='2026-07-04 · v26';
 (function(){ var e=document.getElementById('buildStamp'); if(e) e.textContent='Build '+BUILD; })();
 async function svcOn(url){ try{ const r=await fetch(url); const d=await r.json(); return !!d.enabled; }catch(e){ return false; } }
 function svcRow(name,desc,on){ return `<div class="setrow"><span class="dot2 ${on?'on':'off'}"></span><div class="si"><div class="st">${name}</div><div class="sd">${desc}</div></div></div>`; }
