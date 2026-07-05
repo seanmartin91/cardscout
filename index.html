@@ -224,6 +224,7 @@
     <div>
       <b>CardScout <span class="chip" id="liveBadge"><span class="blip"></span>Live prices</span></b>
       <small>Scan a card · see worldwide value · get a buy price</small>
+      <small id="buildStamp" style="font-size:9.5px;color:var(--faint);letter-spacing:.3px"></small>
     </div>
     <button class="gear" id="settingsBtn" title="Settings" aria-label="Settings"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
   </div>
@@ -241,6 +242,10 @@
       <option value="GBP">United Kingdom — GBP (£)</option>
       <option value="USD">United States — USD ($)</option>
     </select>
+
+    <label>Your location (for local lot hunting — Kijiji / Facebook)</label>
+    <input id="locInput" placeholder="e.g. Toronto, ON · Niagara · London UK · Dallas TX" autocomplete="off">
+    <p class="muted" style="margin-top:6px;font-size:11.5px">Used to find local Pokémon lots near you. Leave blank if you only want eBay.</p>
 
     <h3 style="font-family:'Chakra Petch',sans-serif;font-size:14px;margin:22px 0 4px">AI recognition</h3>
     <p class="muted">Add a Claude or OpenAI key to read cards &amp; products from photos and run lot scans. Stored only on this device — sent only to the provider you pick.</p>
@@ -1649,6 +1654,12 @@ if($('#openSettingsLink')) $('#openSettingsLink').onclick=(e)=>{ e.preventDefaul
     if(selectedCard) recompute(); if(batchCards.length||manualItems.length) renderBatch();
     toast('Switched to '+CUR+' — '+CUR_DEFS[CUR].name); };
 })();
+// Location (for local Kijiji/Facebook lot hunting)
+(function(){ const l=$('#locInput'); if(!l) return; try{ l.value=localStorage.getItem('cs_loc')||''; }catch(e){} l.oninput=()=>{ try{ localStorage.setItem('cs_loc',(l.value||'').trim()); }catch(e){} }; })();
+window.cardscoutLocation=function(){ try{ return localStorage.getItem('cs_loc')||''; }catch(e){ return ''; } };
+// Visible build stamp so you can confirm you're on the latest version
+var BUILD='2026-07-04 · v18';
+(function(){ var e=document.getElementById('buildStamp'); if(e) e.textContent='Build '+BUILD; })();
 async function svcOn(url){ try{ const r=await fetch(url); const d=await r.json(); return !!d.enabled; }catch(e){ return false; } }
 function svcRow(name,desc,on){ return `<div class="setrow"><span class="dot2 ${on?'on':'off'}"></span><div class="si"><div class="st">${name}</div><div class="sd">${desc}</div></div></div>`; }
 async function loadSvcStatus(){
