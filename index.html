@@ -291,7 +291,7 @@
 
     <p class="muted" style="margin-top:14px;font-size:12.5px">AI photo recognition is optional. Add your Claude or OpenAI key in <a href="#" id="openSettingsLink">Settings</a> to auto-read cards from photos. Single cards &amp; manual search work without it.</p>
 
-    <details style="margin-top:14px" id="flipBox"><summary>🎯 Find profitable single-card flips</summary>
+    <details style="margin-top:14px" id="flipBox"><summary><svg class="ic" viewBox="0 0 24 24" style="width:1em;height:1em;vertical-align:-.13em"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg> Find profitable single-card flips</summary>
       <p class="muted" style="margin:8px 0 10px;font-size:12.5px">CardScout sweeps live eBay listings for ~25 popular, liquid cards and flags any where you'd net <b>15%+ after fees</b> vs market value — biggest margin first. Live prices, updated the moment you tap.</p>
       <button class="btn gold" id="flipFindBtn">Find profitable flips now</button>
       <div id="flipResults" style="margin-top:10px"></div>
@@ -362,7 +362,7 @@
       </select>
       <button class="btn ghost" id="gradedBtn" style="margin-top:10px">See graded sold prices →</button>
     </details>
-    <button class="btn" id="listEbayBtn" style="margin-top:16px">📤 Create eBay listing (to flip it)</button>
+    <button class="btn" id="listEbayBtn" style="margin-top:16px"><svg class="ic" viewBox="0 0 24 24" style="width:1em;height:1em;vertical-align:-.13em"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></svg> Create eBay listing (to flip it)</button>
     <div id="ebayListing" class="hidden" style="margin-top:12px"></div>
     <div class="row" style="margin-top:12px">
       <button class="btn gold" id="cardShare">Share valuation</button>
@@ -403,7 +403,7 @@
         <button class="btn gold" id="batchShare">Copy / share</button>
         <button class="btn ghost" id="batchCsv">Download CSV</button>
       </div>
-      <button class="btn" id="batchEbayBtn" style="margin-top:10px">📤 Create eBay listings for these (flip them)</button>
+      <button class="btn" id="batchEbayBtn" style="margin-top:10px"><svg class="ic" viewBox="0 0 24 24" style="width:1em;height:1em;vertical-align:-.13em"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></svg> Create eBay listings for these (flip them)</button>
       <div id="batchEbay" class="hidden" style="margin-top:12px"></div>
     </div>
     <button class="btn ghost" id="batchReset" style="margin-top:12px">← Start over</button>
@@ -412,7 +412,7 @@
 
   <!-- SEALED -->
   <div class="panel hidden" id="sealedStep">
-    <details id="boxDealsBox" style="margin-bottom:16px" open><summary>📦 Box deals the scout found <span id="boxDealsCount" class="rgn" style="margin-left:6px"></span></summary>
+    <details id="boxDealsBox" style="margin-bottom:16px" open><summary><svg class="ic" viewBox="0 0 24 24" style="width:1em;height:1em;vertical-align:-.13em"><path d="M21 8.5l-9-5-9 5v7l9 5 9-5z"/><path d="M3 8.5l9 5 9-5"/></svg> Box deals the scout found <span id="boxDealsCount" class="rgn" style="margin-left:6px"></span></summary>
       <div class="muted" id="boxDealsMeta" style="margin:8px 0;font-size:12px"></div>
       <div id="boxDealsList"></div>
       <button class="btn ghost" id="boxDealsRefresh" style="margin-top:8px;padding:8px 12px">↻ Refresh</button>
@@ -460,7 +460,7 @@
 
     <div id="dealLot" class="hidden">
       <label>Paste a lot link — eBay, Facebook Marketplace, Kijiji or Whatnot</label>
-      <div class="muted" style="margin:2px 0 8px;font-size:12.5px">✅ <b>eBay</b> link (or item number) → CardScout pulls the photos automatically. <b>Facebook / Kijiji / Whatnot</b> have no photo API, so paste the link then tap <b>Upload photos</b> to add screenshots — the link stays attached so “Open listing” works. You can also paste photo links directly.</div>
+      <div class="muted" style="margin:2px 0 8px;font-size:12.5px"><b>eBay</b> link (or item number) → CardScout pulls the photos automatically. <b>Facebook / Kijiji / Whatnot</b> have no photo API, so paste the link then tap <b>Upload photos</b> to add screenshots — the link stays attached so “Open listing” works. You can also paste photo links directly.</div>
       <textarea id="lotImgs" rows="3" placeholder="Paste an eBay / Facebook Marketplace / Kijiji / Whatnot listing link. Or photo links, one per line. Or Upload photos below." style="width:100%;background:rgba(8,11,20,.7);border:1px solid var(--line-strong);color:var(--txt);padding:13px 15px;border-radius:13px;font-size:13.5px;font-family:inherit;outline:none;resize:vertical"></textarea>
       <input id="lotAsk" type="number" inputmode="decimal" placeholder="Asking price (optional, for the verdict)" style="margin-top:10px">
       <div class="row" style="margin-top:12px">
@@ -487,7 +487,7 @@
         <button class="btn" id="snipeAdd" style="flex:0 0 auto;width:auto;padding:14px 18px">＋ Watch</button>
       </div>
       <div id="snipeList" style="margin-top:14px"></div>
-      <button class="btn gold" id="snipeRun" style="margin-top:6px">🎯 Run sniper now</button>
+      <button class="btn gold" id="snipeRun" style="margin-top:6px"><svg class="ic" viewBox="0 0 24 24" style="width:1em;height:1em;vertical-align:-.13em"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg> Run sniper now</button>
       <div id="snipeResults" style="margin-top:12px"></div>
     </div>
   </div>
@@ -500,7 +500,7 @@
     <div class="muted" id="lotsMeta" style="margin-bottom:10px"></div>
     <div id="lotsList"></div>
     <div class="row" style="margin-top:14px;gap:8px">
-      <button class="btn gold" id="lotsCsv">⬇ Export CSV (flip tracker)</button>
+      <button class="btn gold" id="lotsCsv"><svg class="ic" viewBox="0 0 24 24" style="width:1em;height:1em;vertical-align:-.13em"><path d="M12 4v12"/><path d="M7 11l5 5 5-5"/><path d="M5 20h14"/></svg> Export CSV (flip tracker)</button>
       <button class="btn ghost" id="lotsClear">Clear</button>
     </div>
   </div>
@@ -816,7 +816,7 @@ async function loadGraded(c){
   try{
     const r=await fetch('/.netlify/functions/pcprice?q='+encodeURIComponent(`${c.name} ${c.number}`));
     const d=await r.json();
-    if(!d.enabled){ box.innerHTML='<div class="muted" style="margin-bottom:8px">💡 Live graded prices (PSA 10/9, CGC, BGS) turn on with a PriceCharting subscription. Until then, use the sold-listing links below.</div>'; return; }
+    if(!d.enabled){ box.innerHTML='<div class="muted" style="margin-bottom:8px">Live graded prices (PSA 10/9, CGC, BGS) turn on with a PriceCharting subscription. Until then, use the sold-listing links below.</div>'; return; }
     if(!d.best){ box.innerHTML='<div class="muted" style="margin-bottom:8px">No PriceCharting match for this card — use the sold links below.</div>'; return; }
     const b=d.best; const g=v=> v!=null? gbp(v*FX.USD) : '—';
     box.innerHTML=`<div class="vbox wide"><div class="lbl">Graded value · PriceCharting</div>
@@ -958,7 +958,7 @@ if($('#listEbayBtn')) $('#listEbayBtn').onclick=()=>{
   const specHtml=L.specifics.map(r=>`<tr><td style="color:var(--muted)">${r[0]}</td><td style="text-align:right;font-weight:600">${r[1]}</td></tr>`).join('');
   box.classList.remove('hidden');
   box.innerHTML=`<div class="vbox wide">
-    <div class="lbl">📤 Ready-to-post eBay listing</div>
+    <div class="lbl"><svg class="ic" viewBox="0 0 24 24" style="width:1em;height:1em;vertical-align:-.13em"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></svg> Ready-to-post eBay listing</div>
     <div style="margin-top:8px"><div class="lbl">Title</div><div style="font-size:13.5px;font-weight:600;margin:3px 0 6px">${L.title}</div><button class="btn ghost x2" data-copy="title" style="padding:7px 12px;font-size:12.5px;width:auto">Copy title</button></div>
     <div style="margin-top:12px"><div class="lbl">Suggested price</div><div class="num" style="font-size:22px;color:var(--accent)">${gbp(L.listPrice)}</div><div class="sub">market for this condition · edit on eBay to price under to sell faster</div></div>
     <div style="margin-top:12px"><div class="lbl">Item specifics</div><table style="margin-top:4px">${specHtml}</table></div>
@@ -1092,7 +1092,7 @@ function renderBatch(){
   manualItems.forEach((mi,idx)=>{
     const resale=mi.value||0; const buy=resale*(buyPct/100); totResale+=resale; totBuy+=buy;
     const row=document.createElement('div'); row.className='brow';
-    row.innerHTML=`<div style="width:40px;height:56px;border-radius:6px;background:rgba(255,209,26,.12);display:grid;place-items:center;font-size:20px;flex:0 0 auto">📦</div>
+    row.innerHTML=`<div style="width:40px;height:56px;border-radius:6px;background:rgba(255,209,26,.12);display:grid;place-items:center;font-size:20px;flex:0 0 auto"><svg class="ic" viewBox="0 0 24 24" style="width:1em;height:1em;vertical-align:-.13em"><path d="M21 8.5l-9-5-9 5v7l9 5 9-5z"/><path d="M3 8.5l9 5 9-5"/></svg></div>
       <div class="bi"><b>${mi.name}</b><span>Sealed / manual</span></div>
       <div class="bp"><div class="buy">${gbp(buy)}</div><div class="mk">mkt ${gbp(resale)}</div></div>
       <button class="x" title="remove">✕</button>`;
@@ -1148,7 +1148,7 @@ if($('#batchEbayBtn')) $('#batchEbayBtn').onclick=()=>{
   box.classList.remove('hidden');
   if(!listings.length){ box.innerHTML='<div class="muted">No priced cards in the stack to list yet.</div>'; return; }
   window._batchL=listings;
-  box.innerHTML=`<div class="vbox wide"><div class="lbl">📤 ${listings.length} eBay listing(s) ready — one per card</div>
+  box.innerHTML=`<div class="vbox wide"><div class="lbl"><svg class="ic" viewBox="0 0 24 24" style="width:1em;height:1em;vertical-align:-.13em"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></svg> ${listings.length} eBay listing(s) ready — one per card</div>
     <div class="muted" style="margin:4px 0 8px;font-size:11.5px">eBay lists one card per listing. Copy each title/price and open the form. Combine shipping so buyers can buy several.</div>`+
     listings.map((L,i)=>`<div class="brow" style="padding:9px 10px;align-items:center"><div class="bi" style="flex:1"><b style="font-size:12.5px">${L.title}</b><span>${gbp(L.listPrice)} · list at market</span></div><button class="btn ghost bcopy" data-i="${i}" style="width:auto;padding:6px 10px;font-size:11.5px">Copy</button><a class="btn bopen" href="https://www.${dom}/sl/prelist/suggest?query=${encodeURIComponent(L.title)}" target="_blank" rel="noopener" style="width:auto;padding:6px 10px;font-size:11.5px;text-decoration:none;margin-left:6px">List ›</a></div>`).join('')+
     `<div class="muted" style="margin-top:8px;font-size:11px">Add the photo you took to each listing. One-tap batch auto-publish (with photos) comes when you connect your eBay account.</div></div>`;
@@ -1310,10 +1310,10 @@ $('#dealSearchBtn').onclick=async()=>{
   let d; try{ const r=await fetch('/.netlify/functions/ebay?mode=search&limit=24&mkt='+CUR_DEFS[CUR].mkt+'&q='+encodeURIComponent(term)); d=await r.json(); }catch(e){ $('#dealResults').innerHTML='<div class="errbox">Couldn’t reach the deal service.</div>'; return; }
   if(!d.enabled){ $('#dealResults').innerHTML=ebayGate(); return; }
   if(!d.items||!d.items.length){ $('#dealResults').innerHTML='<div class="muted">No eBay listings found for that search.</div>'; return; }
-  let html = mkt!=null ? `<div class="muted" style="margin-bottom:8px">Market value ≈ <b style="color:var(--accent)">${gbp(mkt)}</b> · bargains flagged 🔥</div>` : '<div class="muted" style="margin-bottom:8px">Couldn’t auto-match a market value — sorted by price.</div>';
+  let html = mkt!=null ? `<div class="muted" style="margin-bottom:8px">Market value ≈ <b style="color:var(--accent)">${gbp(mkt)}</b> · bargains flagged </div>` : '<div class="muted" style="margin-bottom:8px">Couldn’t auto-match a market value — sorted by price.</div>';
   d.items.forEach(it=>{
     const pGBP=ebGBP(it.price,it.currency); let badge='';
-    if(mkt!=null && pGBP!=null){ const pct=Math.round((1-pGBP/mkt)*100); badge = pct>=25?`<span style="color:#5EEAD4;font-weight:700">🔥 ${pct}% below market</span>`: pct>0?`<span style="color:var(--muted)">${pct}% below</span>`:`<span style="color:var(--faint)">${Math.abs(pct)}% above</span>`; }
+    if(mkt!=null && pGBP!=null){ const pct=Math.round((1-pGBP/mkt)*100); badge = pct>=25?`<span style="color:#5EEAD4;font-weight:700">${pct}% below market</span>`: pct>0?`<span style="color:var(--muted)">${pct}% below</span>`:`<span style="color:var(--faint)">${Math.abs(pct)}% above</span>`; }
     html+=`<a class="brow" href="${it.url}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">
       <img src="${it.image||''}" style="object-fit:cover"><div class="bi"><b>${it.title||''}</b><span>${badge||'eBay listing'}</span></div>
       <div class="bp"><div class="buy">${pGBP!=null?gbp(pGBP):'—'}</div><div class="mk">${it.currency&&it.currency!=='GBP'?it.currency+' '+it.price.toFixed(2):'+ p&p'}</div></div></a>`;
@@ -1331,7 +1331,7 @@ $('#lotFetchBtn').onclick=async()=>{
   const _idm=(u.match(/(\d{9,})/)||[])[1]||'';
   window._lotMeta={title:it.title||'Scanned lot', url:it.url||(_idm?'https://www.'+CUR_DEFS[CUR].ebay+'/itm/'+_idm:''), asking:(it.price!=null?ebGBP(it.price,it.currency):null)};
   const ask = it.price!=null ? gbp(ebGBP(it.price,it.currency)) : '—';
-  let html=`<div class="vbox wide"><div class="lbl">📦 ${it.title||'Lot'}</div><div class="sub" style="margin-top:4px">Asking ${ask} · ${it.images.length} photo(s)</div></div>
+  let html=`<div class="vbox wide"><div class="lbl"><svg class="ic" viewBox="0 0 24 24" style="width:1em;height:1em;vertical-align:-.13em"><path d="M21 8.5l-9-5-9 5v7l9 5 9-5z"/><path d="M3 8.5l9 5 9-5"/></svg> ${it.title||'Lot'}</div><div class="sub" style="margin-top:4px">Asking ${ask} · ${it.images.length} photo(s)</div></div>
     <div class="results" style="margin-top:10px;grid-template-columns:repeat(3,1fr)">`;
   it.images.slice(0,9).forEach(src=>{ html+=`<img src="${src}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:1px solid var(--line)">`; });
   html+='</div><button class="btn gold" id="lotScanBtn" style="margin-top:12px">Scan photos for valuable cards</button><div id="lotScan" style="margin-top:8px"></div>';
@@ -1404,7 +1404,7 @@ function renderScan(){
   const col=(ask!=null && confident>ask)?'#5EEAD4':'#ffd6db';
   const verdict = ask!=null ? `Key cards ≈ <b style="color:${col}">${gbp(confident)}</b> vs asking ${gbp(ask)} — ${confident>ask?'worth a closer look':'below asking on the cards we’re sure of'}.` : `Key cards ≈ <b>${gbp(confident)}</b> (holos & rares we’re sure of).`;
   const toggle = bulkCount? `<button class="btn ghost" id="toggleBulk" style="margin:6px 0 2px">${showAll?'Hide bulk commons':'Show '+bulkCount+' bulk common(s) ≈ '+gbp(bulkVal)}</button>` : '';
-  const dlbtn = `<button class="btn ghost" id="lotCsv" style="margin:6px 0 2px">⬇ Download CSV</button><button class="btn ghost" id="lotSaveBest" style="margin:6px 0 2px">★ Save to Best Lots</button>`;
+  const dlbtn = `<button class="btn ghost" id="lotCsv" style="margin:6px 0 2px"><svg class="ic" viewBox="0 0 24 24" style="width:1em;height:1em;vertical-align:-.13em"><path d="M12 4v12"/><path d="M7 11l5 5 5-5"/><path d="M5 20h14"/></svg> Download CSV</button><button class="btn ghost" id="lotSaveBest" style="margin:6px 0 2px"><svg class="ic" viewBox="0 0 24 24" style="width:1em;height:1em;vertical-align:-.13em"><path d="M12 3.5l2.7 5.5 6 .9-4.3 4.2 1 6-5.4-2.8-5.4 2.8 1-6L3.3 9.9l6-.9z"/></svg> Save to Best Lots</button>`;
   out.innerHTML=`<div class="offer" style="margin-top:6px"><div class="lbl">Key cards (holos &amp; rares)</div><div class="big" style="font-size:34px">${gbp(confident)}</div><div class="rng">${verdict}</div></div>
     <div class="muted" style="margin:10px 0">${items.length} card(s) found.${bulkCount?` ${bulkCount} are low-value bulk (marked “bulk”).`:''} ${flagged?`<b style="color:#ffb86b">${flagged} flagged “?verify”</b> — likely a misread, not counted. `:''}Headline = holos & rares${bulkVal?`; +${gbp(bulkVal)} bulk = <b>${gbp(confident+bulkVal)}</b> all-in`:''}. Tap ✎ to fix · pick edition on WOTC holos · low-res photos = shortlist.</div><div style="display:flex;gap:8px;flex-wrap:wrap">${toggle}${dlbtn}</div>${rows}`;
   const tb=$('#toggleBulk'); if(tb) tb.onclick=()=>{ scanState.showAll=!scanState.showAll; renderScan(); };
@@ -1416,7 +1416,7 @@ function renderScan(){
     const notes=`${items.length} cards${flagged?`, ${flagged} ?verify`:''}. Key ${gbp(confident)}${bulkVal?` + ${gbp(bulkVal)} bulk`:''}.`;
     const L=recalcLot({date:new Date().toISOString().slice(0,10), title:meta.title||'Scanned lot', url:meta.url||'', asking, cards, notes});
     cardscoutAddLot(L);
-    toast('Saved to Best Lots ★ ('+cards.length+' cards)');
+    toast('Saved to Best Lots <svg class="ic" viewBox="0 0 24 24" style="width:1em;height:1em;vertical-align:-.13em"><path d="M12 3.5l2.7 5.5 6 .9-4.3 4.2 1 6-5.4-2.8-5.4 2.8 1-6L3.3 9.9l6-.9z"/></svg> ('+cards.length+' cards)');
   };
   out.querySelectorAll('.edsel').forEach(s=>{ s.onchange=()=>{ scanState.items[+s.dataset.i].edition=s.value; renderScan(); }; });
   out.querySelectorAll('.edit').forEach(b=>{ b.onclick=async()=>{
@@ -1478,7 +1478,7 @@ async function lotManualScan(){
   if(src){
     const extLink=(raw.match(/https?:\/\/[^\s]+/)||[])[0]||raw.trim();
     window._lotMeta={title:src+' lot', url:extLink, asking:ask};
-    out.innerHTML=`<div class="vbox wide"><div class="lbl">🔗 ${src} link saved</div><div class="sub" style="margin-top:6px;line-height:1.55">There’s no photo API for ${src}, so CardScout can’t auto-pull the images. Tap <b>Upload photos</b> above and add screenshots of the listing (or paste photo links) — they’ll be scanned and priced, and this ${src} link stays attached so “Open listing” works in Best Lots.</div></div>`;
+    out.innerHTML=`<div class="vbox wide"><div class="lbl"><svg class="ic" viewBox="0 0 24 24" style="width:1em;height:1em;vertical-align:-.13em"><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/></svg> ${src} link saved</div><div class="sub" style="margin-top:6px;line-height:1.55">There’s no photo API for ${src}, so CardScout can’t auto-pull the images. Tap <b>Upload photos</b> above and add screenshots of the listing (or paste photo links) — they’ll be scanned and priced, and this ${src} link stays attached so “Open listing” works in Best Lots.</div></div>`;
     return;
   }
   // 3) otherwise treat the box as image links (no listing URL to attach)
@@ -1511,7 +1511,7 @@ if($('#snipeAdd')) $('#snipeAdd').onclick=()=>{
   if(!term){ toast('Type a card to watch.'); return; }
   if(!(max>0)){ toast('Set a max price.'); return; }
   const a=loadWatchlist(); if(a.some(x=>x.term.toLowerCase()===term.toLowerCase())){ toast('Already watching that.'); return; }
-  a.push({term, max, added:Date.now()}); saveWatchlist(a); $('#snipeTerm').value=''; $('#snipeMax').value=''; renderWatchlist(); toast('Added to watchlist ★');
+  a.push({term, max, added:Date.now()}); saveWatchlist(a); $('#snipeTerm').value=''; $('#snipeMax').value=''; renderWatchlist(); toast('Added to watchlist <svg class="ic" viewBox="0 0 24 24" style="width:1em;height:1em;vertical-align:-.13em"><path d="M12 3.5l2.7 5.5 6 .9-4.3 4.2 1 6-5.4-2.8-5.4 2.8 1-6L3.3 9.9l6-.9z"/></svg>');
 };
 async function runSniper(watches, out){
   const w=watches||loadWatchlist();
@@ -1531,7 +1531,7 @@ async function runSniper(watches, out){
       .sort((a,b)=>a.p-b.p);
     const si=store.findIndex(s=>s.term===watch.term); if(si>=0){ store[si].lastHits=hits.length; store[si].lastRun=Date.now(); }
     grand+=hits.length;
-    allHtml+=`<div class="vbox wide" style="margin-top:10px"><div class="lbl">🎯 ${watch.term} · ≤ ${gbp(watch.max)}</div><div class="sub" style="margin-top:3px">${hits.length? hits.length+' listing(s) at or under target':'nothing under target right now'}</div></div>`;
+    allHtml+=`<div class="vbox wide" style="margin-top:10px"><div class="lbl"><svg class="ic" viewBox="0 0 24 24" style="width:1em;height:1em;vertical-align:-.13em"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg> ${watch.term} · ≤ ${gbp(watch.max)}</div><div class="sub" style="margin-top:3px">${hits.length? hits.length+' listing(s) at or under target':'nothing under target right now'}</div></div>`;
     hits.slice(0,8).forEach(x=>{ const it=x.it; allHtml+=`<a class="brow" href="${it.url}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><img src="${it.image||''}" style="object-fit:cover"><div class="bi"><b>${(it.title||'').slice(0,70)}</b><span>eBay listing ›</span></div><div class="bp"><div class="buy" style="color:#5EEAD4">${gbp(x.p)}</div><div class="mk">${it.currency&&it.currency!=='CAD'?it.currency+' '+(it.price!=null?it.price.toFixed(2):''):'+ ship'}</div></div></a>`; });
   }
   saveWatchlist(store); renderWatchlist();
@@ -1661,7 +1661,7 @@ if($('#openSettingsLink')) $('#openSettingsLink').onclick=(e)=>{ e.preventDefaul
 (function(){ const l=$('#locInput'); if(!l) return; try{ l.value=localStorage.getItem('cs_loc')||''; }catch(e){} l.oninput=()=>{ try{ localStorage.setItem('cs_loc',(l.value||'').trim()); }catch(e){} }; })();
 window.cardscoutLocation=function(){ try{ return localStorage.getItem('cs_loc')||''; }catch(e){ return ''; } };
 // Visible build stamp so you can confirm you're on the latest version
-var BUILD='2026-07-04 · v21';
+var BUILD='2026-07-04 · v22';
 (function(){ var e=document.getElementById('buildStamp'); if(e) e.textContent='Build '+BUILD; })();
 async function svcOn(url){ try{ const r=await fetch(url); const d=await r.json(); return !!d.enabled; }catch(e){ return false; } }
 function svcRow(name,desc,on){ return `<div class="setrow"><span class="dot2 ${on?'on':'off'}"></span><div class="si"><div class="st">${name}</div><div class="sd">${desc}</div></div></div>`; }
