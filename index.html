@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#0B1220">
+<meta name="theme-color" content="#0A0E15">
 <title>CardScout — Pokémon buy-price scanner</title>
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -14,15 +14,15 @@
 <meta name="apple-mobile-web-app-title" content="CardScout">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#0B1220; --panel:rgba(17,26,44,.72); --panel-solid:#111A2C;
+    --bg:#0A0E15; --panel:rgba(17,26,44,.72); --panel-solid:#111A2C;
     --line:rgba(255,255,255,.08); --line-strong:#2c3a52;
     --txt:#E8EDF6; --muted:#8DA0BE; --faint:#66759a;
-    --accent:#2CE28A; --accent-deep:#24c07a;
-    --blue:#2CE28A; --blue-deep:#24c07a;
-    --green:#2CE28A;
+    --accent:#2DD4BF; --accent-deep:#26B8A5;
+    --blue:#2DD4BF; --blue-deep:#26B8A5;
+    --green:#2DD4BF;
     --amber:#FFB224;
     --red:#FF5D5D;
     --paper:#EFEAE0; --paper-ink:#141821;
@@ -32,16 +32,16 @@
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html{-webkit-text-size-adjust:100%}
   body{
-    margin:0;font-family:'IBM Plex Sans',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    margin:0;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     color:var(--txt);background:var(--bg);min-height:100vh;padding-bottom:60px;
     background-image:
-      radial-gradient(900px 520px at 12% -8%, rgba(44,226,138,.10), transparent 60%),
-      radial-gradient(800px 480px at 92% 4%, rgba(44,226,138,.06), transparent 55%),
+      radial-gradient(900px 520px at 12% -8%, rgba(45,212,191,.10), transparent 60%),
+      radial-gradient(800px 480px at 92% 4%, rgba(45,212,191,.06), transparent 55%),
       radial-gradient(700px 600px at 50% 115%, rgba(34,48,74,.55), transparent 60%);
     background-attachment:fixed;
   }
-  ::selection{background:rgba(44,226,138,.30);color:#0B1220}
-  h1,h2,h3,.brand b{font-family:'Chakra Petch','IBM Plex Sans',sans-serif;letter-spacing:.01em}
+  ::selection{background:rgba(45,212,191,.30);color:#0A0E15}
+  h1,h2,h3,.brand b{font-family:'Space Grotesk','Inter',sans-serif;letter-spacing:.01em}
   header{position:sticky;top:0;z-index:40;backdrop-filter:blur(18px) saturate(1.4);
     -webkit-backdrop-filter:blur(18px) saturate(1.4);
     background:linear-gradient(180deg,rgba(7,9,15,.9),rgba(7,9,15,.6));
@@ -54,44 +54,44 @@
   .brand b{font-size:20px;letter-spacing:-.3px;display:flex;align-items:center;gap:9px}
   .brand small{display:block;font-size:11.5px;font-weight:500;color:var(--muted);letter-spacing:.1px;margin-top:1px}
   .chip{font-size:9.5px;font-weight:800;letter-spacing:.8px;padding:4px 8px;border-radius:999px;
-    background:rgba(54,224,138,.14);color:#5cf0a6;border:1px solid rgba(54,224,138,.35);
+    background:rgba(45,212,191,.14);color:#5EEAD4;border:1px solid rgba(45,212,191,.35);
     display:inline-flex;align-items:center;gap:5px;text-transform:uppercase}
-  .chip .blip{width:6px;height:6px;border-radius:50%;background:#36e08a;box-shadow:0 0 0 0 rgba(54,224,138,.6);
+  .chip .blip{width:6px;height:6px;border-radius:50%;background:#2DD4BF;box-shadow:0 0 0 0 rgba(45,212,191,.6);
     animation:pulse 2s infinite}
-  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(54,224,138,.5)}70%{box-shadow:0 0 0 7px rgba(54,224,138,0)}100%{box-shadow:0 0 0 0 rgba(54,224,138,0)}}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(45,212,191,.5)}70%{box-shadow:0 0 0 7px rgba(45,212,191,0)}100%{box-shadow:0 0 0 0 rgba(45,212,191,0)}}
   .wrap{max-width:600px;margin:0 auto;padding:18px}
   .panel{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
     padding:20px;margin-bottom:16px;box-shadow:var(--shadow);
     backdrop-filter:blur(20px) saturate(1.3);-webkit-backdrop-filter:blur(20px) saturate(1.3);
     animation:rise .5s cubic-bezier(.2,.8,.2,1) both}
   @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
-  .eyebrow{display:flex;align-items:center;gap:9px;font-family:'Chakra Petch',sans-serif;font-size:12px;font-weight:700;
+  .eyebrow{display:flex;align-items:center;gap:9px;font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:700;
     text-transform:uppercase;letter-spacing:1.4px;color:var(--muted);margin:0 0 16px}
   .eyebrow .n{width:23px;height:23px;border-radius:7px;display:grid;place-items:center;font-size:12px;
-    background:rgba(44,226,138,.14);color:var(--accent);border:1px solid rgba(44,226,138,.4)}
+    background:rgba(45,212,191,.14);color:var(--accent);border:1px solid rgba(45,212,191,.4)}
   label{font-size:11.5px;font-weight:600;color:var(--muted);display:block;margin:14px 0 7px;letter-spacing:.2px}
   input,select{width:100%;background:rgba(8,11,20,.7);border:1px solid var(--line-strong);color:var(--txt);
     padding:14px 15px;border-radius:var(--r-sm);font-size:15px;font-family:inherit;outline:none;transition:.18s}
   input::placeholder{color:var(--faint)}
-  input:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 4px rgba(44,226,138,.16);background:rgba(8,11,20,.95)}
+  input:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 4px rgba(45,212,191,.16);background:rgba(8,11,20,.95)}
   select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%239aa3bd' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:40px}
   .row{display:flex;gap:11px}.row>*{flex:1}
   button{cursor:pointer;border:none;font-family:inherit}
   .btn{width:100%;padding:15px;border-radius:12px;font-size:15.5px;font-weight:600;letter-spacing:.03em;
-    font-family:'Chakra Petch','IBM Plex Sans',sans-serif;
-    background:var(--accent);color:#08331d;transition:.18s;
-    box-shadow:0 10px 26px -12px rgba(44,226,138,.6)}
-  .btn:hover{transform:translateY(-1px);box-shadow:0 16px 32px -14px rgba(44,226,138,.7)}
+    font-family:'Space Grotesk','Inter',sans-serif;
+    background:var(--accent);color:#06342e;transition:.18s;
+    box-shadow:0 10px 26px -12px rgba(45,212,191,.6)}
+  .btn:hover{transform:translateY(-1px);box-shadow:0 16px 32px -14px rgba(45,212,191,.7)}
   .btn:active{transform:translateY(0)}
-  .btn.gold{background:var(--accent);color:#08331d;
-    box-shadow:0 10px 26px -12px rgba(44,226,138,.6)}
+  .btn.gold{background:var(--accent);color:#06342e;
+    box-shadow:0 10px 26px -12px rgba(45,212,191,.6)}
   .btn.ghost{background:rgba(255,255,255,.05);border:1px solid var(--line-strong);color:var(--txt);box-shadow:none;font-weight:600}
   .btn.ghost:hover{background:rgba(255,255,255,.09);transform:translateY(-1px)}
   .modes{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:16px;
     background:rgba(8,11,20,.5);border:1px solid var(--line);border-radius:14px;padding:5px}
   .mode{background:transparent;color:var(--muted);padding:9px 2px;border-radius:10px;font-size:11px;font-weight:600;line-height:1.2;transition:.18s}
   .mode .mi{font-size:16px;display:block;margin-bottom:3px}
-  .mode.on{background:var(--accent);color:#08331d;font-weight:700;box-shadow:0 6px 16px -8px rgba(44,226,138,.55)}
+  .mode.on{background:var(--accent);color:#06342e;font-weight:700;box-shadow:0 6px 16px -8px rgba(45,212,191,.55)}
   .camwrap{position:relative;border-radius:18px;overflow:hidden;aspect-ratio:3/4;display:grid;place-items:center;
     background:radial-gradient(circle at 50% 35%,#10141f,#06080e);border:1px solid var(--line)}
   video,#preview{width:100%;height:100%;object-fit:cover;display:none}
@@ -108,7 +108,7 @@
     cursor:pointer;transition:.18s;text-align:left;padding:0;position:relative}
   .cardpick:hover{transform:translateY(-3px);border-color:var(--line-strong);box-shadow:0 14px 30px -16px rgba(0,0,0,.8)}
   .cardpick:active{transform:scale(.98)}
-  .cardpick.sel{border-color:var(--accent);box-shadow:0 0 0 2px rgba(44,226,138,.5),0 14px 30px -16px rgba(0,0,0,.8)}
+  .cardpick.sel{border-color:var(--accent);box-shadow:0 0 0 2px rgba(45,212,191,.5),0 14px 30px -16px rgba(0,0,0,.8)}
   .cardpick img{width:100%;display:block;background:#0a0f1f;aspect-ratio:.72;object-fit:contain}
   .cardpick .meta{padding:9px 11px}
   .cardpick .meta b{font-size:13px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
@@ -117,30 +117,30 @@
   .vbox{background:rgba(8,11,20,.5);border:1px solid var(--line);border-radius:15px;padding:14px}
   .vbox.wide{margin-top:12px}
   .vbox .lbl{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;font-weight:600}
-  .vbox .num{font-family:'Chakra Petch',sans-serif;font-size:22px;font-weight:800;margin-top:5px;letter-spacing:-.5px}
+  .vbox .num{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:800;margin-top:5px;letter-spacing:-.5px}
   .vbox .sub{font-size:11px;color:var(--faint);margin-top:3px}
-  .offer{position:relative;background:linear-gradient(150deg,rgba(54,224,138,.16),rgba(16,40,28,.5));
-    border:1px solid rgba(54,224,138,.4);border-radius:18px;padding:22px;text-align:center;overflow:hidden;margin-top:16px}
-  .offer::before{content:'';position:absolute;inset:0;background:radial-gradient(400px 120px at 50% -10%,rgba(54,224,138,.3),transparent)}
+  .offer{position:relative;background:linear-gradient(150deg,rgba(45,212,191,.16),rgba(16,40,28,.5));
+    border:1px solid rgba(45,212,191,.4);border-radius:18px;padding:22px;text-align:center;overflow:hidden;margin-top:16px}
+  .offer::before{content:'';position:absolute;inset:0;background:radial-gradient(400px 120px at 50% -10%,rgba(45,212,191,.3),transparent)}
   .offer>*{position:relative}
-  .offer .lbl{font-size:11px;color:#7ff0b3;text-transform:uppercase;letter-spacing:1.2px;font-weight:700}
-  .offer .big{font-family:'Chakra Petch',sans-serif;font-size:46px;font-weight:800;color:#c7ffdd;margin:6px 0;line-height:1;letter-spacing:-1.5px;
-    text-shadow:0 4px 24px rgba(54,224,138,.4)}
-  .offer .rng{font-size:12.5px;color:#8fe6b3;line-height:1.5}
+  .offer .lbl{font-size:11px;color:#99F6E4;text-transform:uppercase;letter-spacing:1.2px;font-weight:700}
+  .offer .big{font-family:'Space Grotesk',sans-serif;font-size:46px;font-weight:800;color:#CCFBF1;margin:6px 0;line-height:1;letter-spacing:-1.5px;
+    text-shadow:0 4px 24px rgba(45,212,191,.4)}
+  .offer .rng{font-size:12.5px;color:#99F6E4;line-height:1.5}
   .slider{-webkit-appearance:none;appearance:none;height:8px;border-radius:8px;width:100%;margin-top:14px;
     background:linear-gradient(90deg,var(--accent),var(--blue));outline:none}
   .slider::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;background:#fff;
     box-shadow:0 3px 10px rgba(0,0,0,.5),0 0 0 4px rgba(255,255,255,.12);cursor:pointer;transition:.1s}
   .slider::-webkit-slider-thumb:active{transform:scale(1.12)}
   .slider::-moz-range-thumb{width:28px;height:28px;border:none;border-radius:50%;background:#fff;box-shadow:0 3px 10px rgba(0,0,0,.5)}
-  .sliderval{font-weight:800;color:var(--accent);font-family:'Chakra Petch',sans-serif}
+  .sliderval{font-weight:800;color:var(--accent);font-family:'Space Grotesk',sans-serif}
   table{width:100%;border-collapse:collapse;font-size:13px;margin-top:4px}
   td{padding:9px 4px;border-bottom:1px solid var(--line)}
   td:last-child{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
   tr:last-child td{border-bottom:none}
   .step-dots{display:flex;gap:7px;justify-content:center;margin-top:16px}
   .step-dots i{width:7px;height:7px;border-radius:50%;background:var(--line-strong);transition:.3s}
-  .step-dots i.on{background:var(--accent);width:22px;border-radius:4px;box-shadow:0 0 12px rgba(44,226,138,.55)}
+  .step-dots i.on{background:var(--accent);width:22px;border-radius:4px;box-shadow:0 0 12px rgba(45,212,191,.55)}
   details{background:rgba(8,11,20,.5);border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:10px;transition:.2s}
   details[open]{border-color:var(--line-strong)}
   summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);list-style:none;display:flex;align-items:center;gap:8px}
@@ -178,13 +178,13 @@
   .setrow .st{font-size:13.5px;font-weight:600}
   .setrow .sd{font-size:11.5px;color:var(--muted);margin-top:1px}
   .dot2{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
-  .dot2.on{background:var(--green);box-shadow:0 0 8px rgba(54,224,138,.7)}
+  .dot2.on{background:var(--green);box-shadow:0 0 8px rgba(45,212,191,.7)}
   .dot2.off{background:var(--faint)}
   /* ---- login overlay ---- */
-  .overlay{position:fixed;inset:0;z-index:120;background:radial-gradient(720px 520px at 50% -5%,rgba(44,226,138,.16),transparent 60%),var(--bg);display:grid;place-items:center;padding:24px}
+  .overlay{position:fixed;inset:0;z-index:120;background:radial-gradient(720px 520px at 50% -5%,rgba(45,212,191,.16),transparent 60%),var(--bg);display:grid;place-items:center;padding:24px}
   .loginbox{width:100%;max-width:380px;background:var(--panel-solid);border:1px solid var(--line-strong);border-radius:22px;padding:32px 26px;text-align:center;box-shadow:var(--shadow)}
   .loginbox .lb-logo{width:56px;height:56px;margin:0 auto 18px}
-  .loginbox h3{font-family:'Chakra Petch',sans-serif;font-size:21px;margin:0 0 6px;letter-spacing:-.3px}
+  .loginbox h3{font-family:'Space Grotesk',sans-serif;font-size:21px;margin:0 0 6px;letter-spacing:-.3px}
   .fxnote{font-size:11px;color:var(--faint);text-align:center;margin-top:10px}
   .disclaimer{color:var(--faint);font-size:12px;text-align:center;margin:18px auto;line-height:1.6;max-width:480px}
   .errbox{text-align:left;background:rgba(255,107,125,.12);border:1px solid rgba(255,107,125,.4);border-radius:12px;padding:13px;color:#ffb3bd;font-size:13px;line-height:1.55}
@@ -196,7 +196,7 @@
   .brow .bi b{font-size:13.5px;font-weight:600;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .brow .bi span{font-size:11px;color:var(--muted)}
   .brow .bp{text-align:right;flex:0 0 auto}
-  .brow .bp .buy{font-family:'Chakra Petch',sans-serif;font-weight:800;font-size:15px;color:#bdf5cf}
+  .brow .bp .buy{font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:15px;color:#99F6E4}
   .brow .bp .mk{font-size:10.5px;color:var(--faint)}
   .brow .x{flex:0 0 auto;color:var(--faint);font-size:18px;background:none;padding:4px 6px}
   .totbar{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:6px}
@@ -216,9 +216,9 @@
     <span class="logo">
       <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" aria-label="CardScout">
         <rect x="1.5" y="1.5" width="37" height="37" rx="9" fill="#111A2C" stroke="#22304A" stroke-width="1.5"/>
-        <path d="M9 15V11a2 2 0 0 1 2-2h4" fill="none" stroke="#2CE28A" stroke-width="2.6" stroke-linecap="round"/>
-        <path d="M31 25v4a2 2 0 0 1-2 2h-4" fill="none" stroke="#2CE28A" stroke-width="2.6" stroke-linecap="round"/>
-        <rect x="15.5" y="15.5" width="9" height="9" rx="2" fill="#2CE28A"/>
+        <path d="M9 15V11a2 2 0 0 1 2-2h4" fill="none" stroke="#2DD4BF" stroke-width="2.6" stroke-linecap="round"/>
+        <path d="M31 25v4a2 2 0 0 1-2 2h-4" fill="none" stroke="#2DD4BF" stroke-width="2.6" stroke-linecap="round"/>
+        <rect x="15.5" y="15.5" width="9" height="9" rx="2" fill="#2DD4BF"/>
       </svg>
     </span>
     <div>
@@ -235,7 +235,7 @@
   <!-- SETTINGS -->
   <div class="panel hidden" id="settingsStep">
     <h2 class="eyebrow"><span class="n"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 4v2M12 18v2M4 12h2M18 12h2M6 6l1.5 1.5M16.5 16.5L18 18M18 6l-1.5 1.5M7.5 16.5L6 18"/></svg></span> Settings</h2>
-    <h3 style="font-family:'Chakra Petch',sans-serif;font-size:14px;margin:0 0 4px">Region &amp; currency</h3>
+    <h3 style="font-family:'Space Grotesk',sans-serif;font-size:14px;margin:0 0 4px">Region &amp; currency</h3>
     <p class="muted">All prices and the eBay deal finder follow this region.</p>
     <select id="curSel">
       <option value="CAD">Canada — CAD (C$)</option>
@@ -247,7 +247,7 @@
     <input id="locInput" placeholder="e.g. Toronto, ON · Niagara · London UK · Dallas TX" autocomplete="off">
     <p class="muted" style="margin-top:6px;font-size:11.5px">Used to find local Pokémon lots near you. Leave blank if you only want eBay.</p>
 
-    <h3 style="font-family:'Chakra Petch',sans-serif;font-size:14px;margin:22px 0 4px">AI recognition</h3>
+    <h3 style="font-family:'Space Grotesk',sans-serif;font-size:14px;margin:22px 0 4px">AI recognition</h3>
     <p class="muted">Add a Claude or OpenAI key to read cards &amp; products from photos and run lot scans. Stored only on this device — sent only to the provider you pick.</p>
     <label>AI provider</label>
     <select id="aiProvider">
@@ -259,7 +259,7 @@
     <p class="muted" id="aiState" style="margin-top:10px">AI recognition is <b>off</b>. Add a key to enable it.</p>
     <button class="btn ghost" id="forgetKey" style="margin-top:8px;display:none;padding:10px;font-size:13px">Forget saved key</button>
 
-    <h3 style="font-family:'Chakra Petch',sans-serif;font-size:14px;margin:22px 0 6px">Connected services</h3>
+    <h3 style="font-family:'Space Grotesk',sans-serif;font-size:14px;margin:22px 0 6px">Connected services</h3>
     <div id="svcStatus"></div>
     <p class="muted" style="margin-top:10px;font-size:11.5px">Sealed, graded &amp; eBay data run on secure server keys (PriceCharting, eBay) configured in Netlify, shared for everyone using this app.</p>
 
@@ -397,7 +397,7 @@
       <div class="totbar" style="margin-top:12px">
         <div class="vbox"><div class="lbl">Items</div><div class="num" id="totCount">0</div></div>
         <div class="vbox"><div class="lbl">Total resale</div><div class="num" id="totResale" style="color:var(--accent)">—</div></div>
-        <div class="vbox"><div class="lbl">Profit if sold</div><div class="num" id="totProfitNum" style="color:#bdf5cf">—</div></div>
+        <div class="vbox"><div class="lbl">Profit if sold</div><div class="num" id="totProfitNum" style="color:#99F6E4">—</div></div>
       </div>
       <div class="row" style="margin-top:14px">
         <button class="btn gold" id="batchShare">Copy / share</button>
@@ -516,9 +516,9 @@
     <span class="lb-logo">
       <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
         <rect x="1.5" y="1.5" width="37" height="37" rx="9" fill="#111A2C" stroke="#22304A" stroke-width="1.5"/>
-        <path d="M9 15V11a2 2 0 0 1 2-2h4" fill="none" stroke="#2CE28A" stroke-width="2.6" stroke-linecap="round"/>
-        <path d="M31 25v4a2 2 0 0 1-2 2h-4" fill="none" stroke="#2CE28A" stroke-width="2.6" stroke-linecap="round"/>
-        <rect x="15.5" y="15.5" width="9" height="9" rx="2" fill="#2CE28A"/>
+        <path d="M9 15V11a2 2 0 0 1 2-2h4" fill="none" stroke="#2DD4BF" stroke-width="2.6" stroke-linecap="round"/>
+        <path d="M31 25v4a2 2 0 0 1-2 2h-4" fill="none" stroke="#2DD4BF" stroke-width="2.6" stroke-linecap="round"/>
+        <rect x="15.5" y="15.5" width="9" height="9" rx="2" fill="#2DD4BF"/>
       </svg>
     </span>
     <h3>CardScout</h3>
@@ -584,7 +584,7 @@ function renderBestLots(){
   window._blots=lots;
   list.innerHTML=lots.map((L,li)=>{
     const buy=/buy/i.test(L.verdict||''), pass=/pass/i.test(L.verdict||'');
-    const col= buy?'#5cf0a6' : pass?'#ffd6db' : '#ffe08a';
+    const col= buy?'#5EEAD4' : pass?'#ffd6db' : '#ffe08a';
     const cardsHtml=(L.cards||[]).map((c,ci)=>{
       const wotc=/^(base|jungle|fossil|team rocket|gym heroes|gym challenge|neo )/i.test(c.set||'');
       const edsel = wotc ? `<select class="bedsel" data-i="${li}" data-c="${ci}" style="margin-top:3px;font-size:10.5px;padding:1px 5px;border-radius:5px;background:#16203200;color:#9fb4d6;border:1px solid #2c3a52;max-width:130px"><option value="unlimited"${(c.edition||'unlimited')==='unlimited'?' selected':''}>Unlimited</option>${/^base$/i.test(c.set||'')?`<option value="shadowless"${c.edition==='shadowless'?' selected':''}>Shadowless</option>`:''}<option value="1st"${c.edition==='1st'?' selected':''}>1st Edition</option></select>` : '';
@@ -705,7 +705,7 @@ function setCaptured(url){
 function updateAiState(){
   const on = $('#aiKey').value.trim().length>0;
   $('#aiState').innerHTML = on
-    ? 'AI recognition is <b style="color:#5cf0a6">ON</b> — your key is saved on this device, so it’s ready every time you open CardScout here.'
+    ? 'AI recognition is <b style="color:#5EEAD4">ON</b> — your key is saved on this device, so it’s ready every time you open CardScout here.'
     : 'AI recognition is <b>off</b>. Add a key to enable it.';
   $('#forgetKey').style.display = on ? 'block' : 'none';
 }
@@ -805,7 +805,7 @@ function renderResults(cards){
 function selectCard(c){
   selectedCard=c; $('#step3').classList.remove('hidden');
   { const el=$('#ebayListing'); if(el){ el.classList.add('hidden'); el.innerHTML=''; } }
-  $('#cardHead').innerHTML=`<img class="cardhead-img" src="${c.images.small}"><div><div style="font-weight:700;font-size:17px;font-family:'Chakra Petch',sans-serif">${c.name}</div><div class="muted">${c.set.name} · #${c.number}/${c.set.printedTotal||''}</div><div class="muted">${c.rarity||''} · ${c.set.releaseDate||''}</div></div>`;
+  $('#cardHead').innerHTML=`<img class="cardhead-img" src="${c.images.small}"><div><div style="font-weight:700;font-size:17px;font-family:'Space Grotesk',sans-serif">${c.name}</div><div class="muted">${c.set.name} · #${c.number}/${c.set.printedTotal||''}</div><div class="muted">${c.rarity||''} · ${c.set.releaseDate||''}</div></div>`;
   buildFinishes(c); recompute();
   const gl=$('#gradedLive'); if(gl) gl.innerHTML=''; const gd=$('#gradedDetails'); if(gd){ gd.open=false; gd.dataset.loadedFor=''; }
   window._backImg=null; if($('#gradeNote')) $('#gradeNote').textContent='';
@@ -914,6 +914,8 @@ $('#resetBtn').onclick=resetSingle;
 $('#cardShare').onclick=()=>{
   if(!selectedCard) return; const c=selectedCard;
   const text=`CardScout valuation\n${c.name} — ${c.set.name} #${c.number}\nMarket (${$('#condSel').selectedOptions[0].text}): ${$('#blendVal').textContent}\nSuggested max buy: ${$('#offerVal').textContent}\n\nvia cardscout-uk.netlify.app`;
+  const isMobile=/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  if(isMobile){ if(navigator.share){ navigator.share({title:'CardScout valuation',text}).catch(()=>{ try{ location.href='sms:?&body='+encodeURIComponent(text); }catch(e){} }); } else { try{ location.href='sms:?&body='+encodeURIComponent(text); }catch(e){} } return; }
   if(navigator.share){ navigator.share({title:'CardScout valuation',text}).catch(()=>{}); }
   else if(navigator.clipboard){ navigator.clipboard.writeText(text).then(()=>toast('Valuation copied to clipboard.')).catch(()=>toast('Copy failed — long-press to select.')); }
   else toast('Sharing not supported on this browser.');
@@ -1311,7 +1313,7 @@ $('#dealSearchBtn').onclick=async()=>{
   let html = mkt!=null ? `<div class="muted" style="margin-bottom:8px">Market value ≈ <b style="color:var(--accent)">${gbp(mkt)}</b> · bargains flagged 🔥</div>` : '<div class="muted" style="margin-bottom:8px">Couldn’t auto-match a market value — sorted by price.</div>';
   d.items.forEach(it=>{
     const pGBP=ebGBP(it.price,it.currency); let badge='';
-    if(mkt!=null && pGBP!=null){ const pct=Math.round((1-pGBP/mkt)*100); badge = pct>=25?`<span style="color:#5cf0a6;font-weight:700">🔥 ${pct}% below market</span>`: pct>0?`<span style="color:var(--muted)">${pct}% below</span>`:`<span style="color:var(--faint)">${Math.abs(pct)}% above</span>`; }
+    if(mkt!=null && pGBP!=null){ const pct=Math.round((1-pGBP/mkt)*100); badge = pct>=25?`<span style="color:#5EEAD4;font-weight:700">🔥 ${pct}% below market</span>`: pct>0?`<span style="color:var(--muted)">${pct}% below</span>`:`<span style="color:var(--faint)">${Math.abs(pct)}% above</span>`; }
     html+=`<a class="brow" href="${it.url}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">
       <img src="${it.image||''}" style="object-fit:cover"><div class="bi"><b>${it.title||''}</b><span>${badge||'eBay listing'}</span></div>
       <div class="bp"><div class="buy">${pGBP!=null?gbp(pGBP):'—'}</div><div class="mk">${it.currency&&it.currency!=='GBP'?it.currency+' '+it.price.toFixed(2):'+ p&p'}</div></div></a>`;
@@ -1399,7 +1401,7 @@ function renderScan(){
     rows+=`<div class="brow"${suspect?' style="border:1px solid rgba(255,184,107,.3)"':''}><img src="${c.images.small}"><div class="bi"><b>${c.name}${bulkTag}</b><span>${c.set.name} · #${c.number}</span>${edsel}</div><div class="bp">${cell}</div><button class="x edit" data-i="${idx}" title="fix this card">✎</button></div>`;
   });
   if(!shownCount && bulkCount){ scanState.showAll=true; return renderScan(); } // nothing but bulk → show it
-  const col=(ask!=null && confident>ask)?'#5cf0a6':'#ffd6db';
+  const col=(ask!=null && confident>ask)?'#5EEAD4':'#ffd6db';
   const verdict = ask!=null ? `Key cards ≈ <b style="color:${col}">${gbp(confident)}</b> vs asking ${gbp(ask)} — ${confident>ask?'worth a closer look':'below asking on the cards we’re sure of'}.` : `Key cards ≈ <b>${gbp(confident)}</b> (holos & rares we’re sure of).`;
   const toggle = bulkCount? `<button class="btn ghost" id="toggleBulk" style="margin:6px 0 2px">${showAll?'Hide bulk commons':'Show '+bulkCount+' bulk common(s) ≈ '+gbp(bulkVal)}</button>` : '';
   const dlbtn = `<button class="btn ghost" id="lotCsv" style="margin:6px 0 2px">⬇ Download CSV</button><button class="btn ghost" id="lotSaveBest" style="margin:6px 0 2px">★ Save to Best Lots</button>`;
@@ -1530,10 +1532,10 @@ async function runSniper(watches, out){
     const si=store.findIndex(s=>s.term===watch.term); if(si>=0){ store[si].lastHits=hits.length; store[si].lastRun=Date.now(); }
     grand+=hits.length;
     allHtml+=`<div class="vbox wide" style="margin-top:10px"><div class="lbl">🎯 ${watch.term} · ≤ ${gbp(watch.max)}</div><div class="sub" style="margin-top:3px">${hits.length? hits.length+' listing(s) at or under target':'nothing under target right now'}</div></div>`;
-    hits.slice(0,8).forEach(x=>{ const it=x.it; allHtml+=`<a class="brow" href="${it.url}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><img src="${it.image||''}" style="object-fit:cover"><div class="bi"><b>${(it.title||'').slice(0,70)}</b><span>eBay listing ›</span></div><div class="bp"><div class="buy" style="color:#5cf0a6">${gbp(x.p)}</div><div class="mk">${it.currency&&it.currency!=='CAD'?it.currency+' '+(it.price!=null?it.price.toFixed(2):''):'+ ship'}</div></div></a>`; });
+    hits.slice(0,8).forEach(x=>{ const it=x.it; allHtml+=`<a class="brow" href="${it.url}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><img src="${it.image||''}" style="object-fit:cover"><div class="bi"><b>${(it.title||'').slice(0,70)}</b><span>eBay listing ›</span></div><div class="bp"><div class="buy" style="color:#5EEAD4">${gbp(x.p)}</div><div class="mk">${it.currency&&it.currency!=='CAD'?it.currency+' '+(it.price!=null?it.price.toFixed(2):''):'+ ship'}</div></div></a>`; });
   }
   saveWatchlist(store); renderWatchlist();
-  if(out) out.innerHTML=(grand?`<div class="muted" style="margin-bottom:6px"><b style="color:#5cf0a6">${grand} deal(s)</b> at or under your targets.</div>`:'<div class="muted">No listings under your targets right now — check back later or raise a max.</div>')+allHtml;
+  if(out) out.innerHTML=(grand?`<div class="muted" style="margin-bottom:6px"><b style="color:#5EEAD4">${grand} deal(s)</b> at or under your targets.</div>`:'<div class="muted">No listings under your targets right now — check back later or raise a max.</div>')+allHtml;
   return {total:grand};
 }
 if($('#snipeRun')) $('#snipeRun').onclick=()=>runSniper(null, $('#snipeResults'));
@@ -1598,11 +1600,11 @@ async function findFlips(out){
   hits.sort((a,b)=>b.margin-a.margin);
   if(!hits.length){ out.innerHTML='<div class="muted">No 15%+ flips on the popular list right now — the market’s efficient this minute. Try again later, or use the Sniper tab to watch specific cards for you.</div>'; return; }
   const top=hits.slice(0,20);
-  out.innerHTML=`<div class="muted" style="margin-bottom:8px"><b style="color:#5cf0a6">${hits.length} flip(s)</b> with 15%+ net margin (after ~13% fees). Ranked by margin.</div>`+
+  out.innerHTML=`<div class="muted" style="margin-bottom:8px"><b style="color:#5EEAD4">${hits.length} flip(s)</b> with 15%+ net margin (after ~13% fees). Ranked by margin.</div>`+
     top.map(h=>`<a class="brow" href="${h.it.url}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">
       <img src="${h.it.image||(h.card.images&&h.card.images.small)||''}" style="object-fit:cover">
-      <div class="bi"><b>${(h.it.title||'').slice(0,64)}</b><span>buy ${gbp(h.buy)} · market ≈ ${gbp(h.market)} · <b style="color:#5cf0a6">+${gbp(h.profit)} (${Math.round(h.margin*100)}%)</b></span></div>
-      <div class="bp"><div class="buy" style="color:#5cf0a6">+${Math.round(h.margin*100)}%</div><div class="mk">net</div></div></a>`).join('');
+      <div class="bi"><b>${(h.it.title||'').slice(0,64)}</b><span>buy ${gbp(h.buy)} · market ≈ ${gbp(h.market)} · <b style="color:#5EEAD4">+${gbp(h.profit)} (${Math.round(h.margin*100)}%)</b></span></div>
+      <div class="bp"><div class="buy" style="color:#5EEAD4">+${Math.round(h.margin*100)}%</div><div class="mk">net</div></div></a>`).join('');
 }
 if($('#flipFindBtn')) $('#flipFindBtn').onclick=()=>findFlips($('#flipResults'));
 
@@ -1615,7 +1617,7 @@ function renderBoxDeals(){
   if(cnt) cnt.textContent=deals.length?deals.length+' found':'';
   if(!deals.length){ if(meta) meta.textContent='No box deals yet. The scout writes in-stock sealed finds here after it runs (Canada + US retailers & eBay).'; list.innerHTML=''; return; }
   const upd=localStorage.getItem('cardscout_boxdeals_upd'); if(meta) meta.innerHTML='In-stock sealed boxes/ETBs at good prices'+(upd?` · updated ${new Date(+upd).toLocaleDateString()}`:'')+' · tap to open the store page.';
-  list.innerHTML=deals.map(d=>{ const m=boxMargin(d); const col=(m!=null&&m>=0.15)?'#5cf0a6':(m!=null&&m<0?'#ffd6db':'#ffe08a');
+  list.innerHTML=deals.map(d=>{ const m=boxMargin(d); const col=(m!=null&&m>=0.15)?'#5EEAD4':(m!=null&&m<0?'#ffd6db':'#ffe08a');
     const price=d.price!=null?((d.currency&&d.currency!=='CAD')?d.currency+' ':'')+gbp(d.price):'—';
     return `<a class="brow" ${d.url?`href="${d.url}" target="_blank" rel="noopener"`:''} style="text-decoration:none;color:inherit">
       <div class="bi" style="flex:1"><b>${d.product||''}${d.inStock===false?' <span style="font-size:9px;color:#ffb86b;font-weight:700">out of stock</span>':''}</b><span>${d.retailer||''}${d.region?' · '+d.region:''} · ${price}${d.ev!=null?` · resale/EV ≈ ${gbp(d.ev)}`:''}</span></div>
@@ -1658,7 +1660,7 @@ if($('#openSettingsLink')) $('#openSettingsLink').onclick=(e)=>{ e.preventDefaul
 (function(){ const l=$('#locInput'); if(!l) return; try{ l.value=localStorage.getItem('cs_loc')||''; }catch(e){} l.oninput=()=>{ try{ localStorage.setItem('cs_loc',(l.value||'').trim()); }catch(e){} }; })();
 window.cardscoutLocation=function(){ try{ return localStorage.getItem('cs_loc')||''; }catch(e){ return ''; } };
 // Visible build stamp so you can confirm you're on the latest version
-var BUILD='2026-07-04 · v18';
+var BUILD='2026-07-04 · v19 teal';
 (function(){ var e=document.getElementById('buildStamp'); if(e) e.textContent='Build '+BUILD; })();
 async function svcOn(url){ try{ const r=await fetch(url); const d=await r.json(); return !!d.enabled; }catch(e){ return false; } }
 function svcRow(name,desc,on){ return `<div class="setrow"><span class="dot2 ${on?'on':'off'}"></span><div class="si"><div class="st">${name}</div><div class="sd">${desc}</div></div></div>`; }
