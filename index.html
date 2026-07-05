@@ -669,7 +669,7 @@ function applyMode(){
   if(mode==='sealed'){ $('#hintText').textContent='Photo a sealed pack/box, or type the product name below.'; renderBoxDeals(); pullBoxDeals(); }
   if(mode==='deals'){ $('#hintText').textContent='Hunt eBay for underpriced singles, or paste a lot listing to scan its photos for hidden gems.'; $('#dealsStep').classList.remove('hidden'); }
   if(mode==='lots'){ $('#hintText').textContent='Lots your daily scout found and valued — ranked by profit. Export the CSV to fill your flip tracker.'; $('#lotsStep').classList.remove('hidden'); renderBestLots(); pullBestLots().then(ok=>{ if(ok) renderBestLots(); }); }
-  if(mode==='dash'){ $('#hintText').textContent='Live view of what your background agents are finding \u2014 lots, box deals and local leads.'; $('#dashStep').classList.remove('hidden'); renderDashboard(); Promise.all([pullBestLots(),pullBoxDeals()]).then(()=>renderDashboard()); }
+  if(mode==='dash'){ $('#hintText').textContent='Live view of what your background agents are finding \u2014 lots, box deals and local leads.'; $('#dashStep').classList.remove('hidden'); renderDashboard(); Promise.all([pullBestLots(),pullBoxDeals(),pullLocalHunt()]).then(()=>renderDashboard()); }
 }
 
 // ---------- CAMERA ----------
@@ -1695,6 +1695,9 @@ function renderDashboard(){
   boxes.slice().sort((a,b)=>((boxMargin(b)==null?-1:boxMargin(b))-(boxMargin(a)==null?-1:boxMargin(a)))).slice(0,3).forEach(d=>{ const m=boxMargin(d);
     feed.push('<a class="brow" '+(d.url?'href="'+d.url+'" target="_blank" rel="noopener"':'')+' style="text-decoration:none;color:inherit"><div class="bi" style="flex:1"><b>'+(d.product||'Sealed')+'</b><span>'+(d.retailer||'')+' · '+(d.price!=null?gbp(d.price):'—')+'</span></div><div class="bp"><div class="buy" style="color:#5EEAD4">'+(m!=null?(m>0?'+':'')+Math.round(m*100)+'%':'')+'</div><div class="mk">box</div></div></a>');
   });
+  hunt.slice(0,6).forEach(h=>{ const pr=(h.price==null||h.price==='')?'ask':((h.currency&&h.currency!=='CAD')?h.currency+' ':'')+(typeof h.price==='number'?gbp(h.price):h.price);
+    feed.push('<a class="brow" '+(h.url?'href="'+h.url+'" target="_blank" rel="noopener"':'')+' style="text-decoration:none;color:inherit"><div class="bi" style="flex:1"><b>'+(h.title||'Local lot')+'</b><span>'+(h.source||'local')+(h.location?' · '+h.location:'')+' · '+pr+'</span></div><div class="bp"><div class="buy" style="color:#7dd3fc">LOCAL</div><div class="mk">'+(h.source||'')+'</div></div></a>');
+  });
   html+='<h4 style="margin:16px 0 8px;font-size:13px;color:#c8d6e5;letter-spacing:.03em">Latest finds</h4>';
   html+= feed.length? feed.join('') : '<div class="muted" style="font-size:13px">No finds yet — your scouts populate this as they run. Check the Best lots and Pack / box tabs, or run the flip finder below.</div>';
   html+='<h4 style="margin:18px 0 8px;font-size:13px;color:#c8d6e5;letter-spacing:.03em">Your agents</h4>';
@@ -1706,8 +1709,9 @@ function renderDashboard(){
   wrap.innerHTML=html;
   const fb=$('#dashFlipBtn'); if(fb) fb.onclick=()=>findFlips($('#dashFlipResults'));
 }
-window.cardscoutSetLocalHunt=function(arr){ const a=Array.isArray(arr)?arr.slice(0,60):[]; try{localStorage.setItem('cardscout_localhunt',JSON.stringify(a));localStorage.setItem('cardscout_localhunt_upd',String(Date.now()));}catch(e){} try{if(mode==='dash')renderDashboard();}catch(e){} return a.length; };
-if($('#dashRefresh')) $('#dashRefresh').onclick=()=>{ Promise.all([pullBestLots(),pullBoxDeals()]).then(()=>renderDashboard()); };
+async function pullLocalHunt(){ try{ const r=await fetch('/.netlify/functions/localhunt'); const d=await r.json(); if(d&&Array.isArray(d.leads)){ localStorage.setItem('cardscout_localhunt',JSON.stringify(d.leads)); if(d.updated) localStorage.setItem('cardscout_localhunt_upd',String(d.updated)); } }catch(e){} }
+window.cardscoutSetLocalHunt=function(arr){ const a=Array.isArray(arr)?arr.slice(0,60):[]; try{localStorage.setItem('cardscout_localhunt',JSON.stringify(a));localStorage.setItem('cardscout_localhunt_upd',String(Date.now()));}catch(e){} try{ fetch('/.netlify/functions/localhunt',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({leads:a})}); }catch(e){} try{if(mode==='dash')renderDashboard();}catch(e){} return a.length; };
+if($('#dashRefresh')) $('#dashRefresh').onclick=()=>{ Promise.all([pullBestLots(),pullBoxDeals(),pullLocalHunt()]).then(()=>renderDashboard()); };
 
 
 // ---------- SETTINGS + LOGIN ----------
@@ -1737,7 +1741,7 @@ if($('#openSettingsLink')) $('#openSettingsLink').onclick=(e)=>{ e.preventDefaul
 (function(){ const l=$('#locInput'); if(!l) return; try{ l.value=localStorage.getItem('cs_loc')||''; }catch(e){} l.oninput=()=>{ try{ localStorage.setItem('cs_loc',(l.value||'').trim()); }catch(e){} }; })();
 window.cardscoutLocation=function(){ try{ return localStorage.getItem('cs_loc')||''; }catch(e){ return ''; } };
 // Visible build stamp so you can confirm you're on the latest version
-var BUILD='2026-07-05 · v28';
+var BUILD='2026-07-05 · v29';
 (function(){ var e=document.getElementById('buildStamp'); if(e) e.textContent='Build '+BUILD; })();
 async function svcOn(url){ try{ const r=await fetch(url); const d=await r.json(); return !!d.enabled; }catch(e){ return false; } }
 function svcRow(name,desc,on){ return `<div class="setrow"><span class="dot2 ${on?'on':'off'}"></span><div class="si"><div class="st">${name}</div><div class="sd">${desc}</div></div></div>`; }
