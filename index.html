@@ -269,6 +269,7 @@
   <!-- STEP 1: CAPTURE -->
   <div class="panel" id="step1">
     <div class="modes" id="modes">
+      <button class="mode" data-mode="dash"><span class="mi"><svg class="ic" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg></span>Dashboard</button>
       <button class="mode on" data-mode="single"><span class="mi"><svg class="ic" viewBox="0 0 24 24"><rect x="5" y="3.5" width="14" height="17" rx="2.5"/><path d="M9 8h6M9 12h6"/></svg></span>Single card</button>
       <button class="mode" data-mode="multi"><span class="mi"><svg class="ic" viewBox="0 0 24 24"><rect x="8.5" y="6" width="11" height="14.5" rx="2.2"/><path d="M5 17V6.2a2 2 0 0 1 2-2h8.5"/></svg></span>Multiple cards</button>
       <button class="mode" data-mode="sealed"><span class="mi"><svg class="ic" viewBox="0 0 24 24"><path d="M21 8.5l-9-5-9 5v7l9 5 9-5z"/><path d="M3 8.5l9 5 9-5M12 13.5V21"/></svg></span>Pack / box</button>
@@ -505,6 +506,15 @@
     </div>
   </div>
 
+  <div class="panel hidden" id="dashStep">
+    <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px">
+      <h3 style="margin:0;font-size:17px">Agent dashboard</h3>
+      <button class="btn ghost" id="dashRefresh" style="padding:6px 12px">&#8635;</button>
+    </div>
+    <div class="muted" style="margin-bottom:12px">What your buying &amp; selling agents are finding for you, round the clock.</div>
+    <div id="dashBody"></div>
+  </div>
+
   <p class="disclaimer">
     Single &amp; multi-card prices are live from TCGplayer (US) &amp; Cardmarket (EU) via the Pokémon TCG API, converted to GBP.
     Sealed packs/boxes link to live eBay sold listings &amp; TCGplayer. Treat suggestions as a guide — final value depends on condition, grading &amp; local demand.
@@ -565,7 +575,7 @@ document.querySelectorAll('.mode').forEach(b=>{
     b.classList.add('on'); mode=b.dataset.mode; applyMode();
   };
 });
-function hideAll(){ ['step2','step3','batchStep','sealedStep','dealsStep','lotsStep'].forEach(id=>{const e=$('#'+id); if(e) e.classList.add('hidden');}); }
+function hideAll(){ ['step2','step3','batchStep','sealedStep','dealsStep','lotsStep','dashStep'].forEach(id=>{const e=$('#'+id); if(e) e.classList.add('hidden');}); }
 // ---------- BEST LOTS (populated by the daily scout via localStorage; readable in-app) ----------
 function loadBestLots(){ try{ return JSON.parse(localStorage.getItem('cs_bestlots')||'[]'); }catch(e){ return []; } }
 // Pull the shared list from the backend so it syncs across devices (laptop ↔ phone).
@@ -659,6 +669,7 @@ function applyMode(){
   if(mode==='sealed'){ $('#hintText').textContent='Photo a sealed pack/box, or type the product name below.'; renderBoxDeals(); pullBoxDeals(); }
   if(mode==='deals'){ $('#hintText').textContent='Hunt eBay for underpriced singles, or paste a lot listing to scan its photos for hidden gems.'; $('#dealsStep').classList.remove('hidden'); }
   if(mode==='lots'){ $('#hintText').textContent='Lots your daily scout found and valued — ranked by profit. Export the CSV to fill your flip tracker.'; $('#lotsStep').classList.remove('hidden'); renderBestLots(); pullBestLots().then(ok=>{ if(ok) renderBestLots(); }); }
+  if(mode==='dash'){ $('#hintText').textContent='Live view of what your background agents are finding \u2014 lots, box deals and local leads.'; $('#dashStep').classList.remove('hidden'); renderDashboard(); Promise.all([pullBestLots(),pullBoxDeals()]).then(()=>renderDashboard()); }
 }
 
 // ---------- CAMERA ----------
@@ -1660,6 +1671,45 @@ window.cardscoutSetBoxDeals=async function(arr){ const a=Array.isArray(arr)?arr.
 window.cardscoutAddBoxDeal=function(o){ let a=[]; try{a=JSON.parse(localStorage.getItem('cardscout_boxdeals')||'[]');}catch(e){} a=a.filter(x=>!(o.url&&x.url===o.url)); a.push(o); return window.cardscoutSetBoxDeals(a); };
 if($('#boxDealsRefresh')) $('#boxDealsRefresh').onclick=pullBoxDeals;
 
+// ---------- AGENT DASHBOARD ----------
+function csWhen(ts){ if(!ts) return ''; const d=new Date(+ts); const h=(Date.now()-d)/36e5; if(h<1) return 'just now'; if(h<24) return Math.round(h)+'h ago'; return d.toLocaleDateString(); }
+function dashTile(val,label,sub){ return '<div style="flex:1;min-width:96px;background:#0F1830;border:1px solid #22304A;border-radius:14px;padding:12px 14px"><div style="font-size:24px;font-weight:800;color:#5EEAD4;font-family:\'Space Grotesk\',sans-serif;line-height:1">'+val+'</div><div style="font-size:10.5px;color:#8aa5c0;letter-spacing:.04em;text-transform:uppercase;margin-top:4px">'+label+'</div>'+(sub?'<div style="font-size:10px;color:#6b7a90;margin-top:2px">'+sub+'</div>':'')+'</div>'; }
+function agentRow(name,desc,when,live){ const dot=live?'#2DD4BF':'#6b7a90'; return '<div class="brow" style="cursor:default"><div class="bi" style="flex:1"><b><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+dot+';margin-right:7px"></span>'+name+'</b><span>'+desc+'</span></div><div class="bp"><div class="mk">'+when+'</div></div></div>'; }
+function renderDashboard(){
+  const wrap=$('#dashBody'); if(!wrap) return;
+  let lots=[]; try{lots=JSON.parse(localStorage.getItem('cs_bestlots')||'[]');}catch(e){}
+  let boxes=[]; try{boxes=JSON.parse(localStorage.getItem('cardscout_boxdeals')||'[]');}catch(e){}
+  let hunt=[]; try{hunt=JSON.parse(localStorage.getItem('cardscout_localhunt')||'[]');}catch(e){}
+  const boxUpd=localStorage.getItem('cardscout_boxdeals_upd'); const huntUpd=localStorage.getItem('cardscout_localhunt_upd');
+  const buyLots=lots.filter(L=>L&&(L.verdict==='BUY'||(L.net!=null&&L.net>0)));
+  let html='';
+  html+='<div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:14px">';
+  html+=dashTile(lots.length,'Lots found',buyLots.length+' worth buying');
+  html+=dashTile(boxes.length,'Box deals',boxUpd?csWhen(boxUpd):'—');
+  html+=dashTile(hunt.length,'Local leads',huntUpd?csWhen(huntUpd):'in your folder');
+  html+='</div>';
+  const feed=[];
+  buyLots.slice().sort((a,b)=>(b.net||0)-(a.net||0)).slice(0,4).forEach(L=>{
+    feed.push('<a class="brow" '+(L.url?'href="'+L.url+'" target="_blank" rel="noopener"':'')+' style="text-decoration:none;color:inherit"><div class="bi" style="flex:1"><b>'+(L.title||'Lot')+'</b><span>eBay lot · ask '+gbp(L.ask||0)+(L.net!=null?' · net '+(L.net>0?'+':'')+gbp(L.net):'')+'</span></div><div class="bp"><div class="buy" style="color:#5EEAD4">'+(L.verdict||'BUY')+'</div><div class="mk">open</div></div></a>');
+  });
+  boxes.slice().sort((a,b)=>((boxMargin(b)==null?-1:boxMargin(b))-(boxMargin(a)==null?-1:boxMargin(a)))).slice(0,3).forEach(d=>{ const m=boxMargin(d);
+    feed.push('<a class="brow" '+(d.url?'href="'+d.url+'" target="_blank" rel="noopener"':'')+' style="text-decoration:none;color:inherit"><div class="bi" style="flex:1"><b>'+(d.product||'Sealed')+'</b><span>'+(d.retailer||'')+' · '+(d.price!=null?gbp(d.price):'—')+'</span></div><div class="bp"><div class="buy" style="color:#5EEAD4">'+(m!=null?(m>0?'+':'')+Math.round(m*100)+'%':'')+'</div><div class="mk">box</div></div></a>');
+  });
+  html+='<h4 style="margin:16px 0 8px;font-size:13px;color:#c8d6e5;letter-spacing:.03em">Latest finds</h4>';
+  html+= feed.length? feed.join('') : '<div class="muted" style="font-size:13px">No finds yet — your scouts populate this as they run. Check the Best lots and Pack / box tabs, or run the flip finder below.</div>';
+  html+='<h4 style="margin:18px 0 8px;font-size:13px;color:#c8d6e5;letter-spacing:.03em">Your agents</h4>';
+  html+=agentRow('Local scout · Kijiji + Facebook','Hunts local Pokémon lots near you · writes a hunt brief to your Card Scout folder','9am &amp; 6pm',true);
+  html+=agentRow('Lot scout · eBay','Finds &amp; values underpriced multi-card lots → Best lots tab','daily',true);
+  html+=agentRow('Box scout · sealed','In-stock sealed boxes/ETBs under resale → Pack / box tab','daily',true);
+  html+='<h4 style="margin:18px 0 8px;font-size:13px;color:#c8d6e5;letter-spacing:.03em">Run the flip finder</h4>';
+  html+='<button class="btn" id="dashFlipBtn" style="width:100%">Scan the market for underpriced singles</button><div id="dashFlipResults" style="margin-top:10px"></div>';
+  wrap.innerHTML=html;
+  const fb=$('#dashFlipBtn'); if(fb) fb.onclick=()=>findFlips($('#dashFlipResults'));
+}
+window.cardscoutSetLocalHunt=function(arr){ const a=Array.isArray(arr)?arr.slice(0,60):[]; try{localStorage.setItem('cardscout_localhunt',JSON.stringify(a));localStorage.setItem('cardscout_localhunt_upd',String(Date.now()));}catch(e){} try{if(mode==='dash')renderDashboard();}catch(e){} return a.length; };
+if($('#dashRefresh')) $('#dashRefresh').onclick=()=>{ Promise.all([pullBestLots(),pullBoxDeals()]).then(()=>renderDashboard()); };
+
+
 // ---------- SETTINGS + LOGIN ----------
 function openSettings(){
   ['step1','step2','step3','batchStep','sealedStep','dealsStep'].forEach(id=>{ const e=$('#'+id); if(e) e.classList.add('hidden'); });
@@ -1687,7 +1737,7 @@ if($('#openSettingsLink')) $('#openSettingsLink').onclick=(e)=>{ e.preventDefaul
 (function(){ const l=$('#locInput'); if(!l) return; try{ l.value=localStorage.getItem('cs_loc')||''; }catch(e){} l.oninput=()=>{ try{ localStorage.setItem('cs_loc',(l.value||'').trim()); }catch(e){} }; })();
 window.cardscoutLocation=function(){ try{ return localStorage.getItem('cs_loc')||''; }catch(e){ return ''; } };
 // Visible build stamp so you can confirm you're on the latest version
-var BUILD='2026-07-04 · v27';
+var BUILD='2026-07-05 · v28';
 (function(){ var e=document.getElementById('buildStamp'); if(e) e.textContent='Build '+BUILD; })();
 async function svcOn(url){ try{ const r=await fetch(url); const d=await r.json(); return !!d.enabled; }catch(e){ return false; } }
 function svcRow(name,desc,on){ return `<div class="setrow"><span class="dot2 ${on?'on':'off'}"></span><div class="si"><div class="st">${name}</div><div class="sd">${desc}</div></div></div>`; }
