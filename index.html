@@ -574,7 +574,7 @@ async function pullBestLots(){ try{ const r=await fetch('/.netlify/functions/lot
 window.cardscoutSetLots=function(arr){ arr=arr||[]; try{ localStorage.setItem('cs_bestlots', JSON.stringify(arr)); }catch(e){} try{ fetch('/.netlify/functions/lots',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lots:arr})}); }catch(e){} try{ if(mode==='lots') renderBestLots(); }catch(e){} return arr.length; };
 window.cardscoutAddLot=function(o){ let a=loadBestLots().filter(x=>!(o.url&&x.url&&x.url===o.url)); a.push(o); a=a.slice(-60); return window.cardscoutSetLots(a); };
 // recompute a lot's totals from its card breakdown (verified cards count toward the confident total)
-function recalcLot(L){ if(!L.cards) return L; const allIn=L.cards.reduce((s,c)=>s+(+c.value||0),0); const conf=L.cards.filter(c=>!c.verify).reduce((s,c)=>s+(+c.value||0),0); L.resale=allIn; L.net=conf*0.86-(+L.asking||0); L.roi=(+L.asking)?L.net/L.asking*100:null; L.verdict=L.net>2?'BUY':(L.net>-Math.max(2,(+L.asking||0)*0.15)?'WATCH':'PASS'); return L; }
+function recalcLot(L){ if(!L.cards) return L; const allIn=L.cards.reduce((s,c)=>s+(+c.value||0),0); const conf=L.cards.filter(c=>!c.verify).reduce((s,c)=>s+(+c.value||0),0); const ask=+L.asking||0; L.resale=allIn; L.net=conf*0.86-ask; L.roi=ask?L.net/ask*100:null; L.suspect=ask>0&&conf>ask*8; L.verdict=L.suspect?'VERIFY':(L.net>2?'BUY':(L.net>-Math.max(2,ask*0.15)?'WATCH':'PASS')); return L; }
 function lotKey(L){ return L.url || ((L.title||'')+'|'+(L.asking||'')); }
 function renderBestLots(){
   const lots=loadBestLots().slice().sort((a,b)=>((b.net==null?-1e9:b.net)-(a.net==null?-1e9:a.net)));
@@ -592,7 +592,7 @@ function renderBestLots(){
     }).join('');
     return `<div style="border:1px solid var(--line-strong);border-radius:14px;margin-bottom:10px;overflow:hidden">
       <div class="lothead" data-i="${li}" style="display:flex;gap:10px;align-items:flex-start;padding:12px;cursor:pointer">
-        <div class="bi" style="flex:1"><b>${(L.title||'').slice(0,80)}</b><span>Asking ${gbp(L.asking||0)} · value ≈ ${gbp(L.resale!=null?L.resale:0)}${L.roi!=null?` · ROI ${Math.round(L.roi)}%`:''} · ${(L.cards||[]).length} cards ▾</span>${L.notes?`<span style="color:var(--faint);font-size:11px">${(L.notes||'').slice(0,120)}</span>`:''}</div>
+        <div class="bi" style="flex:1"><b>${(L.title||'').slice(0,80)}</b><span>Asking ${gbp(L.asking||0)} · value ≈ ${gbp(L.resale!=null?L.resale:0)}${L.roi!=null?` · ROI ${Math.round(L.roi)}%`:''} · ${(L.cards||[]).length} cards ▾</span>${L.suspect?`<span style="color:#ffb86b;font-size:11px;font-weight:600;display:block;margin-top:2px">Value looks too high vs the ${gbp(L.asking||0)} asking — the scan likely matched common cards to their pricey alt-art versions. Check the cards before buying.</span>`:''}${L.notes?`<span style="color:var(--faint);font-size:11px">${(L.notes||'').slice(0,120)}</span>`:''}</div>
         <div class="bp"><div class="buy" style="color:${col}">${L.net!=null?gbp(L.net):'—'}</div><div class="mk" style="color:${col};font-weight:700">${L.verdict||'Watch'}</div></div>
       </div>
       <div class="lotbreak hidden" data-i="${li}" style="border-top:1px solid var(--line)">
@@ -1661,7 +1661,7 @@ if($('#openSettingsLink')) $('#openSettingsLink').onclick=(e)=>{ e.preventDefaul
 (function(){ const l=$('#locInput'); if(!l) return; try{ l.value=localStorage.getItem('cs_loc')||''; }catch(e){} l.oninput=()=>{ try{ localStorage.setItem('cs_loc',(l.value||'').trim()); }catch(e){} }; })();
 window.cardscoutLocation=function(){ try{ return localStorage.getItem('cs_loc')||''; }catch(e){ return ''; } };
 // Visible build stamp so you can confirm you're on the latest version
-var BUILD='2026-07-04 · v22';
+var BUILD='2026-07-04 · v23';
 (function(){ var e=document.getElementById('buildStamp'); if(e) e.textContent='Build '+BUILD; })();
 async function svcOn(url){ try{ const r=await fetch(url); const d=await r.json(); return !!d.enabled; }catch(e){ return false; } }
 function svcRow(name,desc,on){ return `<div class="setrow"><span class="dot2 ${on?'on':'off'}"></span><div class="si"><div class="st">${name}</div><div class="sd">${desc}</div></div></div>`; }
