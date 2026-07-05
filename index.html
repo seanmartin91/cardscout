@@ -906,10 +906,12 @@ async function ebayMarketValue(name,num){
     const q=(name+' '+(num||'')).trim(); const mkt=(CUR_DEFS[CUR]&&CUR_DEFS[CUR].mkt)||'EBAY_CA';
     const r=await fetch('/.netlify/functions/ebay?mode=search&limit=24&sort=best&mkt='+mkt+'&q='+encodeURIComponent(q));
     const d=await r.json(); if(!d.enabled||!d.items) return null;
-    const junk=/\bpsa\b|\bcgc\b|\bbgs\b|\bace\b|graded|slab|\blot\b|bundle|proxy|custom|\bfake\b|repro|jumbo|oversized|sticker|\bcoin\b|choose your|pick your|playset/i;
+    const junk=/\bpsa\b|\bcgc\b|\bbgs\b|\bace\b|\bsgc\b|graded|gem\s?mint|\bslab|\blot\b|bundle|proxy|custom|\bfake\b|repro|jumbo|oversized|sticker|\bcoin\b|choose your|pick your|playset|error card/i;
     const prices=d.items.filter(it=>!junk.test(it.title||'')).map(it=>conv(it.price,it.currency)).filter(v=>v>0).sort((a,b)=>a-b);
     if(prices.length<3) return null;
-    return Math.round(prices[Math.floor(prices.length/2)]*100)/100;
+    // Use the lower-third (~35th percentile), not the median: eBay active listings skew high with
+    // aspirational asks, so the lower band is closer to the realistic transaction/buy price.
+    return Math.round(prices[Math.floor(prices.length*0.35)]*100)/100;
   }catch(e){ return null; }
 }
 function recompute(){
@@ -1685,7 +1687,7 @@ if($('#openSettingsLink')) $('#openSettingsLink').onclick=(e)=>{ e.preventDefaul
 (function(){ const l=$('#locInput'); if(!l) return; try{ l.value=localStorage.getItem('cs_loc')||''; }catch(e){} l.oninput=()=>{ try{ localStorage.setItem('cs_loc',(l.value||'').trim()); }catch(e){} }; })();
 window.cardscoutLocation=function(){ try{ return localStorage.getItem('cs_loc')||''; }catch(e){ return ''; } };
 // Visible build stamp so you can confirm you're on the latest version
-var BUILD='2026-07-04 · v26';
+var BUILD='2026-07-04 · v27';
 (function(){ var e=document.getElementById('buildStamp'); if(e) e.textContent='Build '+BUILD; })();
 async function svcOn(url){ try{ const r=await fetch(url); const d=await r.json(); return !!d.enabled; }catch(e){ return false; } }
 function svcRow(name,desc,on){ return `<div class="setrow"><span class="dot2 ${on?'on':'off'}"></span><div class="si"><div class="st">${name}</div><div class="sd">${desc}</div></div></div>`; }
