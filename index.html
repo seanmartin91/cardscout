@@ -1008,7 +1008,7 @@ function resetSingle(){ selectedCard=null; capturedDataURL=null; $('#step3').cla
 
 // ---------- MULTI ----------
 const isHoloCard = c => /holo/i.test(c.rarity||'') || finishKeysOf(c).some(k=>/holofoil/i.test(k)&&!/reverse/i.test(k));
-async function findOne(name,set,num,era,holo,total){
+async function findOne(name,set,num,era,holo,total,cheap){
   const order = era==='vintage' ? 'set.releaseDate' : '-set.releaseDate'; // vintage -> oldest printing first
   const numStr=String(num||''); const numPart=numStr.split('/')[0].trim();
   // denominator ("/102") pins the set: a card printed x/102 is Base Set etc. Match on the set's printed total.
@@ -1033,15 +1033,18 @@ async function findOne(name,set,num,era,holo,total){
   if(!cands.length) cands = await fetchCards(`name:"${name}"`);
   if(!cands.length){ const r=await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent('name:"'+name+'"')}&pageSize=12&orderBy=${order}`); const j=await r.json(); cands=(j.data||[]); }
   if(!cands.length) return null;
-  // 3) Holo-aware: a non-holo common should never resolve to the pricey holo of the same name (and vice-versa).
+  // 3) Holo-aware + cheap-bias: in a bulk lot with no readable number/total, a card is almost
+  //    always the common printing, not the pricey alt-art. Pick the cheapest matching printing.
+  const priceOf=c=>{ try{ const k=finishKeysOf(c); return priceCard(c, k.length?preferFinish(k):'_cm').blendNM || 1e9; }catch(e){ return 1e9; } };
+  const pick = arr => (cheap && !dt && !numPart && arr.length>1) ? arr.slice().sort((a,b)=>priceOf(a)-priceOf(b))[0] : arr[0];
   if(typeof holo==='boolean'){
     const match = cands.filter(c=>isHoloCard(c)===holo);
-    if(match.length) return match[0];
+    if(match.length) return pick(match);
     const parts2=[`name:"${name}"`]; if(set) parts2.push(`set.name:"${set}"`);
     const alt=(await fetchCards(parts2.join(' '),20)).filter(c=>isHoloCard(c)===holo);
-    if(alt.length) return alt[0];
+    if(alt.length) return pick(alt);
   }
-  return cands[0];
+  return pick(cands);
 }
 async function runMulti(){
   $('#batchEmpty').classList.add('hidden'); $('#batchControls').classList.add('hidden'); $('#batchList').innerHTML='';
@@ -1361,7 +1364,7 @@ async function scanImages(imgs, ask, out, ctx){
     if(!list.length){ out.innerHTML='<div class="muted"><b>Couldn’t read this lot.</b> These photos pack in hundreds of small, low-res cards — too dense to identify card-by-card (a person couldn’t either). CardScout is most accurate on lots where the cards are clearly visible, or on the few <b>chase cards</b> that carry the value. For a random bulk lot like this, treat it as bulk: value it per-card (roughly $0.05–0.15 each for modern commons/uncommons) plus any visible holos/full-arts. Tip: zoom the listing to a standout card and scan just that, or use Single mode.</div>'; return; }
     const t=$('#lotScanTxt'); if(t) t.textContent=`Pricing ${list.length} cards…`;
     // Price all cards in parallel
-    const settled=await Promise.all(list.map(async f=>{ try{ const c=await findOne(cleanCardName(f.name), f.set||'', f.number||'', f.era, typeof f.holo==='boolean'?f.holo:undefined, f.total||''); if(c){ const keys=finishKeysOf(c); return {card:c, finishKey: keys.length?preferFinish(keys):'_cm', guessed: !f.number && !f.total}; } }catch(e){} return null; }));
+    const settled=await Promise.all(list.map(async f=>{ try{ const c=await findOne(cleanCardName(f.name), f.set||'', f.number||'', f.era, typeof f.holo==='boolean'?f.holo:undefined, f.total||'', true); if(c){ const keys=finishKeysOf(c); return {card:c, finishKey: keys.length?preferFinish(keys):'_cm', guessed: !f.number && !f.total}; } }catch(e){} return null; }));
     const items=settled.filter(Boolean);
     if(!items.length){ out.innerHTML='<div class="muted">Couldn’t price any of the detected cards. Try again or use Single mode.</div>'; return; }
     // Self-verify: show the AI the photos + our matched list and ask which don't actually appear.
@@ -1661,7 +1664,7 @@ if($('#openSettingsLink')) $('#openSettingsLink').onclick=(e)=>{ e.preventDefaul
 (function(){ const l=$('#locInput'); if(!l) return; try{ l.value=localStorage.getItem('cs_loc')||''; }catch(e){} l.oninput=()=>{ try{ localStorage.setItem('cs_loc',(l.value||'').trim()); }catch(e){} }; })();
 window.cardscoutLocation=function(){ try{ return localStorage.getItem('cs_loc')||''; }catch(e){ return ''; } };
 // Visible build stamp so you can confirm you're on the latest version
-var BUILD='2026-07-04 · v23';
+var BUILD='2026-07-04 · v24';
 (function(){ var e=document.getElementById('buildStamp'); if(e) e.textContent='Build '+BUILD; })();
 async function svcOn(url){ try{ const r=await fetch(url); const d=await r.json(); return !!d.enabled; }catch(e){ return false; } }
 function svcRow(name,desc,on){ return `<div class="setrow"><span class="dot2 ${on?'on':'off'}"></span><div class="si"><div class="st">${name}</div><div class="sd">${desc}</div></div></div>`; }
