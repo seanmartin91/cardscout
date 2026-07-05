@@ -1599,12 +1599,13 @@ async function findFlips(out){
   if(gated && !hits.length){ out.innerHTML=ebayGate(); return; }
   hits.sort((a,b)=>b.margin-a.margin);
   if(!hits.length){ out.innerHTML='<div class="muted">No 15%+ flips on the popular list right now — the market’s efficient this minute. Try again later, or use the Sniper tab to watch specific cards for you.</div>'; return; }
-  const top=hits.slice(0,20);
-  out.innerHTML=`<div class="muted" style="margin-bottom:8px"><b style="color:#5EEAD4">${hits.length} flip(s)</b> with 15%+ net margin (after ~13% fees). Ranked by margin.</div>`+
-    top.map(h=>`<a class="brow" href="${h.it.url}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">
+  const top=hits.slice(0,20); window._flips=top;
+  out.innerHTML=`<div class="muted" style="margin-bottom:8px"><b style="color:#5EEAD4">${hits.length} flip(s)</b> with 15%+ net margin (after ~13% fees). Tap a card to value &amp; list it; use “buy on eBay” to purchase.</div>`+
+    top.map((h,fi)=>`<div class="brow fliprow" data-fi="${fi}" style="cursor:pointer">
       <img src="${h.it.image||(h.card.images&&h.card.images.small)||''}" style="object-fit:cover">
-      <div class="bi"><b>${(h.it.title||'').slice(0,64)}</b><span>buy ${gbp(h.buy)} · market ≈ ${gbp(h.market)} · <b style="color:#5EEAD4">+${gbp(h.profit)} (${Math.round(h.margin*100)}%)</b></span></div>
-      <div class="bp"><div class="buy" style="color:#5EEAD4">+${Math.round(h.margin*100)}%</div><div class="mk">net</div></div></a>`).join('');
+      <div class="bi"><b>${(h.it.title||'').slice(0,64)}</b><span>buy ${gbp(h.buy)} · market ≈ ${gbp(h.market)} · <b style="color:#5EEAD4">+${gbp(h.profit)} (${Math.round(h.margin*100)}%)</b> · <a href="${h.it.url}" target="_blank" rel="noopener" class="flipbuy" style="color:var(--accent);font-weight:700">buy on eBay ›</a></span></div>
+      <div class="bp"><div class="buy" style="color:#5EEAD4">+${Math.round(h.margin*100)}%</div><div class="mk">net</div></div></div>`).join('');
+  out.querySelectorAll('.fliprow').forEach(r=>{ r.onclick=(e)=>{ if(e.target.closest('.flipbuy')) return; const h=window._flips[+r.dataset.fi]; if(h&&h.card){ selectCard(h.card); const s3=$('#step3'); if(s3) s3.scrollIntoView({behavior:'smooth',block:'start'}); toast('Valuation for '+h.card.name+' — scroll down to “Create eBay listing”.'); } }; });
 }
 if($('#flipFindBtn')) $('#flipFindBtn').onclick=()=>findFlips($('#flipResults'));
 
@@ -1660,7 +1661,7 @@ if($('#openSettingsLink')) $('#openSettingsLink').onclick=(e)=>{ e.preventDefaul
 (function(){ const l=$('#locInput'); if(!l) return; try{ l.value=localStorage.getItem('cs_loc')||''; }catch(e){} l.oninput=()=>{ try{ localStorage.setItem('cs_loc',(l.value||'').trim()); }catch(e){} }; })();
 window.cardscoutLocation=function(){ try{ return localStorage.getItem('cs_loc')||''; }catch(e){ return ''; } };
 // Visible build stamp so you can confirm you're on the latest version
-var BUILD='2026-07-04 · v19 teal';
+var BUILD='2026-07-04 · v20';
 (function(){ var e=document.getElementById('buildStamp'); if(e) e.textContent='Build '+BUILD; })();
 async function svcOn(url){ try{ const r=await fetch(url); const d=await r.json(); return !!d.enabled; }catch(e){ return false; } }
 function svcRow(name,desc,on){ return `<div class="setrow"><span class="dot2 ${on?'on':'off'}"></span><div class="si"><div class="st">${name}</div><div class="sd">${desc}</div></div></div>`; }
@@ -1691,12 +1692,4 @@ async function doLogin(){
   }catch(e){ $('#loginErr').textContent='Login service unavailable.'; $('#loginErr').style.display='block'; }
 }
 $('#loginBtn').onclick=doLogin;
-$('#loginCode').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
-checkGate();
-
-applyMode();
-// Service worker caused stale-version problems; run network-only. Unregister any old SW + clear its caches so users always get the latest build.
-if('serviceWorker' in navigator){ navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.update().then(()=>r.unregister()).catch(()=>r.unregister()))).catch(()=>{}); if(window.caches){ caches.keys().then(ks=>ks.forEach(k=>caches.delete(k))).catch(()=>{}); } }
-</script>
-</body>
-</html>
+$('#loginCode').addEventListe
