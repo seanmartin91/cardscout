@@ -617,12 +617,12 @@ function renderBestLots(){
     }).join('');
     return `<div style="border:1px solid var(--line-strong);border-radius:14px;margin-bottom:10px;overflow:hidden">
       <div class="lothead" data-i="${li}" style="display:flex;gap:10px;align-items:flex-start;padding:12px;cursor:pointer">
-        <div class="bi" style="flex:1"><b>${(L.title||'').slice(0,80)}</b><span>Asking ${gbp(L.asking||0)} · value ≈ ${gbp(L.resale!=null?L.resale:0)}${L.roi!=null?` · ROI ${Math.round(L.roi)}%`:''} · ${(L.cards||[]).length} cards ▾</span>${L.suspect?`<span style="color:#ffb86b;font-size:11px;font-weight:600;display:block;margin-top:2px">Value looks too high vs the ${gbp(L.asking||0)} asking — the scan likely matched common cards to their pricey alt-art versions. Check the cards before buying.</span>`:''}${L.notes?`<span style="color:var(--faint);font-size:11px">${(L.notes||'').slice(0,120)}</span>`:''}</div>
+        ${L.thumb?`<img src="${L.thumb}" style="width:46px;height:46px;object-fit:cover;border-radius:10px;border:1px solid var(--line);flex-shrink:0">`:''}<div class="bi" style="flex:1"><b>${(L.title||'').slice(0,80)}</b><span>Asking ${gbp(L.asking||0)} · value ≈ ${gbp(L.resale!=null?L.resale:0)}${L.roi!=null?` · ROI ${Math.round(L.roi)}%`:''} · ${(L.cards||[]).length} cards ▾</span>${L.suspect?`<span style="color:#ffb86b;font-size:11px;font-weight:600;display:block;margin-top:2px">Value looks too high vs the ${gbp(L.asking||0)} asking — the scan likely matched common cards to their pricey alt-art versions. Check the cards before buying.</span>`:''}${L.notes?`<span style="color:var(--faint);font-size:11px">${(L.notes||'').slice(0,120)}</span>`:''}</div>
         <div class="bp"><div class="buy" style="color:${col}">${L.net!=null?gbp(L.net):'—'}</div><div class="mk" style="color:${col};font-weight:700">${L.verdict||'Watch'}</div></div>
       </div>
       <div class="lotbreak hidden" data-i="${li}" style="border-top:1px solid var(--line)">
         ${cardsHtml||'<div class="muted" style="padding:12px">No per-card breakdown saved for this lot.</div>'}
-        <div style="padding:8px 12px">${/^https?:\/\//i.test(L.url||'')?`<a href="${L.url}" target="_blank" rel="noopener" style="font-size:12px;font-weight:700;color:var(--accent)">Open listing ›</a>`:`<button class="lotlink" data-i="${li}" style="background:none;border:none;padding:0;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer">+ Add listing link</button>`}</div>
+        <div style="padding:8px 12px">${/^https?:\/\//i.test(L.url||'')?`<a href="${L.url}" target="_blank" rel="noopener" style="font-size:12px;font-weight:700;color:var(--accent)">Open listing ›</a>`:`<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><input class="lotlinkin" data-i="${li}" value="${(L.url||'').replace(/"/g,'&quot;')}" placeholder="Paste eBay / listing link…" style="flex:1;min-width:150px;font-size:12px;padding:6px 8px;border-radius:8px;background:#0d1526;border:1px solid #2c3a52;color:var(--txt)"><button class="lotlinksave" data-i="${li}" style="background:var(--accent);color:#06342e;border:none;padding:6px 13px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">Save link</button></div>`}</div>
       </div>
     </div>`;
   }).join('');
@@ -634,14 +634,14 @@ function renderBestLots(){
     const nm=cleanCardName(nn.replace(/\d+\s*\/\s*\d+/,'').replace(/\d{1,3}\s*$/,'').trim());
     try{ const c=await findOne(nm||cur.name,'',numm,'',undefined,denm); if(c){ const keys=finishKeysOf(c); const v=priceCard(c, keys.length?preferFinish(keys):'_cm').blendNM||0; L.cards[ci]={name:c.name,set:c.set.name,num:c.number,value:Math.round(v*100)/100,verify:false,img:(c.images&&c.images.small)||''}; recalcLot(L); cardscoutSetLots(all); renderBestLots(); const lb=[...$('#lotsList').querySelectorAll('.lotbreak')].find(x=>x.dataset.i===b.dataset.i); if(lb) lb.classList.remove('hidden'); toast('Updated to '+c.name+' #'+c.number); } else toast('No match — try the exact number.'); }catch(err){ toast('Search failed.'); }
   }; });
-  list.querySelectorAll('.lotlink').forEach(b=>{ b.onclick=(e)=>{ e.stopPropagation();
-    const li=+b.dataset.i; const all=window._blots||loadBestLots(); const L=all[li]; if(!L) return;
-    const v=prompt('Paste the eBay listing link for this lot:', ''); if(!v||!v.trim()) return;
-    let url=v.trim(); const idm=(url.match(/(\d{9,})/)||[])[1]; if(!/^https?:\/\//i.test(url)&&idm) url='https://www.'+((CUR_DEFS[CUR]&&CUR_DEFS[CUR].ebay)||'ebay.ca')+'/itm/'+idm;
-    if(!/^https?:\/\//i.test(url)){ toast('That doesn’t look like a link.'); return; }
+  function saveLotLink(li, el){ const all=window._blots||loadBestLots(); const L=all[li]; if(!L) return;
+    const row=el.parentElement; const inp=row?row.querySelector('.lotlinkin'):null; const v=((inp&&inp.value)||'').trim(); if(!v){ toast('Paste a link first.'); return; }
+    let url=v; const idm=(url.match(/(\d{9,})/)||[])[1]; if(!/^https?:\/\//i.test(url)&&idm) url='https://www.'+((CUR_DEFS[CUR]&&CUR_DEFS[CUR].ebay)||'ebay.ca')+'/itm/'+idm;
+    if(!/^https?:\/\//i.test(url)){ toast('That does not look like a link.'); return; }
     L.url=url; cardscoutSetLots(all); renderBestLots();
-    const lb=[...$('#lotsList').querySelectorAll('.lotbreak')].find(x=>x.dataset.i===b.dataset.i); if(lb) lb.classList.remove('hidden'); toast('Listing link saved.');
-  }; });
+    const lb=[...$('#lotsList').querySelectorAll('.lotbreak')].find(x=>x.dataset.i===String(li)); if(lb) lb.classList.remove('hidden'); toast('Listing link saved.'); }
+  list.querySelectorAll('.lotlinksave').forEach(b=>{ b.onclick=(e)=>{ e.stopPropagation(); saveLotLink(+b.dataset.i, b); }; });
+  list.querySelectorAll('.lotlinkin').forEach(inp=>{ inp.onclick=e=>e.stopPropagation(); inp.onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); const b=inp.parentElement&&inp.parentElement.querySelector('.lotlinksave'); if(b) b.click(); } }; });
   list.querySelectorAll('.bedsel').forEach(s=>{ s.onclick=e=>e.stopPropagation(); s.onchange=async(e)=>{ e.stopPropagation();
     const li=+s.dataset.i, ci=+s.dataset.c, ed=s.value; const all=window._blots||loadBestLots(); const L=all[li]; if(!L||!L.cards||!L.cards[ci]) return; const cur=L.cards[ci];
     try{ const c=await findOne(cur.name,'',cur.num,'vintage'); if(!c){ toast('Couldn’t re-price — use ✎ to set the exact card.'); return; }
@@ -1392,6 +1392,7 @@ $('#lotFetchBtn').onclick=async()=>{
 async function scanImages(imgs, ask, out, ctx){
   imgs=(imgs||[]).filter(Boolean).slice(0,8);
   if(!imgs.length){ out.innerHTML='<div class="errbox">No photos to scan — paste image links or upload photos.</div>'; return; }
+  let _thumb=''; try{ _thumb=await makeThumb(imgs[0]); }catch(e){ _thumb=imgs[0]||''; } if(window._lotMeta) window._lotMeta.thumb=_thumb;
   out.innerHTML='<div class="spin"></div><p class="muted" id="lotScanTxt" style="text-align:center">Reading the photos…</p>';
   const ctxTxt = (ctx&&ctx.trim()) ? `IMPORTANT — the eBay seller's own listing text (title + description) is below. It usually names the exact cards, sets, numbers and condition in this lot. TRUST this text over the blurry photos when they conflict, and use it to fill in cards/sets/numbers you can't read in the photos. Listing text: """${ctx.trim().slice(0,3500)}"""\n\n` : '';
   const prompt=ctxTxt+'Photo from a Pokemon card lot. IMPORTANT: only identify cards shown FRONT-side (the artwork/name/number side). IGNORE card BACKS entirely — the blue Pokémon card back (the Poké Ball swirl pattern with no artwork) is NOT a card to list and must NEVER be counted; if a card is face-down showing its back, skip it. Only count and list distinct card FRONTS. It may hold anywhere from a few to 100+ cards laid out in rows — scan the ENTIRE image methodically, row by row, and list EVERY card FRONT you can name, including ones partly covered. Do not stop after the obvious few. If there are dozens of tiny/low-res cards you cannot read individually, do NOT return an empty list — instead list the STANDOUT valuable cards you CAN identify (large holo, full-art, illustration rare, ex/V/VMAX/GX, or clearly premium cards); those are what drive a lot\'s value. Combine what you see with the listing text above. For EACH card give: name; set (from the listing text or a clearly legible symbol, else ""); number (the collector number before the slash, else ""); total (the set-size number printed AFTER the slash in the collector number — e.g. 102 in "3/102", 62 in "22/62", 64 in "10/64"; this is usually readable even when the set symbol is not, so always try — else ""); era ("vintage" for 1999-2003 WOTC-style cards — Base, Jungle, Fossil, Team Rocket, Gym Heroes, Gym Challenge, Neo — otherwise "modern"); holo (true if shiny/holographic/foil, false if flat matte). NEVER invent a set; leave it "" if unknown. Respond ONLY with a JSON array: [{"name":"","set":"","number":"","total":"","era":"","holo":false}, ...].';
@@ -1425,9 +1426,10 @@ async function scanImages(imgs, ask, out, ctx){
       const vm=vt.match(/\[[\s\S]*?\]/); const bad=vm?JSON.parse(vm[0]):[];
       if(Array.isArray(bad)) bad.forEach(n=>{ const k=(parseInt(n,10)||0)-1; if(items[k]) items[k].verifyFail=true; });
     }catch(e){}
-    scanState={items, ask, out}; renderScan();
+    scanState={items, ask, out, thumb:_thumb}; renderScan();
   }catch(e){ out.innerHTML='<div class="errbox">Scan failed: '+e.message+'</div>'; }
 }
+function makeThumb(src){ return new Promise((resolve)=>{ try{ if(!src){ resolve(''); return; } if(/^https?:/i.test(src)){ resolve(src); return; } const img=new Image(); img.onload=()=>{ try{ const s=Math.min(140/img.width,140/img.height,1); const w=Math.max(1,Math.round(img.width*s)), h=Math.max(1,Math.round(img.height*s)); const cv=document.createElement('canvas'); cv.width=w; cv.height=h; cv.getContext('2d').drawImage(img,0,0,w,h); resolve(cv.toDataURL('image/jpeg',0.7)); }catch(e){ resolve(src); } }; img.onerror=()=>resolve(''); img.src=src; }catch(e){ resolve(''); } }); }
 function renderScan(){
   if(!scanState) return; const {items, ask, out}=scanState; const showAll = scanState.showAll!==false; // show ALL cards by default
   // pass 1: value every card and classify holo/rare vs bulk common
@@ -1457,7 +1459,8 @@ function renderScan(){
   const verdict = ask!=null ? `Key cards ≈ <b style="color:${col}">${gbp(confident)}</b> vs asking ${gbp(ask)} — ${confident>ask?'worth a closer look':'below asking on the cards we’re sure of'}.` : `Key cards ≈ <b>${gbp(confident)}</b> (holos & rares we’re sure of).`;
   const toggle = bulkCount? `<button class="btn ghost" id="toggleBulk" style="margin:6px 0 2px">${showAll?'Hide bulk commons':'Show '+bulkCount+' bulk common(s) ≈ '+gbp(bulkVal)}</button>` : '';
   const dlbtn = `<button class="btn ghost" id="lotCsv" style="margin:6px 0 2px"><svg class="ic" viewBox="0 0 24 24" style="width:1em;height:1em;vertical-align:-.13em"><path d="M12 4v12"/><path d="M7 11l5 5 5-5"/><path d="M5 20h14"/></svg> Download CSV</button><button class="btn ghost" id="lotSaveBest" style="margin:6px 0 2px"><svg class="ic" viewBox="0 0 24 24" style="width:1em;height:1em;vertical-align:-.13em"><path d="M12 3.5l2.7 5.5 6 .9-4.3 4.2 1 6-5.4-2.8-5.4 2.8 1-6L3.3 9.9l6-.9z"/></svg> Save to Best Lots</button>`;
-  out.innerHTML=`<div class="offer" style="margin-top:6px"><div class="lbl">Key cards (holos &amp; rares)</div><div class="big" style="font-size:34px">${gbp(confident)}</div><div class="rng">${verdict}</div></div>
+  const thumbHtml=scanState.thumb?`<img src="${scanState.thumb}" style="width:66px;height:66px;object-fit:cover;border-radius:12px;border:1px solid var(--line);flex-shrink:0">`:'';
+  out.innerHTML=`<div class="offer" style="margin-top:6px;display:flex;gap:12px;align-items:center">${thumbHtml}<div style="flex:1;min-width:0"><div class="lbl">Key cards (holos &amp; rares)</div><div class="big" style="font-size:34px">${gbp(confident)}</div><div class="rng">${verdict}</div></div></div>
     <div class="muted" style="margin:10px 0">${items.length} card(s) found.${bulkCount?` ${bulkCount} are low-value bulk (marked “bulk”).`:''} ${flagged?`<b style="color:#ffb86b">${flagged} flagged “?verify”</b> — likely a misread, not counted. `:''}Headline = holos & rares${bulkVal?`; +${gbp(bulkVal)} bulk = <b>${gbp(confident+bulkVal)}</b> all-in`:''}. Tap ✎ to fix · pick edition on WOTC holos · low-res photos = shortlist.</div><div style="display:flex;gap:8px;flex-wrap:wrap">${toggle}${dlbtn}</div>${rows}`;
   const tb=$('#toggleBulk'); if(tb) tb.onclick=()=>{ scanState.showAll=!scanState.showAll; renderScan(); };
   const cb=$('#lotCsv'); if(cb) cb.onclick=exportScanCsv;
@@ -1466,7 +1469,7 @@ function renderScan(){
     const cards=calc.map(x=>{ const susp = x.it.verifyFail===true || (x.v>0 && (x.it.guessed===true || (x.v>50 && median>0 && x.v>4*median))); return {name:x.c.name, set:x.c.set.name, num:x.c.number, value:Math.round((x.v||0)*100)/100, verify:!!susp, img:(x.c.images&&x.c.images.small)||''}; });
     const meta=window._lotMeta||{};
     const notes=`${items.length} cards${flagged?`, ${flagged} ?verify`:''}. Key ${gbp(confident)}${bulkVal?` + ${gbp(bulkVal)} bulk`:''}.`;
-    const L=recalcLot({date:new Date().toISOString().slice(0,10), title:meta.title||'Scanned lot', url:meta.url||'', asking, cards, notes});
+    const L=recalcLot({date:new Date().toISOString().slice(0,10), title:meta.title||'Scanned lot', url:meta.url||'', thumb:meta.thumb||'', asking, cards, notes});
     cardscoutAddLot(L);
     toast('Saved to Best Lots <svg class="ic" viewBox="0 0 24 24" style="width:1em;height:1em;vertical-align:-.13em"><path d="M12 3.5l2.7 5.5 6 .9-4.3 4.2 1 6-5.4-2.8-5.4 2.8 1-6L3.3 9.9l6-.9z"/></svg> ('+cards.length+' cards)');
   };
@@ -1757,7 +1760,7 @@ if($('#openSettingsLink')) $('#openSettingsLink').onclick=(e)=>{ e.preventDefaul
 (function(){ const l=$('#locInput'); if(!l) return; try{ l.value=localStorage.getItem('cs_loc')||''; }catch(e){} l.oninput=()=>{ try{ localStorage.setItem('cs_loc',(l.value||'').trim()); }catch(e){} }; })();
 window.cardscoutLocation=function(){ try{ return localStorage.getItem('cs_loc')||''; }catch(e){ return ''; } };
 // Visible build stamp so you can confirm you're on the latest version
-var BUILD='2026-07-05 · v32';
+var BUILD='2026-07-05 · v33';
 (function(){ var e=document.getElementById('buildStamp'); if(e) e.textContent='Build '+BUILD; })();
 async function svcOn(url){ try{ const r=await fetch(url); const d=await r.json(); return !!d.enabled; }catch(e){ return false; } }
 function svcRow(name,desc,on){ return `<div class="setrow"><span class="dot2 ${on?'on':'off'}"></span><div class="si"><div class="st">${name}</div><div class="sd">${desc}</div></div></div>`; }
