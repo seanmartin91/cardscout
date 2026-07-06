@@ -594,7 +594,7 @@ function hideAll(){ ['step2','step3','batchStep','sealedStep','dealsStep','lotsS
 // ---------- BEST LOTS (populated by the daily scout via localStorage; readable in-app) ----------
 function loadBestLots(){ try{ return JSON.parse(localStorage.getItem('cs_bestlots')||'[]'); }catch(e){ return []; } }
 // Pull the shared list from the backend so it syncs across devices (laptop ↔ phone).
-async function pullBestLots(){ try{ const r=await fetch('/.netlify/functions/lots?t='+Date.now()); const d=await r.json(); if(d&&Array.isArray(d.lots)){ localStorage.setItem('cs_bestlots', JSON.stringify(d.lots)); return true; } }catch(e){} return false; }
+async function pullBestLots(){ try{ const r=await fetch('/.netlify/functions/lots?t='+Date.now()); const d=await r.json(); if(d&&Array.isArray(d.lots)){ let loc=[]; try{loc=JSON.parse(localStorage.getItem('cs_bestlots')||'[]');}catch(e){} const key=L=>((L&&L.title)||'').slice(0,60)+'|'+((L&&L.asking)||0)+'|'+(((L&&L.cards)||[]).length); const seen={}, merged=[]; loc.concat(d.lots).forEach(L=>{ if(!L) return; const k=key(L); if(!seen[k]){ seen[k]=1; merged.push(L); } }); localStorage.setItem('cs_bestlots', JSON.stringify(merged)); return true; } }catch(e){} return false; }
 // The scheduled agent calls this to save what it found & valued (writes local + pushes to the shared store):
 window.cardscoutSetLots=function(arr){ arr=arr||[]; try{ localStorage.setItem('cs_bestlots', JSON.stringify(arr)); }catch(e){} try{ fetch('/.netlify/functions/lots',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lots:arr})}); }catch(e){} try{ if(mode==='lots') renderBestLots(); }catch(e){} return arr.length; };
 window.cardscoutAddLot=function(o){ let a=loadBestLots().filter(x=>!(o.url&&x.url&&x.url===o.url)); a.push(o); a=a.slice(-60); return window.cardscoutSetLots(a); };
@@ -1760,7 +1760,7 @@ if($('#openSettingsLink')) $('#openSettingsLink').onclick=(e)=>{ e.preventDefaul
 (function(){ const l=$('#locInput'); if(!l) return; try{ l.value=localStorage.getItem('cs_loc')||''; }catch(e){} l.oninput=()=>{ try{ localStorage.setItem('cs_loc',(l.value||'').trim()); }catch(e){} }; })();
 window.cardscoutLocation=function(){ try{ return localStorage.getItem('cs_loc')||''; }catch(e){ return ''; } };
 // Visible build stamp so you can confirm you're on the latest version
-var BUILD='2026-07-05 · v33';
+var BUILD='2026-07-05 · v34';
 (function(){ var e=document.getElementById('buildStamp'); if(e) e.textContent='Build '+BUILD; })();
 async function svcOn(url){ try{ const r=await fetch(url); const d=await r.json(); return !!d.enabled; }catch(e){ return false; } }
 function svcRow(name,desc,on){ return `<div class="setrow"><span class="dot2 ${on?'on':'off'}"></span><div class="si"><div class="st">${name}</div><div class="sd">${desc}</div></div></div>`; }
