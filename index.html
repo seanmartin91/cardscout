@@ -506,6 +506,8 @@
       <h3 style="margin:0;font-size:17px">Best lots the scout found</h3>
       <button class="btn ghost" id="lotsRefresh" style="padding:6px 12px">↻</button>
     </div>
+    <button class="btn" id="lotsFind" style="width:100%;margin-bottom:10px"><svg class="ic" viewBox="0 0 24 24" style="width:1em;height:1em;vertical-align:-.13em"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5L16 16"/></svg> Find Pokémon lots on eBay</button>
+    <div id="lotsFindResults" style="margin-bottom:8px"></div>
     <div class="muted" id="lotsMeta" style="margin-bottom:10px"></div>
     <div id="lotsList"></div>
     <div class="row" style="margin-top:14px;gap:8px">
@@ -604,7 +606,7 @@ function lotKey(L){ return L.url || ((L.title||'')+'|'+(L.asking||'')); }
 function renderBestLots(){
   const lots=loadBestLots().slice().sort((a,b)=>((b.net==null?-1e9:b.net)-(a.net==null?-1e9:a.net)));
   const meta=$('#lotsMeta'), list=$('#lotsList'); if(!meta||!list) return;
-  if(!lots.length){ meta.textContent=''; list.innerHTML='<div class="muted">No lots yet. The daily scout writes its finds here after it runs (8am &amp; 6pm). You can also scan a lot under <b>Find deals</b> and tap “Save to Best Lots”.</div>'; return; }
+  if(!lots.length){ meta.textContent=''; list.innerHTML='<div class="muted">No saved lots yet. Tap <b>Find Pokémon lots on eBay</b> above to pull current lots and scan them, or the daily scout adds its finds here. You can also scan a lot under <b>Find deals</b> and tap “Save to Best Lots”.</div>'; return; }
   meta.innerHTML=`${lots.length} lot(s) · ranked by est. net profit · tap a lot for the card breakdown`;
   window._blots=lots;
   list.innerHTML=lots.map((L,li)=>{
@@ -666,6 +668,27 @@ function exportBestLotsCsv(){
 if($('#lotsCsv')) $('#lotsCsv').onclick=exportBestLotsCsv;
 if($('#lotsRefresh')) $('#lotsRefresh').onclick=()=>{ const m=$('#lotsMeta'); if(m) m.textContent='Syncing…'; pullBestLots().then(()=>renderBestLots()); };
 if($('#lotsClear')) $('#lotsClear').onclick=()=>{ if(confirm('Clear the saved Best Lots list?')){ localStorage.removeItem('cs_bestlots'); renderBestLots(); } };
+if($('#lotsFind')) $('#lotsFind').onclick=findEbayLots;
+async function findEbayLots(){
+  const box=$('#lotsFindResults'); if(!box) return;
+  box.innerHTML='<div class="spin"></div><p class="muted" style="text-align:center">Searching eBay for Pokémon lots…</p>';
+  let d; try{ const r=await fetch('/.netlify/functions/ebay?mode=search&mkt='+CUR_DEFS[CUR].mkt+'&q='+encodeURIComponent('pokemon card lot')+'&limit=30'); d=await r.json(); }catch(e){ box.innerHTML='<div class="errbox">Could not reach the deal service.</div>'; return; }
+  if(!d || d.enabled===false){ box.innerHTML=ebayGate(); return; }
+  const items=(d.items||[]).filter(it=>{ const t=(it.title||'').toLowerCase(); return /lot|bundle|collection|binder|mixed|job\s?lot/.test(t) && !/code card|online code|ptcgo|digital|codes/.test(t); });
+  if(!items.length){ box.innerHTML='<div class="muted">No card lots came back this time — tap again, or use the Find deals tab to paste a specific listing.</div>'; return; }
+  window._ebayLots=items;
+  box.innerHTML='<div class="muted" style="margin-bottom:6px">'+Math.min(items.length,25)+' eBay lots · tap Scan to value the cards, or Open to view.</div>'+items.slice(0,25).map((it,i)=>{ const price=it.price!=null?gbp(ebGBP(it.price,it.currency)):'—';
+    return '<div class="brow"><img src="'+(it.image||'')+'" style="width:42px;height:42px;object-fit:cover;border-radius:8px"><div class="bi" style="flex:1"><b style="font-size:12.5px">'+((it.title||'').slice(0,66))+'</b><span>'+price+'</span></div><div class="bp" style="display:flex;flex-direction:column;gap:5px;align-items:flex-end"><a href="'+(it.url||'#')+'" target="_blank" rel="noopener" style="font-size:11px;color:var(--accent);font-weight:700">Open ›</a><button class="elotscan" data-i="'+i+'" style="background:var(--accent);color:#06342e;border:none;padding:4px 12px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">Scan</button></div></div><div id="elotout'+i+'" style="margin:0 0 6px"></div>';
+  }).join('');
+  box.querySelectorAll('.elotscan').forEach(b=>{ b.onclick=async()=>{ const i=+b.dataset.i; const it=window._ebayLots[i]; const out=$('#elotout'+i); b.textContent='…'; b.disabled=true;
+    let dd=null; try{ const r=await fetch('/.netlify/functions/ebay?mode=item&mkt='+CUR_DEFS[CUR].mkt+'&id='+encodeURIComponent(it.url||it.id)); dd=await r.json(); }catch(e){}
+    b.textContent='Scan'; b.disabled=false;
+    const item=dd&&dd.item; const imgs=((item&&item.images&&item.images.length)?item.images:[it.image]).filter(Boolean);
+    const ask=it.price!=null?ebGBP(it.price,it.currency):null;
+    window._lotMeta={title:it.title||'Scanned lot', url:it.url||'', asking:ask, thumb:imgs[0]||it.image||''};
+    scanImages(imgs, ask, out, (item&&((item.title||'')+' '+(item.description||'')))||it.title||'');
+  }; });
+}
 function applyMode(){
   hideAll();
   // camera capture UI only applies to the photo modes — hide it for Find deals / Best lots
@@ -1763,7 +1786,7 @@ if($('#openSettingsLink')) $('#openSettingsLink').onclick=(e)=>{ e.preventDefaul
 (function(){ const l=$('#locInput'); if(!l) return; try{ l.value=localStorage.getItem('cs_loc')||''; }catch(e){} l.oninput=()=>{ try{ localStorage.setItem('cs_loc',(l.value||'').trim()); }catch(e){} }; })();
 window.cardscoutLocation=function(){ try{ return localStorage.getItem('cs_loc')||''; }catch(e){ return ''; } };
 // Visible build stamp so you can confirm you're on the latest version
-var BUILD='2026-07-05 · v37';
+var BUILD='2026-07-05 · v38';
 (function(){ var e=document.getElementById('buildStamp'); if(e) e.textContent='Build '+BUILD; })();
 async function svcOn(url){ try{ const r=await fetch(url); const d=await r.json(); return !!d.enabled; }catch(e){ return false; } }
 function svcRow(name,desc,on){ return `<div class="setrow"><span class="dot2 ${on?'on':'off'}"></span><div class="si"><div class="st">${name}</div><div class="sd">${desc}</div></div></div>`; }
