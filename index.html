@@ -1678,6 +1678,25 @@ const FLIP_HUNTS=[
 ];
 const SELL_FEE=0.87;        // ~13% eBay sell fees/PayPal
 const FLIP_MARGIN=0.15;     // net margin ≥ 15% after fees vs market (surfaces more; 30%+ get highlighted)
+function flipTitleOk(term, title){
+  const t=(title||'');
+  const core=String(term).replace(/\s*\d+\/\d+\s*/,' ').replace(/\s+/g,' ').trim(); // e.g. "Mew VMAX"
+  const toks=core.split(' ');
+  const last=(toks[toks.length-1]||'').toLowerCase();
+  const isVar=['v','vmax','vstar','ex','gx'].includes(last);
+  const variant=isVar?last:'';
+  const name=isVar?toks.slice(0,-1).join(' '):core;
+  const nameKey=(name.match(/[a-z]{3,}/i)||[])[0];
+  if(nameKey && !new RegExp('\\b'+nameKey+'\\b','i').test(t)) return false;  // must name the Pokemon
+  const hasVMAX=/\bV\s?MAX\b/i.test(t), hasVSTAR=/\bV\s?STAR\b/i.test(t), hasGX=/\bGX\b/i.test(t), hasEX=/\bex\b/i.test(t), hasV=/\bV\b/i.test(t);
+  if(variant==='vmax') return hasVMAX;
+  if(variant==='vstar') return hasVSTAR;
+  if(variant==='gx') return hasGX;
+  if(variant==='ex') return hasEX && !hasGX;
+  if(variant==='v') return hasV && !hasVMAX && !hasVSTAR;
+  // no variant (base/vintage numbered card): reject listings that mention a modern variant
+  return !(hasVMAX||hasVSTAR||hasGX||hasEX||hasV);
+}
 async function findFlips(out){
   const mkt=(CUR_DEFS[CUR]&&CUR_DEFS[CUR].mkt)||'EBAY_CA';
   out.innerHTML='<div class="spin"></div><p class="muted" id="flipTxt" style="text-align:center">Sweeping eBay for underpriced cards…</p>';
@@ -1706,6 +1725,7 @@ async function findFlips(out){
               const title=(it.title||'');
               // drop non-card merch, novelties, fakes, proxies, customs, lots, code cards — these fake huge "margins"
               if(/magnet|fridge|gold\s?(colou?r|plated|metal|foil|card|series|version)|metal\s?card|colou?rized|24k|22k|silver\s?card|coin|keychain|key\s?ring|lanyard|\bbadge\b|patch|poster|mouse\s?pad|mousepad|\bmug\b|t-?shirt|figure|funko|toploader|binder|portfolio|display\s?case|empty|proxy|custom|fan\s?art|orica|repro|replica|vinyl|sticker|decal|\bmetal\b|code\s?card|jumbo|oversized|plush|\bpin\b|\blot\b|bundle|playtest|not\s?real|counterfeit|\bfake\b|\bcase\b/i.test(title)) return;
+              if(!flipTitleOk(term, title)) return;   // listing must name the card + exact variant
               const net=market*SELL_FEE, profit=net-buy, margin=profit/buy;
               // guardrails: only worthwhile, plausible flips
               if(market < 15) return;               // skip low-value cards not worth flipping
@@ -1831,7 +1851,7 @@ if($('#openSettingsLink')) $('#openSettingsLink').onclick=(e)=>{ e.preventDefaul
 (function(){ const l=$('#locInput'); if(!l) return; try{ l.value=localStorage.getItem('cs_loc')||''; }catch(e){} l.oninput=()=>{ try{ localStorage.setItem('cs_loc',(l.value||'').trim()); }catch(e){} }; })();
 window.cardscoutLocation=function(){ try{ return localStorage.getItem('cs_loc')||''; }catch(e){ return ''; } };
 // Visible build stamp so you can confirm you're on the latest version
-var BUILD='2026-07-05 · v44';
+var BUILD='2026-07-05 · v45';
 (function(){ var e=document.getElementById('buildStamp'); if(e) e.textContent='Build '+BUILD; })();
 async function svcOn(url){ try{ const r=await fetch(url); const d=await r.json(); return !!d.enabled; }catch(e){ return false; } }
 function svcRow(name,desc,on){ return `<div class="setrow"><span class="dot2 ${on?'on':'off'}"></span><div class="si"><div class="st">${name}</div><div class="sd">${desc}</div></div></div>`; }
