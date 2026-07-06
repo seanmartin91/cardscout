@@ -867,10 +867,10 @@ function renderResults(cards){
     b.onclick=()=>{ document.querySelectorAll('.cardpick').forEach(x=>x.classList.remove('sel')); b.classList.add('sel'); selectCard(c); };
     wrap.appendChild(b); });
 }
-function selectCard(c){
+function selectCard(c, listingImg){
   selectedCard=c; $('#step3').classList.remove('hidden');
   { const el=$('#ebayListing'); if(el){ el.classList.add('hidden'); el.innerHTML=''; } }
-  { const mine=(mode==='single'&&capturedDataURL)?`<div style="text-align:center;flex-shrink:0"><img class="cardhead-img" src="${capturedDataURL}" style="width:66px;border:1px solid var(--accent)"><div class="muted" style="font-size:9px;margin-top:3px">Your photo</div></div>`:''; const cat=mine?`<div style="text-align:center;flex-shrink:0"><img class="cardhead-img" src="${c.images.small}" style="width:66px"><div class="muted" style="font-size:9px;margin-top:3px">Catalog</div></div>`:`<img class="cardhead-img" src="${c.images.small}">`; $('#cardHead').innerHTML=`${mine}${cat}<div style="flex:1;min-width:150px"><div style="font-weight:700;font-size:17px;font-family:'Space Grotesk',sans-serif">${c.name}</div><div class="muted">${c.set.name} · #${c.number}/${c.set.printedTotal||''}</div><div class="muted">${c.rarity||''} · ${c.set.releaseDate||''}</div>${mine?`<div class="muted" style="font-size:11px;margin-top:5px;color:#7dd3fc">Compare your photo to the catalog to confirm the finish (holo sheen, 1st-ed stamp).</div>`:''}</div>`; }
+  { const photo=listingImg||capturedDataURL||''; const plabel=listingImg?'Listing photo':'Your photo'; const mine=photo?`<div style="text-align:center;flex-shrink:0"><img class="cardhead-img" src="${photo}" style="width:66px;border:1px solid var(--accent)"><div class="muted" style="font-size:9px;margin-top:3px">${plabel}</div></div>`:''; const cat=mine?`<div style="text-align:center;flex-shrink:0"><img class="cardhead-img" src="${c.images.small}" style="width:66px"><div class="muted" style="font-size:9px;margin-top:3px">Catalog</div></div>`:`<img class="cardhead-img" src="${c.images.small}">`; $('#cardHead').innerHTML=`${mine}${cat}<div style="flex:1;min-width:150px"><div style="font-weight:700;font-size:17px;font-family:'Space Grotesk',sans-serif">${c.name}</div><div class="muted">${c.set.name} · #${c.number}/${c.set.printedTotal||''}</div><div class="muted">${c.rarity||''} · ${c.set.releaseDate||''}</div>${mine?`<div class="muted" style="font-size:11px;margin-top:5px;color:#7dd3fc">Compare the ${plabel.toLowerCase()} to the catalog to confirm the finish (holo sheen, 1st-ed stamp).</div>`:''}</div>`; }
   c._ebayVal=undefined; buildFinishes(c); recompute();
   ebayMarketValue(c.name,c.number).then(v=>{ if(v && selectedCard===c){ c._ebayVal=v; recompute(); } });
   const gl=$('#gradedLive'); if(gl) gl.innerHTML=''; const gd=$('#gradedDetails'); if(gd){ gd.open=false; gd.dataset.loadedFor=''; }
@@ -1702,7 +1702,7 @@ async function findFlips(out){
       <img src="${h.it.image||(h.card.images&&h.card.images.small)||''}" style="object-fit:cover">
       <div class="bi"><b>${(h.it.title||'').slice(0,64)}</b><span>buy ${gbp(h.buy)} · market ≈ ${gbp(h.market)} · <b style="color:#5EEAD4">+${gbp(h.profit)} (${Math.round(h.margin*100)}%)</b> · <a href="${h.it.url}" target="_blank" rel="noopener" class="flipbuy" style="color:var(--accent);font-weight:700">buy on eBay ›</a></span></div>
       <div class="bp"><div class="buy" style="color:#5EEAD4">+${Math.round(h.margin*100)}%</div><div class="mk">net</div></div></div>`).join('');
-  out.querySelectorAll('.fliprow').forEach(r=>{ r.onclick=(e)=>{ if(e.target.closest('.flipbuy')) return; const h=window._flips[+r.dataset.fi]; if(h&&h.card){ selectCard(h.card); const s3=$('#step3'); if(s3) s3.scrollIntoView({behavior:'smooth',block:'start'}); toast('Valuation for '+h.card.name); } }; });
+  out.querySelectorAll('.fliprow').forEach(r=>{ r.onclick=(e)=>{ if(e.target.closest('.flipbuy')) return; const h=window._flips[+r.dataset.fi]; if(h&&h.card){ selectCard(h.card, (h.it&&h.it.image)||''); const s3=$('#step3'); if(s3) s3.scrollIntoView({behavior:'smooth',block:'start'}); toast('Valuation for '+h.card.name); } }; });
 }
 if($('#flipFindBtn')) $('#flipFindBtn').onclick=()=>findFlips($('#flipResults'));
 
@@ -1802,7 +1802,7 @@ if($('#openSettingsLink')) $('#openSettingsLink').onclick=(e)=>{ e.preventDefaul
 (function(){ const l=$('#locInput'); if(!l) return; try{ l.value=localStorage.getItem('cs_loc')||''; }catch(e){} l.oninput=()=>{ try{ localStorage.setItem('cs_loc',(l.value||'').trim()); }catch(e){} }; })();
 window.cardscoutLocation=function(){ try{ return localStorage.getItem('cs_loc')||''; }catch(e){ return ''; } };
 // Visible build stamp so you can confirm you're on the latest version
-var BUILD='2026-07-05 · v41';
+var BUILD='2026-07-05 · v42';
 (function(){ var e=document.getElementById('buildStamp'); if(e) e.textContent='Build '+BUILD; })();
 async function svcOn(url){ try{ const r=await fetch(url); const d=await r.json(); return !!d.enabled; }catch(e){ return false; } }
 function svcRow(name,desc,on){ return `<div class="setrow"><span class="dot2 ${on?'on':'off'}"></span><div class="si"><div class="st">${name}</div><div class="sd">${desc}</div></div></div>`; }
