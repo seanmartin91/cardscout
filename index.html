@@ -329,7 +329,7 @@
   <!-- STEP 3 (SINGLE): VALUE + OFFER -->
   <div class="panel hidden" id="step3">
     <h2 class="eyebrow"><span class="n">3</span> Value &amp; your buy price</h2>
-    <div id="cardHead" style="display:flex;gap:14px;margin-bottom:16px"></div>
+    <div id="cardHead" style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center"></div>
     <label>Card finish / variant</label>
     <select id="finishSel"></select>
     <label>Condition of this copy</label>
@@ -870,7 +870,7 @@ function renderResults(cards){
 function selectCard(c){
   selectedCard=c; $('#step3').classList.remove('hidden');
   { const el=$('#ebayListing'); if(el){ el.classList.add('hidden'); el.innerHTML=''; } }
-  $('#cardHead').innerHTML=`<img class="cardhead-img" src="${c.images.small}"><div><div style="font-weight:700;font-size:17px;font-family:'Space Grotesk',sans-serif">${c.name}</div><div class="muted">${c.set.name} · #${c.number}/${c.set.printedTotal||''}</div><div class="muted">${c.rarity||''} · ${c.set.releaseDate||''}</div></div>`;
+  { const mine=(mode==='single'&&capturedDataURL)?`<div style="text-align:center;flex-shrink:0"><img class="cardhead-img" src="${capturedDataURL}" style="width:66px;border:1px solid var(--accent)"><div class="muted" style="font-size:9px;margin-top:3px">Your photo</div></div>`:''; const cat=mine?`<div style="text-align:center;flex-shrink:0"><img class="cardhead-img" src="${c.images.small}" style="width:66px"><div class="muted" style="font-size:9px;margin-top:3px">Catalog</div></div>`:`<img class="cardhead-img" src="${c.images.small}">`; $('#cardHead').innerHTML=`${mine}${cat}<div style="flex:1;min-width:150px"><div style="font-weight:700;font-size:17px;font-family:'Space Grotesk',sans-serif">${c.name}</div><div class="muted">${c.set.name} · #${c.number}/${c.set.printedTotal||''}</div><div class="muted">${c.rarity||''} · ${c.set.releaseDate||''}</div>${mine?`<div class="muted" style="font-size:11px;margin-top:5px;color:#7dd3fc">Compare your photo to the catalog to confirm the finish (holo sheen, 1st-ed stamp).</div>`:''}</div>`; }
   c._ebayVal=undefined; buildFinishes(c); recompute();
   ebayMarketValue(c.name,c.number).then(v=>{ if(v && selectedCard===c){ c._ebayVal=v; recompute(); } });
   const gl=$('#gradedLive'); if(gl) gl.innerHTML=''; const gd=$('#gradedDetails'); if(gd){ gd.open=false; gd.dataset.loadedFor=''; }
@@ -1802,7 +1802,7 @@ if($('#openSettingsLink')) $('#openSettingsLink').onclick=(e)=>{ e.preventDefaul
 (function(){ const l=$('#locInput'); if(!l) return; try{ l.value=localStorage.getItem('cs_loc')||''; }catch(e){} l.oninput=()=>{ try{ localStorage.setItem('cs_loc',(l.value||'').trim()); }catch(e){} }; })();
 window.cardscoutLocation=function(){ try{ return localStorage.getItem('cs_loc')||''; }catch(e){ return ''; } };
 // Visible build stamp so you can confirm you're on the latest version
-var BUILD='2026-07-05 · v39';
+var BUILD='2026-07-05 · v40';
 (function(){ var e=document.getElementById('buildStamp'); if(e) e.textContent='Build '+BUILD; })();
 async function svcOn(url){ try{ const r=await fetch(url); const d=await r.json(); return !!d.enabled; }catch(e){ return false; } }
 function svcRow(name,desc,on){ return `<div class="setrow"><span class="dot2 ${on?'on':'off'}"></span><div class="si"><div class="st">${name}</div><div class="sd">${desc}</div></div></div>`; }
