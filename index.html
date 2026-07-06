@@ -330,6 +330,7 @@
   <div class="panel hidden" id="step3">
     <h2 class="eyebrow"><span class="n">3</span> Value &amp; your buy price</h2>
     <div id="cardHead" style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center"></div>
+    <div id="verifyWrap" style="display:none;margin-bottom:14px"><button class="btn ghost" id="verifyBtn" style="width:100%"><svg class="ic" viewBox="0 0 24 24" style="width:1em;height:1em;vertical-align:-.13em"><path d="M20 6L9 17l-5-5"/></svg> Verify it’s this card (AI)</button><div id="verifyResult" style="margin-top:8px"></div></div>
     <label>Card finish / variant</label>
     <select id="finishSel"></select>
     <label>Condition of this copy</label>
@@ -868,10 +869,36 @@ function renderResults(cards){
     wrap.appendChild(b); });
 }
 function zoomImg(src){ if(!src) return; let o=document.getElementById('zoomOverlay'); if(!o){ o=document.createElement('div'); o.id='zoomOverlay'; o.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(2,4,8,.93);display:none;align-items:center;justify-content:center;padding:18px;cursor:zoom-out'; o.innerHTML='<img alt="zoom" style="max-width:96vw;max-height:92vh;border-radius:12px;box-shadow:0 24px 70px -12px rgba(0,0,0,.9)">'; o.addEventListener('click',function(){o.style.display='none';}); document.body.appendChild(o); } o.querySelector('img').src=src; o.style.display='flex'; }
+async function verifyCard(){
+  const c=selectedCard; if(!c) return;
+  const clean=[window._headPhoto, window._headCat].filter(Boolean); if(window._backImg) clean.push(window._backImg);
+  if(clean.length<2){ toast('Scan or open a card from a listing first — need its photo to compare.'); return; }
+  const vr=$('#verifyResult'); if(!vr) return;
+  vr.innerHTML='<div class="spin"></div><p class="muted" style="text-align:center">Cross-checking the listing photo against the catalog…</p>';
+  const backTxt=window._backImg?' Image 3 is the BACK of the listing card.':'';
+  const prompt='Image 1 is a photo of a Pokemon card taken from a marketplace/eBay listing. Image 2 is the official catalog reference image of "'+c.name+'" from '+c.set.name+' #'+c.number+(c.rarity?(' ('+c.rarity+')'):'')+'.'+backTxt+' Carefully compare image 1 to image 2. Do they show the SAME card - same Pokemon, same set, and same variant (plain vs V vs VMAX vs ex vs GX vs full-art, same artwork)? Reply ONLY with compact JSON: {"match": true or false, "listingCard": "if different, what the card in image 1 actually appears to be (name + variant)", "confidence": "high|medium|low", "note": "one short sentence"}.';
+  try{
+    const text=await aiVisionMulti(prompt, clean);
+    const m=text.match(/\{[\s\S]*\}/); const o=m?JSON.parse(m[0]):{};
+    if(o.match===true){
+      vr.innerHTML='<div style="border:1px solid rgba(94,234,212,.45);background:rgba(45,212,191,.08);border-radius:10px;padding:10px 12px"><b style="color:#5EEAD4">✓ Confirmed — this is '+c.name+'</b><div class="muted" style="font-size:12px;margin-top:2px">'+(o.note||'The listing photo matches the catalog card.')+' · '+(o.confidence||'')+' confidence</div></div>';
+    } else {
+      vr.innerHTML='<div style="border:1px solid rgba(255,120,120,.5);background:rgba(255,80,80,.08);border-radius:10px;padding:10px 12px"><b style="color:#ff9a9a">✗ Mismatch — this may NOT be '+c.name+'</b><div class="muted" style="font-size:12px;margin-top:3px">Listing looks like: <b style="color:#ffd6db">'+(o.listingCard||'a different card')+'</b>. '+(o.note||'')+'</div><button class="btn ghost" id="verifyFix" style="margin-top:8px;padding:6px 12px;font-size:12px">Fix this card</button></div>';
+      const fx=$('#verifyFix'); if(fx) fx.onclick=function(){ fixSelectedCard(o.listingCard||''); };
+    }
+  }catch(e){ const msg=(e&&e.message)||'error'; vr.innerHTML='<div class="errbox">Verify failed: '+msg+'<br><span style="color:#ffd6db">'+aiErrHint(msg)+'</span></div>'; }
+}
+async function fixSelectedCard(guess){
+  const nn=prompt('What card is it really? Type the name and number (e.g. "Mew 011/025"):', guess||''); if(!nn||!nn.trim()) return;
+  const numm=((nn.match(/(\d+)\s*\/\s*\d+/)||nn.match(/(\d{1,3})\s*$/))||[])[1]||''; const denm=(nn.match(/\d+\s*\/\s*(\d+)/)||[])[1]||'';
+  const nm=cleanCardName(nn.replace(/\d+\s*\/\s*\d+/,'').replace(/\d{1,3}\s*$/,'').trim());
+  try{ const cc=await findOne(nm||nn,'',numm,'',undefined,denm); if(cc){ const li=(window._headPhoto&&window._headPhoto!==capturedDataURL)?window._headPhoto:undefined; selectCard(cc, li); toast('Updated to '+cc.name+' #'+cc.number); } else toast('No match — try the exact number.'); }catch(e){ toast('Search failed.'); }
+}
 function selectCard(c, listingImg){
   selectedCard=c; $('#step3').classList.remove('hidden');
   { const el=$('#ebayListing'); if(el){ el.classList.add('hidden'); el.innerHTML=''; } }
-  { const photo=listingImg||capturedDataURL||''; const plabel=listingImg?'Listing photo':'Your photo'; const lz=(photo&&/i\.ebayimg\.com/.test(photo))?photo.replace(/s-l\d+/,'s-l1600'):photo; const cz=(c.images&&(c.images.large||c.images.small))||''; const mine=photo?`<div style="text-align:center;flex-shrink:0"><img class="cardhead-img" src="${photo}" data-zoom="${lz}" style="width:66px;border:1px solid var(--accent);cursor:zoom-in"><div class="muted" style="font-size:9px;margin-top:3px">${plabel} · tap to zoom</div></div>`:''; const cat=mine?`<div style="text-align:center;flex-shrink:0"><img class="cardhead-img" src="${c.images.small}" data-zoom="${cz}" style="width:66px;cursor:zoom-in"><div class="muted" style="font-size:9px;margin-top:3px">Catalog · tap to zoom</div></div>`:`<img class="cardhead-img" src="${c.images.small}" data-zoom="${cz}" style="cursor:zoom-in">`; $('#cardHead').innerHTML=`${mine}${cat}<div style="flex:1;min-width:150px"><div style="font-weight:700;font-size:17px;font-family:'Space Grotesk',sans-serif">${c.name}</div><div class="muted">${c.set.name} · #${c.number}/${c.set.printedTotal||''}</div><div class="muted">${c.rarity||''} · ${c.set.releaseDate||''}</div>${mine?`<div class="muted" style="font-size:11px;margin-top:5px;color:#7dd3fc">Compare the ${plabel.toLowerCase()} to the catalog to confirm the finish — tap either image to zoom.</div>`:''}</div>`; $('#cardHead').onclick=function(e){ const im=e.target.closest('img'); if(im) zoomImg(im.getAttribute('data-zoom')||im.src); }; }
+  { const photo=listingImg||capturedDataURL||''; const plabel=listingImg?'Listing photo':'Your photo'; const lz=(photo&&/i\.ebayimg\.com/.test(photo))?photo.replace(/s-l\d+/,'s-l1600'):photo; const cz=(c.images&&(c.images.large||c.images.small))||''; const mine=photo?`<div style="text-align:center;flex-shrink:0"><img class="cardhead-img" src="${photo}" data-zoom="${lz}" style="width:66px;border:1px solid var(--accent);cursor:zoom-in"><div class="muted" style="font-size:9px;margin-top:3px">${plabel} · tap to zoom</div></div>`:''; const cat=mine?`<div style="text-align:center;flex-shrink:0"><img class="cardhead-img" src="${c.images.small}" data-zoom="${cz}" style="width:66px;cursor:zoom-in"><div class="muted" style="font-size:9px;margin-top:3px">Catalog · tap to zoom</div></div>`:`<img class="cardhead-img" src="${c.images.small}" data-zoom="${cz}" style="cursor:zoom-in">`; $('#cardHead').innerHTML=`${mine}${cat}<div style="flex:1;min-width:150px"><div style="font-weight:700;font-size:17px;font-family:'Space Grotesk',sans-serif">${c.name}</div><div class="muted">${c.set.name} · #${c.number}/${c.set.printedTotal||''}</div><div class="muted">${c.rarity||''} · ${c.set.releaseDate||''}</div>${mine?`<div class="muted" style="font-size:11px;margin-top:5px;color:#7dd3fc">Compare the ${plabel.toLowerCase()} to the catalog to confirm the finish — tap either image to zoom.</div>`:''}</div>`; $('#cardHead').onclick=function(e){ const im=e.target.closest('img'); if(im) zoomImg(im.getAttribute('data-zoom')||im.src); }; window._headPhoto=photo; window._headCat=cz; }
+  { const vw=$('#verifyWrap'); if(vw) vw.style.display=(window._headPhoto)?'block':'none'; const vr=$('#verifyResult'); if(vr) vr.innerHTML=''; }
   c._ebayVal=undefined; buildFinishes(c); recompute();
   ebayMarketValue(c.name,c.number).then(v=>{ if(v && selectedCard===c){ c._ebayVal=v; recompute(); } });
   const gl=$('#gradedLive'); if(gl) gl.innerHTML=''; const gd=$('#gradedDetails'); if(gd){ gd.open=false; gd.dataset.loadedFor=''; }
@@ -1075,6 +1102,7 @@ async function aiGrade(images){
 }
 if($('#backBtn')) $('#backBtn').onclick=()=>$('#backFile').click();
 if($('#backFile')) $('#backFile').onchange=e=>{ const f=e.target.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=()=>{ window._backImg=rd.result; $('#gradeNote').textContent='Back photo added — tap “Grade with AI”.'; }; rd.readAsDataURL(f); };
+if($('#verifyBtn')) $('#verifyBtn').onclick=verifyCard;
 if($('#gradeBtn')) $('#gradeBtn').onclick=async()=>{
   const imgs=[]; if(capturedDataURL) imgs.push(capturedDataURL); if(window._backImg) imgs.push(window._backImg);
   if(!imgs.length){ toast('Take or upload a photo of the card first (front, and ideally the back).'); return; }
@@ -1803,7 +1831,7 @@ if($('#openSettingsLink')) $('#openSettingsLink').onclick=(e)=>{ e.preventDefaul
 (function(){ const l=$('#locInput'); if(!l) return; try{ l.value=localStorage.getItem('cs_loc')||''; }catch(e){} l.oninput=()=>{ try{ localStorage.setItem('cs_loc',(l.value||'').trim()); }catch(e){} }; })();
 window.cardscoutLocation=function(){ try{ return localStorage.getItem('cs_loc')||''; }catch(e){ return ''; } };
 // Visible build stamp so you can confirm you're on the latest version
-var BUILD='2026-07-05 · v43';
+var BUILD='2026-07-05 · v44';
 (function(){ var e=document.getElementById('buildStamp'); if(e) e.textContent='Build '+BUILD; })();
 async function svcOn(url){ try{ const r=await fetch(url); const d=await r.json(); return !!d.enabled; }catch(e){ return false; } }
 function svcRow(name,desc,on){ return `<div class="setrow"><span class="dot2 ${on?'on':'off'}"></span><div class="si"><div class="st">${name}</div><div class="sd">${desc}</div></div></div>`; }
