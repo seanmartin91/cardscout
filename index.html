@@ -507,6 +507,8 @@
       <button class="btn ghost" id="lotsRefresh" style="padding:6px 12px">↻</button>
     </div>
     <button class="btn" id="lotsFind" style="width:100%;margin-bottom:10px"><svg class="ic" viewBox="0 0 24 24" style="width:1em;height:1em;vertical-align:-.13em"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5L16 16"/></svg> Find Pokémon lots on eBay</button>
+    <div style="display:flex;gap:6px;margin:0 0 10px"><input id="lotsPasteUrl" placeholder="…or paste an eBay listing link" style="flex:1;font-size:12px;padding:8px 10px;border-radius:8px;background:#0d1526;border:1px solid #2c3a52;color:var(--txt)"><button class="btn ghost" id="lotsPasteGo" style="padding:8px 14px">Scan</button></div>
+    <div id="lotsPasteOut" style="margin-bottom:8px"></div>
     <div id="lotsFindResults" style="margin-bottom:8px"></div>
     <div class="muted" id="lotsMeta" style="margin-bottom:10px"></div>
     <div id="lotsList"></div>
@@ -669,6 +671,20 @@ if($('#lotsCsv')) $('#lotsCsv').onclick=exportBestLotsCsv;
 if($('#lotsRefresh')) $('#lotsRefresh').onclick=()=>{ const m=$('#lotsMeta'); if(m) m.textContent='Syncing…'; pullBestLots().then(()=>renderBestLots()); };
 if($('#lotsClear')) $('#lotsClear').onclick=()=>{ if(confirm('Clear the saved Best Lots list?')){ localStorage.removeItem('cs_bestlots'); renderBestLots(); } };
 if($('#lotsFind')) $('#lotsFind').onclick=findEbayLots;
+async function scanPastedLot(){
+  const u=(($('#lotsPasteUrl')||{}).value||'').trim(); const out=$('#lotsPasteOut'); if(!out) return;
+  if(!u){ toast('Paste an eBay listing link first.'); return; }
+  out.innerHTML='<div class="spin"></div><p class="muted" style="text-align:center">Pulling the listing photos…</p>';
+  let d; try{ const r=await fetch('/.netlify/functions/ebay?mode=item&mkt='+CUR_DEFS[CUR].mkt+'&id='+encodeURIComponent(u)); d=await r.json(); }catch(e){ out.innerHTML='<div class="errbox">Could not reach the deal service.</div>'; return; }
+  if(!d || d.enabled===false){ out.innerHTML=ebayGate(); return; }
+  if(!d.item){ out.innerHTML='<div class="errbox">Could not load that listing — check the link is a normal eBay item URL.</div>'; return; }
+  const it=d.item; const imgs=(it.images||[]).filter(Boolean); const idm=(u.match(/(\d{9,})/)||[])[1]||'';
+  const ask=it.price!=null?ebGBP(it.price,it.currency):null;
+  window._lotMeta={title:it.title||'Scanned lot', url:it.url||(idm?'https://www.'+CUR_DEFS[CUR].ebay+'/itm/'+idm:''), asking:ask, thumb:imgs[0]||''};
+  scanImages(imgs, ask, out, (it.title||'')+' '+(it.description||''));
+}
+if($('#lotsPasteGo')) $('#lotsPasteGo').onclick=scanPastedLot;
+if($('#lotsPasteUrl')) $('#lotsPasteUrl').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); scanPastedLot(); } });
 async function findEbayLots(){
   const box=$('#lotsFindResults'); if(!box) return;
   box.innerHTML='<div class="spin"></div><p class="muted" style="text-align:center">Searching eBay for Pokémon lots…</p>';
@@ -1786,7 +1802,7 @@ if($('#openSettingsLink')) $('#openSettingsLink').onclick=(e)=>{ e.preventDefaul
 (function(){ const l=$('#locInput'); if(!l) return; try{ l.value=localStorage.getItem('cs_loc')||''; }catch(e){} l.oninput=()=>{ try{ localStorage.setItem('cs_loc',(l.value||'').trim()); }catch(e){} }; })();
 window.cardscoutLocation=function(){ try{ return localStorage.getItem('cs_loc')||''; }catch(e){ return ''; } };
 // Visible build stamp so you can confirm you're on the latest version
-var BUILD='2026-07-05 · v38';
+var BUILD='2026-07-05 · v39';
 (function(){ var e=document.getElementById('buildStamp'); if(e) e.textContent='Build '+BUILD; })();
 async function svcOn(url){ try{ const r=await fetch(url); const d=await r.json(); return !!d.enabled; }catch(e){ return false; } }
 function svcRow(name,desc,on){ return `<div class="setrow"><span class="dot2 ${on?'on':'off'}"></span><div class="si"><div class="st">${name}</div><div class="sd">${desc}</div></div></div>`; }
