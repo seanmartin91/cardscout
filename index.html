@@ -87,9 +87,13 @@
     box-shadow:0 10px 26px -12px rgba(45,212,191,.6)}
   .btn.ghost{background:rgba(255,255,255,.05);border:1px solid var(--line-strong);color:var(--txt);box-shadow:none;font-weight:600}
   .btn.ghost:hover{background:rgba(255,255,255,.09);transform:translateY(-1px)}
-  .modes{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:16px;
+  .toptabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px;background:rgba(8,11,20,.5);border:1px solid var(--line);border-radius:14px;padding:5px}
+  .toptab{background:transparent;color:var(--muted);padding:11px 4px;border-radius:10px;font-size:13px;font-weight:700;line-height:1;transition:.18s;display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;border:none}
+  .toptab .ic{width:16px;height:16px}
+  .toptab.on{background:var(--accent);color:#06342e;box-shadow:0 6px 16px -8px rgba(45,212,191,.55)}
+  .modes{display:flex;gap:6px;margin-bottom:16px;
     background:rgba(8,11,20,.5);border:1px solid var(--line);border-radius:14px;padding:5px}
-  .mode{background:transparent;color:var(--muted);padding:9px 2px;border-radius:10px;font-size:11px;font-weight:600;line-height:1.2;transition:.18s}
+  .mode{flex:1;background:transparent;color:var(--muted);padding:9px 2px;border-radius:10px;font-size:11px;font-weight:600;line-height:1.2;transition:.18s}
   .mode .mi{font-size:16px;display:block;margin-bottom:3px}
   .mode.on{background:var(--accent);color:#06342e;font-weight:700;box-shadow:0 6px 16px -8px rgba(45,212,191,.55)}
   .camwrap{position:relative;border-radius:18px;overflow:hidden;aspect-ratio:3/4;display:grid;place-items:center;
@@ -268,13 +272,17 @@
 
   <!-- STEP 1: CAPTURE -->
   <div class="panel" id="step1">
+    <div class="toptabs" id="toptabs">
+      <button class="toptab on" data-top="home"><svg class="ic" viewBox="0 0 24 24"><path d="M4 11l8-6 8 6"/><path d="M6 10v9h12v-9"/></svg>Home</button>
+      <button class="toptab" data-top="scan"><svg class="ic" viewBox="0 0 24 24"><path d="M3 8a2 2 0 0 1 2-2h2l1.4-2h7.2L17 6h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.4"/></svg>Scan</button>
+      <button class="toptab" data-top="deals"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5L16 16"/></svg>Deals</button>
+    </div>
     <div class="modes" id="modes">
-      <button class="mode" data-mode="dash"><span class="mi"><svg class="ic" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg></span>Dashboard</button>
-      <button class="mode on" data-mode="single"><span class="mi"><svg class="ic" viewBox="0 0 24 24"><rect x="5" y="3.5" width="14" height="17" rx="2.5"/><path d="M9 8h6M9 12h6"/></svg></span>Single card</button>
-      <button class="mode" data-mode="multi"><span class="mi"><svg class="ic" viewBox="0 0 24 24"><rect x="8.5" y="6" width="11" height="14.5" rx="2.2"/><path d="M5 17V6.2a2 2 0 0 1 2-2h8.5"/></svg></span>Multiple cards</button>
-      <button class="mode" data-mode="sealed"><span class="mi"><svg class="ic" viewBox="0 0 24 24"><path d="M21 8.5l-9-5-9 5v7l9 5 9-5z"/><path d="M3 8.5l9 5 9-5M12 13.5V21"/></svg></span>Pack / box</button>
-      <button class="mode" data-mode="deals"><span class="mi"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5L16 16"/></svg></span>Find deals</button>
-      <button class="mode" data-mode="lots"><span class="mi"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span>Best lots</button>
+      <button class="mode on" data-mode="single" data-section="scan"><span class="mi"><svg class="ic" viewBox="0 0 24 24"><rect x="5" y="3.5" width="14" height="17" rx="2.5"/><path d="M9 8h6M9 12h6"/></svg></span>Single</button>
+      <button class="mode" data-mode="multi" data-section="scan"><span class="mi"><svg class="ic" viewBox="0 0 24 24"><rect x="8.5" y="6" width="11" height="14.5" rx="2.2"/><path d="M5 17V6.2a2 2 0 0 1 2-2h8.5"/></svg></span>Multiple</button>
+      <button class="mode" data-mode="sealed" data-section="scan"><span class="mi"><svg class="ic" viewBox="0 0 24 24"><path d="M21 8.5l-9-5-9 5v7l9 5 9-5z"/><path d="M3 8.5l9 5 9-5M12 13.5V21"/></svg></span>Box</button>
+      <button class="mode" data-mode="deals" data-section="deals"><span class="mi"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5L16 16"/></svg></span>Flip finder</button>
+      <button class="mode" data-mode="lots" data-section="deals"><span class="mi"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span>eBay lots</button>
     </div>
     <div class="camwrap" id="camwrap">
       <div class="hint" id="camHint"><span class="ico"><svg class="ic" viewBox="0 0 24 24" style="width:36px;height:36px;stroke-width:1.5"><path d="M3 8a2 2 0 0 1 2-2h2l1.4-2h7.2L17 6h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.6"/></svg></span><span id="hintText">Tap “Use camera” to scan a card on the shelf, or upload a photo.</span></div>
@@ -568,13 +576,20 @@ async function loadFX(){
 }
 loadFX();
 
-// ---------- MODE ----------
-document.querySelectorAll('.mode').forEach(b=>{
-  b.onclick=()=>{
-    document.querySelectorAll('.mode').forEach(x=>x.classList.remove('on'));
-    b.classList.add('on'); mode=b.dataset.mode; applyMode();
-  };
-});
+// ---------- MODE (two-tier: Home / Scan / Deals) ----------
+function setMode(m){ mode=m; document.querySelectorAll('.mode').forEach(x=>x.classList.toggle('on', x.dataset.mode===m)); applyMode(); }
+function selectTop(sec){
+  document.querySelectorAll('.toptab').forEach(t=>t.classList.toggle('on', t.dataset.top===sec));
+  const modesRow=$('#modes');
+  if(sec==='home'){ if(modesRow) modesRow.style.display='none'; setMode('dash'); return; }
+  if(modesRow) modesRow.style.display='flex';
+  let first=null;
+  document.querySelectorAll('.mode').forEach(b=>{ const show=b.dataset.section===sec; b.style.display=show?'':'none'; if(show&&!first) first=b; });
+  const cur=document.querySelector('.mode[data-mode="'+mode+'"]');
+  if(!cur || cur.dataset.section!==sec){ if(first) setMode(first.dataset.mode); } else { setMode(mode); }
+}
+document.querySelectorAll('.toptab').forEach(t=>{ t.onclick=()=>selectTop(t.dataset.top); });
+document.querySelectorAll('.mode').forEach(b=>{ b.onclick=()=>setMode(b.dataset.mode); });
 function hideAll(){ ['step2','step3','batchStep','sealedStep','dealsStep','lotsStep','dashStep'].forEach(id=>{const e=$('#'+id); if(e) e.classList.add('hidden');}); }
 // ---------- BEST LOTS (populated by the daily scout via localStorage; readable in-app) ----------
 function loadBestLots(){ try{ return JSON.parse(localStorage.getItem('cs_bestlots')||'[]'); }catch(e){ return []; } }
@@ -1742,7 +1757,7 @@ if($('#openSettingsLink')) $('#openSettingsLink').onclick=(e)=>{ e.preventDefaul
 (function(){ const l=$('#locInput'); if(!l) return; try{ l.value=localStorage.getItem('cs_loc')||''; }catch(e){} l.oninput=()=>{ try{ localStorage.setItem('cs_loc',(l.value||'').trim()); }catch(e){} }; })();
 window.cardscoutLocation=function(){ try{ return localStorage.getItem('cs_loc')||''; }catch(e){ return ''; } };
 // Visible build stamp so you can confirm you're on the latest version
-var BUILD='2026-07-05 · v31';
+var BUILD='2026-07-05 · v32';
 (function(){ var e=document.getElementById('buildStamp'); if(e) e.textContent='Build '+BUILD; })();
 async function svcOn(url){ try{ const r=await fetch(url); const d=await r.json(); return !!d.enabled; }catch(e){ return false; } }
 function svcRow(name,desc,on){ return `<div class="setrow"><span class="dot2 ${on?'on':'off'}"></span><div class="si"><div class="st">${name}</div><div class="sd">${desc}</div></div></div>`; }
@@ -1776,7 +1791,7 @@ $('#loginBtn').onclick=doLogin;
 $('#loginCode').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
 checkGate();
 
-applyMode();
+selectTop('home');
 // Service worker caused stale-version problems; run network-only. Unregister any old SW + clear its caches so users always get the latest build.
 if('serviceWorker' in navigator){ navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.update().then(()=>r.unregister()).catch(()=>r.unregister()))).catch(()=>{}); if(window.caches){ caches.keys().then(ks=>ks.forEach(k=>caches.delete(k))).catch(()=>{}); } }
 </script>
