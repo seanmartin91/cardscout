@@ -610,7 +610,7 @@ function renderBestLots(){
   const lots=loadBestLots().slice().sort((a,b)=>((b.net==null?-1e9:b.net)-(a.net==null?-1e9:a.net)));
   const meta=$('#lotsMeta'), list=$('#lotsList'); if(!meta||!list) return;
   if(!lots.length){ meta.textContent=''; list.innerHTML='<div class="muted">No saved lots yet. Tap <b>Find Pokémon lots on eBay</b> above to pull current lots and scan them, or the daily scout adds its finds here. You can also scan a lot under <b>Find deals</b> and tap “Save to Best Lots”.</div>'; return; }
-  meta.innerHTML=`${lots.length} lot(s) · ranked by est. net profit · tap a lot for the card breakdown`;
+  meta.innerHTML=`${lots.length} lot(s) · tap a lot for the breakdown, then tap any card to value &amp; verify it`;
   window._blots=lots;
   list.innerHTML=lots.map((L,li)=>{
     const buy=/buy/i.test(L.verdict||''), pass=/pass/i.test(L.verdict||'');
@@ -618,7 +618,7 @@ function renderBestLots(){
     const cardsHtml=(L.cards||[]).map((c,ci)=>{
       const wotc=/^(base|jungle|fossil|team rocket|gym heroes|gym challenge|neo )/i.test(c.set||'');
       const edsel = wotc ? `<select class="bedsel" data-i="${li}" data-c="${ci}" style="margin-top:3px;font-size:10.5px;padding:1px 5px;border-radius:5px;background:#16203200;color:#9fb4d6;border:1px solid #2c3a52;max-width:130px"><option value="unlimited"${(c.edition||'unlimited')==='unlimited'?' selected':''}>Unlimited</option>${/^base$/i.test(c.set||'')?`<option value="shadowless"${c.edition==='shadowless'?' selected':''}>Shadowless</option>`:''}<option value="1st"${c.edition==='1st'?' selected':''}>1st Edition</option></select>` : '';
-      return `<div class="brow lotcard" data-i="${li}" data-c="${ci}" style="padding:7px 10px;cursor:pointer"><img src="${c.img||''}" style="width:30px;height:42px;object-fit:cover"><div class="bi" style="flex:1"><b style="font-size:13px">${c.name}${c.verify?' <span style="font-size:9px;color:#ffb86b;font-weight:700">?verify</span>':''}</b><span>${c.set} · #${c.num}${c.marked!=null?` · <b style="color:#7dd3fc">seller ${sym()}${c.marked}</b>`:''}</span>${edsel}</div><div class="bp" style="text-align:right"><div class="buy" style="font-size:13px;${c.verify?'color:#ffb86b':''}">${gbp(c.value||0)}${c.est?'<span style="font-size:8px;color:#ffb86b;margin-left:2px">est</span>':''}</div><a class="cardebay" href="https://www.${CUR_DEFS[CUR].ebay}/sch/i.html?_nkw=${encodeURIComponent((c.name||'')+' '+(c.set||'')+' '+(c.num||''))}" target="_blank" rel="noopener" style="font-size:10px;color:var(--accent);font-weight:700;white-space:nowrap">eBay ›</a></div><button class="x cedit" data-i="${li}" data-c="${ci}" title="fix this card">✎</button></div>`;
+      return `<div class="brow lotcard" data-i="${li}" data-c="${ci}" style="padding:7px 10px;cursor:pointer"><img src="${c.img||''}" style="width:30px;height:42px;object-fit:cover"><div class="bi" style="flex:1"><b style="font-size:13px">${c.name}${c.verify?' <span style="font-size:9px;color:#ffb86b;font-weight:700">?verify</span>':''}</b><span>${c.set} · #${c.num}${c.marked!=null?` · <b style="color:#7dd3fc">seller ${sym()}${c.marked}</b>`:''}</span>${edsel}</div><div class="bp"><div class="buy" style="font-size:13px;${c.verify?'color:#ffb86b':''}">${gbp(c.value||0)}${c.est?'<span style="font-size:8px;color:#ffb86b;margin-left:2px">est</span>':''}</div></div><span style="color:var(--faint);font-size:16px;align-self:center;margin:0 2px" title="tap to value &amp; verify">›</span><button class="x cedit" data-i="${li}" data-c="${ci}" title="fix this card">✎</button></div>`;
     }).join('');
     return `<div style="border:1px solid var(--line-strong);border-radius:14px;margin-bottom:10px;overflow:hidden">
       <div class="lothead" data-i="${li}" style="display:flex;gap:10px;align-items:flex-start;padding:12px;cursor:pointer">
@@ -1852,7 +1852,7 @@ if($('#openSettingsLink')) $('#openSettingsLink').onclick=(e)=>{ e.preventDefaul
 (function(){ const l=$('#locInput'); if(!l) return; try{ l.value=localStorage.getItem('cs_loc')||''; }catch(e){} l.oninput=()=>{ try{ localStorage.setItem('cs_loc',(l.value||'').trim()); }catch(e){} }; })();
 window.cardscoutLocation=function(){ try{ return localStorage.getItem('cs_loc')||''; }catch(e){ return ''; } };
 // Visible build stamp so you can confirm you're on the latest version
-var BUILD='2026-07-05 · v46';
+var BUILD='2026-07-05 · v47';
 (function(){ var e=document.getElementById('buildStamp'); if(e) e.textContent='Build '+BUILD; })();
 async function svcOn(url){ try{ const r=await fetch(url); const d=await r.json(); return !!d.enabled; }catch(e){ return false; } }
 function svcRow(name,desc,on){ return `<div class="setrow"><span class="dot2 ${on?'on':'off'}"></span><div class="si"><div class="st">${name}</div><div class="sd">${desc}</div></div></div>`; }
