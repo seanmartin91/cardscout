@@ -229,6 +229,7 @@
       <b>CardScout <span class="chip" id="liveBadge"><span class="blip"></span>Live prices</span></b>
       <small>Scan a card · see worldwide value · get a buy price</small>
       <small id="buildStamp" style="font-size:9.5px;color:var(--faint);letter-spacing:.3px"></small>
+      <small id="creditBadge" class="hidden" style="display:block;font-size:10.5px;color:#5EEAD4;font-weight:700;letter-spacing:.3px;margin-top:1px"></small>
     </div>
     <button class="gear" id="settingsBtn" title="Settings" aria-label="Settings"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
   </div>
@@ -267,6 +268,7 @@
     <div id="svcStatus"></div>
     <p class="muted" style="margin-top:10px;font-size:11.5px">Sealed, graded &amp; eBay data run on secure server keys (PriceCharting, eBay) configured in Netlify, shared for everyone using this app.</p>
 
+    <button class="btn ghost hidden" id="acctLogout" style="margin-top:8px">Log out</button>
     <button class="btn" id="settingsClose" style="margin-top:20px">Done</button>
   </div>
 
@@ -552,8 +554,30 @@
   </div>
 </div>
 
+<div class="overlay hidden" id="authOverlay">
+  <div class="loginbox">
+    <span class="lb-logo">
+      <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1.5" y="1.5" width="37" height="37" rx="9" fill="#111A2C" stroke="#22304A" stroke-width="1.5"/>
+        <path d="M9 15V11a2 2 0 0 1 2-2h4" fill="none" stroke="#2DD4BF" stroke-width="2.6" stroke-linecap="round"/>
+        <path d="M31 25v4a2 2 0 0 1-2 2h-4" fill="none" stroke="#2DD4BF" stroke-width="2.6" stroke-linecap="round"/>
+        <rect x="15.5" y="15.5" width="9" height="9" rx="2" fill="#2DD4BF"/>
+      </svg>
+    </span>
+    <h3>CardScout</h3>
+    <p class="muted" id="authSub" style="margin:0 0 16px">Create an account or log in to start scanning.</p>
+    <input type="email" id="authEmail" placeholder="you@email.com" autocomplete="email" style="margin-bottom:8px">
+    <input type="password" id="authPass" placeholder="password (8+ characters)" autocomplete="current-password">
+    <button class="btn" id="authLoginBtn" style="margin-top:12px">Log in</button>
+    <button class="btn ghost" id="authSignupBtn" style="margin-top:8px">Create account</button>
+    <p class="muted" id="authErr" style="color:var(--red);margin-top:10px;display:none"></p>
+    <p class="muted" style="font-size:11px;margin-top:12px">New accounts get free starter credits. Each scan uses 1 credit.</p>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const $ = s => document.querySelector(s);
 const toast = (m)=>{const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2800);};
@@ -786,11 +810,16 @@ $('#forgetKey').onclick=()=>{ try{ localStorage.removeItem('cs_aiKey'); }catch(e
 // ---------- AI CALL (shared) ----------
 // Shared AI backend — used automatically when the user hasn't set their own key.
 async function backendVision(prompt, images){
-  const r=await fetch('/.netlify/functions/ai-vision',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt, images:(images||[]).filter(Boolean)})});
+  const headers={'Content-Type':'application/json'};
+  try{ if(window._accounts && window.SB){ const s=(await window.SB.auth.getSession()).data.session; if(s&&s.access_token) headers.Authorization='Bearer '+s.access_token; } }catch(e){}
+  const r=await fetch('/.netlify/functions/ai-vision',{method:'POST',headers,body:JSON.stringify({prompt, images:(images||[]).filter(Boolean), cost:1, reason:'scan'})});
   let d={}; try{ d=await r.json(); }catch(e){}
+  if(r.status===401 || d.error==='SIGN_IN_REQUIRED'){ try{ showAuth(); }catch(e){} throw new Error('Please log in to scan.'); }
+  if(r.status===402 || d.error==='INSUFFICIENT_CREDITS'){ try{ outOfCredits(); }catch(e){} throw new Error('You are out of credits.'); }
   if(r.status===429) throw new Error(d.error||'Daily scan limit reached — add your own AI key in Settings.');
   if(d.enabled===false) throw new Error('add your AI key in Settings — or the built-in AI hasn’t been switched on yet.');
   if(d.error) throw new Error(d.error);
+  try{ if(window._accounts) refreshCredits(); }catch(e){}
   return d.text||'';
 }
 async function aiVision(prompt){
@@ -1852,7 +1881,7 @@ if($('#openSettingsLink')) $('#openSettingsLink').onclick=(e)=>{ e.preventDefaul
 (function(){ const l=$('#locInput'); if(!l) return; try{ l.value=localStorage.getItem('cs_loc')||''; }catch(e){} l.oninput=()=>{ try{ localStorage.setItem('cs_loc',(l.value||'').trim()); }catch(e){} }; })();
 window.cardscoutLocation=function(){ try{ return localStorage.getItem('cs_loc')||''; }catch(e){ return ''; } };
 // Visible build stamp so you can confirm you're on the latest version
-var BUILD='2026-07-05 · v47';
+var BUILD='2026-07-05 · v48 (accounts)';
 (function(){ var e=document.getElementById('buildStamp'); if(e) e.textContent='Build '+BUILD; })();
 async function svcOn(url){ try{ const r=await fetch(url); const d=await r.json(); return !!d.enabled; }catch(e){ return false; } }
 function svcRow(name,desc,on){ return `<div class="setrow"><span class="dot2 ${on?'on':'off'}"></span><div class="si"><div class="st">${name}</div><div class="sd">${desc}</div></div></div>`; }
@@ -1884,7 +1913,28 @@ async function doLogin(){
 }
 $('#loginBtn').onclick=doLogin;
 $('#loginCode').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
-checkGate();
+// ---------- ACCOUNTS (Supabase email login) ----------
+window._accounts=false; window.SB=null; window._credits=null;
+function showAuth(){ const o=$('#authOverlay'); if(o) o.classList.remove('hidden'); }
+function outOfCredits(){ toast('You are out of credits. Buy more from Settings (coming soon).'); const o=$('#authOverlay'); }
+async function refreshCredits(){ try{ if(!window.SB) return; const s=(await window.SB.auth.getSession()).data.session; if(!s) return; const d=await fetch('/.netlify/functions/credits',{headers:{Authorization:'Bearer '+s.access_token}}).then(r=>r.json()); const el=$('#creditBadge'); if(el){ if(d&&d.credits!=null){ el.textContent=d.credits+' credits'; el.classList.remove('hidden'); } else el.classList.add('hidden'); } window._credits=(d&&d.credits); }catch(e){} }
+function handleSession(session){ const o=$('#authOverlay'), lo=$('#loginOverlay'), lb=$('#acctLogout'), el=$('#creditBadge'); if(session&&session.user){ if(o)o.classList.add('hidden'); if(lo)lo.classList.add('hidden'); if(lb)lb.classList.remove('hidden'); refreshCredits(); } else { if(o)o.classList.remove('hidden'); if(lb)lb.classList.add('hidden'); if(el)el.classList.add('hidden'); } }
+async function initAuth(){
+  let cfg; try{ cfg=await fetch('/.netlify/functions/config').then(r=>r.json()); }catch(e){ cfg={enabled:false}; }
+  if(!cfg||!cfg.enabled||!window.supabase){ checkGate(); return; }   // accounts not set up yet -> keep the access-code gate
+  window._accounts=true;
+  try{ window.SB=window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey); }catch(e){ checkGate(); return; }
+  const lo=$('#loginOverlay'); if(lo) lo.classList.add('hidden');   // accounts replace the access code
+  try{ const { data:{ session } } = await window.SB.auth.getSession(); window.SB.auth.onAuthStateChange((_e,sN)=>handleSession(sN)); handleSession(session); }catch(e){ showAuth(); }
+}
+async function authLogin(){ if(!window.SB) return; const e=$('#authEmail').value.trim(), p=$('#authPass').value; if(!e||!p){ $('#authErr').style.color='var(--red)'; $('#authErr').textContent='Enter your email and password.'; $('#authErr').style.display='block'; return; } $('#authErr').style.display='none'; const {error}=await window.SB.auth.signInWithPassword({email:e,password:p}); if(error){ $('#authErr').style.color='var(--red)'; $('#authErr').textContent=error.message; $('#authErr').style.display='block'; } }
+async function authSignup(){ if(!window.SB) return; const e=$('#authEmail').value.trim(), p=$('#authPass').value; if(!e||!p){ $('#authErr').style.color='var(--red)'; $('#authErr').textContent='Enter an email and a password (8+ characters).'; $('#authErr').style.display='block'; return; } $('#authErr').style.display='none'; const {data,error}=await window.SB.auth.signUp({email:e,password:p}); if(error){ $('#authErr').style.color='var(--red)'; $('#authErr').textContent=error.message; $('#authErr').style.display='block'; return; } if(data&&data.session){ handleSession(data.session); toast('Welcome to CardScout!'); } else { $('#authErr').style.color='#5EEAD4'; $('#authErr').textContent='Account created — check your email to confirm, then log in.'; $('#authErr').style.display='block'; } }
+async function authLogout(){ try{ if(window.SB) await window.SB.auth.signOut(); }catch(e){} try{ closeSettings(); }catch(e){} }
+if($('#authLoginBtn')) $('#authLoginBtn').onclick=authLogin;
+if($('#authSignupBtn')) $('#authSignupBtn').onclick=authSignup;
+if($('#acctLogout')) $('#acctLogout').onclick=authLogout;
+if($('#authPass')) $('#authPass').addEventListener('keydown', e=>{ if(e.key==='Enter') authLogin(); });
+initAuth();
 
 selectTop('home');
 // Service worker caused stale-version problems; run network-only. Unregister any old SW + clear its caches so users always get the latest build.
