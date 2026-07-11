@@ -185,9 +185,10 @@
   .dot2.on{background:var(--green);box-shadow:0 0 8px rgba(45,212,191,.7)}
   .dot2.off{background:var(--faint)}
   /* ---- login overlay ---- */
-  .overlay{position:fixed;inset:0;z-index:120;background:radial-gradient(720px 520px at 50% -5%,rgba(45,212,191,.16),transparent 60%),var(--bg);display:grid;place-items:center;padding:24px}
-  .loginbox{width:100%;max-width:380px;background:var(--panel-solid);border:1px solid var(--line-strong);border-radius:22px;padding:32px 26px;text-align:center;box-shadow:var(--shadow)}
-  .loginbox .lb-logo{width:56px;height:56px;margin:0 auto 18px}
+  .overlay{position:fixed;inset:0;z-index:120;background:radial-gradient(720px 520px at 50% -5%,rgba(45,212,191,.16),transparent 60%),var(--bg);display:block;overflow-y:auto;padding:40px 24px}
+  .loginbox{width:100%;max-width:380px;margin:0 auto;background:var(--panel-solid);border:1px solid var(--line-strong);border-radius:22px;padding:32px 26px;text-align:center;box-shadow:var(--shadow)}
+  .loginbox .lb-logo{display:block;width:56px;height:56px;margin:0 auto 18px}
+  .loginbox .lb-logo svg{width:100%;height:100%;display:block}
   .loginbox h3{font-family:'Space Grotesk',sans-serif;font-size:21px;margin:0 0 6px;letter-spacing:-.3px}
   .fxnote{font-size:11px;color:var(--faint);text-align:center;margin-top:10px}
   .disclaimer{color:var(--faint);font-size:12px;text-align:center;margin:18px auto;line-height:1.6;max-width:480px}
@@ -567,9 +568,10 @@
     <h3>CardScout</h3>
     <p class="muted" id="authSub" style="margin:0 0 16px">Create an account or log in to start scanning.</p>
     <input type="email" id="authEmail" placeholder="you@email.com" autocomplete="email" style="margin-bottom:8px">
-    <input type="password" id="authPass" placeholder="password (8+ characters)" autocomplete="current-password">
+    <div style="position:relative"><input type="password" id="authPass" placeholder="password (8+ characters)" autocomplete="current-password" style="padding-right:58px"><button type="button" id="authPassToggle" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer">Show</button></div>
     <button class="btn" id="authLoginBtn" style="margin-top:12px">Log in</button>
     <button class="btn ghost" id="authSignupBtn" style="margin-top:8px">Create account</button>
+    <button type="button" id="authForgot" style="background:none;border:none;color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;margin-top:12px">Forgot password?</button>
     <p class="muted" id="authErr" style="color:var(--red);margin-top:10px;display:none"></p>
     <p class="muted" style="font-size:11px;margin-top:12px">New accounts get free starter credits. Each scan uses 1 credit.</p>
   </div>
@@ -1881,7 +1883,7 @@ if($('#openSettingsLink')) $('#openSettingsLink').onclick=(e)=>{ e.preventDefaul
 (function(){ const l=$('#locInput'); if(!l) return; try{ l.value=localStorage.getItem('cs_loc')||''; }catch(e){} l.oninput=()=>{ try{ localStorage.setItem('cs_loc',(l.value||'').trim()); }catch(e){} }; })();
 window.cardscoutLocation=function(){ try{ return localStorage.getItem('cs_loc')||''; }catch(e){ return ''; } };
 // Visible build stamp so you can confirm you're on the latest version
-var BUILD='2026-07-05 · v48 (accounts)';
+var BUILD='2026-07-05 · v49 (accounts)';
 (function(){ var e=document.getElementById('buildStamp'); if(e) e.textContent='Build '+BUILD; })();
 async function svcOn(url){ try{ const r=await fetch(url); const d=await r.json(); return !!d.enabled; }catch(e){ return false; } }
 function svcRow(name,desc,on){ return `<div class="setrow"><span class="dot2 ${on?'on':'off'}"></span><div class="si"><div class="st">${name}</div><div class="sd">${desc}</div></div></div>`; }
@@ -1925,15 +1927,19 @@ async function initAuth(){
   window._accounts=true;
   try{ window.SB=window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey); }catch(e){ checkGate(); return; }
   const lo=$('#loginOverlay'); if(lo) lo.classList.add('hidden');   // accounts replace the access code
-  try{ const { data:{ session } } = await window.SB.auth.getSession(); window.SB.auth.onAuthStateChange((_e,sN)=>handleSession(sN)); handleSession(session); }catch(e){ showAuth(); }
+  try{ const { data:{ session } } = await window.SB.auth.getSession(); window.SB.auth.onAuthStateChange((ev,sN)=>{ if(ev==='PASSWORD_RECOVERY'){ authRecover(); return; } handleSession(sN); }); handleSession(session); }catch(e){ showAuth(); }
 }
 async function authLogin(){ if(!window.SB) return; const e=$('#authEmail').value.trim(), p=$('#authPass').value; if(!e||!p){ $('#authErr').style.color='var(--red)'; $('#authErr').textContent='Enter your email and password.'; $('#authErr').style.display='block'; return; } $('#authErr').style.display='none'; const {error}=await window.SB.auth.signInWithPassword({email:e,password:p}); if(error){ $('#authErr').style.color='var(--red)'; $('#authErr').textContent=error.message; $('#authErr').style.display='block'; } }
 async function authSignup(){ if(!window.SB) return; const e=$('#authEmail').value.trim(), p=$('#authPass').value; if(!e||!p){ $('#authErr').style.color='var(--red)'; $('#authErr').textContent='Enter an email and a password (8+ characters).'; $('#authErr').style.display='block'; return; } $('#authErr').style.display='none'; const {data,error}=await window.SB.auth.signUp({email:e,password:p}); if(error){ $('#authErr').style.color='var(--red)'; $('#authErr').textContent=error.message; $('#authErr').style.display='block'; return; } if(data&&data.session){ handleSession(data.session); toast('Welcome to CardScout!'); } else { $('#authErr').style.color='#5EEAD4'; $('#authErr').textContent='Account created — check your email to confirm, then log in.'; $('#authErr').style.display='block'; } }
+async function authForgot(){ if(!window.SB) return; const e=$('#authEmail').value.trim(); if(!e){ $('#authErr').style.color='var(--red)'; $('#authErr').textContent='Enter your email above first, then tap Forgot password.'; $('#authErr').style.display='block'; return; } const {error}=await window.SB.auth.resetPasswordForEmail(e, {redirectTo: location.origin}); $('#authErr').style.color=error?'var(--red)':'#5EEAD4'; $('#authErr').textContent=error?error.message:('Reset link sent to '+e+' — check your email.'); $('#authErr').style.display='block'; }
+async function authRecover(){ const np=prompt('Set a new password (8+ characters):'); if(!np||np.length<8){ if(np!==null) toast('Password must be 8+ characters.'); return; } try{ const {error}=await window.SB.auth.updateUser({password:np}); if(error) toast(error.message); else toast('Password updated \u2014 you are logged in.'); }catch(e){ toast('Could not update password.'); } }
 async function authLogout(){ try{ if(window.SB) await window.SB.auth.signOut(); }catch(e){} try{ closeSettings(); }catch(e){} }
 if($('#authLoginBtn')) $('#authLoginBtn').onclick=authLogin;
 if($('#authSignupBtn')) $('#authSignupBtn').onclick=authSignup;
 if($('#acctLogout')) $('#acctLogout').onclick=authLogout;
 if($('#authPass')) $('#authPass').addEventListener('keydown', e=>{ if(e.key==='Enter') authLogin(); });
+if($('#authPassToggle')) $('#authPassToggle').onclick=()=>{ const p=$('#authPass'), t=$('#authPassToggle'); if(!p) return; if(p.type==='password'){ p.type='text'; t.textContent='Hide'; } else { p.type='password'; t.textContent='Show'; } };
+if($('#authForgot')) $('#authForgot').onclick=authForgot;
 initAuth();
 
 selectTop('home');
