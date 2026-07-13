@@ -641,6 +641,7 @@ function renderBestLots(){
   list.innerHTML=lots.map((L,li)=>{
     const buy=/buy/i.test(L.verdict||''), pass=/pass/i.test(L.verdict||'');
     const col= buy?'#5EEAD4' : pass?'#ffd6db' : '#ffe08a';
+    const ebQ = (!L.title || /^scanned lot$/i.test(String(L.title).trim())) ? ((((L.cards)||[]).slice(0,3).map(c=>c&&c.name).filter(Boolean).join(' ')) || 'pokemon card lot') : L.title;
     const cardsHtml=(L.cards||[]).map((c,ci)=>{
       const wotc=/^(base|jungle|fossil|team rocket|gym heroes|gym challenge|neo )/i.test(c.set||'');
       const edsel = wotc ? `<select class="bedsel" data-i="${li}" data-c="${ci}" style="margin-top:3px;font-size:10.5px;padding:1px 5px;border-radius:5px;background:#16203200;color:#9fb4d6;border:1px solid #2c3a52;max-width:130px"><option value="unlimited"${(c.edition||'unlimited')==='unlimited'?' selected':''}>Unlimited</option>${/^base$/i.test(c.set||'')?`<option value="shadowless"${c.edition==='shadowless'?' selected':''}>Shadowless</option>`:''}<option value="1st"${c.edition==='1st'?' selected':''}>1st Edition</option></select>` : '';
@@ -653,7 +654,7 @@ function renderBestLots(){
       </div>
       <div class="lotbreak hidden" data-i="${li}" style="border-top:1px solid var(--line)">
         ${cardsHtml||'<div class="muted" style="padding:12px">No per-card breakdown saved for this lot.</div>'}
-        <div style="padding:8px 12px">${/^https?:\/\//i.test(L.url||'')?`<a href="${L.url}" target="_blank" rel="noopener" style="font-size:12px;font-weight:700;color:var(--accent)">Open listing ›</a>`:`<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><input class="lotlinkin" data-i="${li}" value="${(L.url||'').replace(/"/g,'&quot;')}" placeholder="Paste eBay / listing link…" style="flex:1;min-width:150px;font-size:12px;padding:6px 8px;border-radius:8px;background:#0d1526;border:1px solid #2c3a52;color:var(--txt)"><button class="lotlinksave" data-i="${li}" style="background:var(--accent);color:#06342e;border:none;padding:6px 13px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">Save link</button></div><a href="https://www.${CUR_DEFS[CUR].ebay}/sch/i.html?_nkw=${encodeURIComponent((L.title||'pokemon lot').slice(0,80))}" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;font-size:11px;color:var(--accent);font-weight:700">Search this lot on eBay ›</a>`}</div>
+        <div style="padding:8px 12px">${/^https?:\/\//i.test(L.url||'')?`<a href="${L.url}" target="_blank" rel="noopener" style="font-size:12px;font-weight:700;color:var(--accent)">Open listing ›</a>`:`<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><input class="lotlinkin" data-i="${li}" value="${(L.url||'').replace(/"/g,'&quot;')}" placeholder="Paste eBay / listing link…" style="flex:1;min-width:150px;font-size:12px;padding:6px 8px;border-radius:8px;background:#0d1526;border:1px solid #2c3a52;color:var(--txt)"><button class="lotlinksave" data-i="${li}" style="background:var(--accent);color:#06342e;border:none;padding:6px 13px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">Save link</button></div><a href="https://www.${CUR_DEFS[CUR].ebay}/sch/i.html?_nkw=${encodeURIComponent(String(ebQ).slice(0,80))}&LH_Sold=1&LH_Complete=1" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;font-size:11px;color:var(--accent);font-weight:700">Search these cards on eBay (sold) ›</a>`}</div>
       </div>
     </div>`;
   }).join('');
@@ -1883,7 +1884,7 @@ if($('#openSettingsLink')) $('#openSettingsLink').onclick=(e)=>{ e.preventDefaul
 (function(){ const l=$('#locInput'); if(!l) return; try{ l.value=localStorage.getItem('cs_loc')||''; }catch(e){} l.oninput=()=>{ try{ localStorage.setItem('cs_loc',(l.value||'').trim()); }catch(e){} }; })();
 window.cardscoutLocation=function(){ try{ return localStorage.getItem('cs_loc')||''; }catch(e){ return ''; } };
 // Visible build stamp so you can confirm you're on the latest version
-var BUILD='2026-07-05 · v49 (accounts)';
+var BUILD='2026-07-05 · v50 (accounts)';
 (function(){ var e=document.getElementById('buildStamp'); if(e) e.textContent='Build '+BUILD; })();
 async function svcOn(url){ try{ const r=await fetch(url); const d=await r.json(); return !!d.enabled; }catch(e){ return false; } }
 function svcRow(name,desc,on){ return `<div class="setrow"><span class="dot2 ${on?'on':'off'}"></span><div class="si"><div class="st">${name}</div><div class="sd">${desc}</div></div></div>`; }
