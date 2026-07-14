@@ -1562,12 +1562,13 @@ function renderScan(){
   const verdict = ask!=null ? `Key cards ≈ <b style="color:${col}">${gbp(confident)}</b> vs asking ${gbp(ask)} — ${confident>ask?'worth a closer look':'below asking on the cards we’re sure of'}.` : `Key cards ≈ <b>${gbp(confident)}</b> (holos & rares we’re sure of).`;
   const sellerTotal=calc.reduce((s,x)=>s+((x.it&&x.it.askPrice)||0),0);
   const toggle = bulkCount? `<button class="btn ghost" id="toggleBulk" style="margin:6px 0 2px">${showAll?'Hide bulk commons':'Show '+bulkCount+' bulk common(s) ≈ '+gbp(bulkVal)}</button>` : '';
-  const dlbtn = `<button class="btn ghost" id="lotCsv" style="margin:6px 0 2px"><svg class="ic" viewBox="0 0 24 24" style="width:1em;height:1em;vertical-align:-.13em"><path d="M12 4v12"/><path d="M7 11l5 5 5-5"/><path d="M5 20h14"/></svg> Download CSV</button><button class="btn ghost" id="lotSaveBest" style="margin:6px 0 2px"><svg class="ic" viewBox="0 0 24 24" style="width:1em;height:1em;vertical-align:-.13em"><path d="M12 3.5l2.7 5.5 6 .9-4.3 4.2 1 6-5.4-2.8-5.4 2.8 1-6L3.3 9.9l6-.9z"/></svg> Save to Best Lots</button>`;
+  const dlbtn = `<button class="btn ghost" id="lotCsv" style="margin:6px 0 2px"><svg class="ic" viewBox="0 0 24 24" style="width:1em;height:1em;vertical-align:-.13em"><path d="M12 4v12"/><path d="M7 11l5 5 5-5"/><path d="M5 20h14"/></svg> Download CSV</button><button class="btn ghost" id="lotSaveBest" style="margin:6px 0 2px"><svg class="ic" viewBox="0 0 24 24" style="width:1em;height:1em;vertical-align:-.13em"><path d="M12 3.5l2.7 5.5 6 .9-4.3 4.2 1 6-5.4-2.8-5.4 2.8 1-6L3.3 9.9l6-.9z"/></svg> Save to Best Lots</button><button class="btn gold" id="lotEbayCsv" style="margin:6px 0 2px"><svg class="ic" viewBox="0 0 24 24" style="width:1em;height:1em;vertical-align:-.13em"><path d="M12 4v12"/><path d="M7 11l5 5 5-5"/><path d="M5 20h14"/></svg> Export eBay listings</button>`;
   const thumbHtml=scanState.thumb?`<img src="${scanState.thumb}" style="width:66px;height:66px;object-fit:cover;border-radius:12px;border:1px solid var(--line);flex-shrink:0">`:'';
   out.innerHTML=`<div class="offer" style="margin-top:6px;display:flex;gap:12px;align-items:center">${thumbHtml}<div style="flex:1;min-width:0"><div class="lbl">Key cards (holos &amp; rares)</div><div class="big" style="font-size:34px">${gbp(confident)}</div><div class="rng">${verdict}</div></div></div>
     <div class="muted" style="margin:10px 0">${items.length} card(s) found.${bulkCount?` ${bulkCount} are low-value bulk (marked “bulk”).`:''} ${flagged?`<b style="color:#ffb86b">${flagged} flagged “?verify”</b> — likely a misread, not counted. `:''}Headline = holos & rares${bulkVal?`; +${gbp(bulkVal)} bulk = <b>${gbp(confident+bulkVal)}</b> all-in`:''}. Tap ✎ to fix · pick edition on WOTC holos · low-res photos = shortlist.${sellerTotal>0?` · <b style="color:#7dd3fc">Seller's marked prices ≈ ${gbp(sellerTotal)}</b> on these cards`:''}</div><div style="display:flex;gap:8px;flex-wrap:wrap">${toggle}${dlbtn}</div>${rows}`;
   const tb=$('#toggleBulk'); if(tb) tb.onclick=()=>{ scanState.showAll=!scanState.showAll; renderScan(); };
   const cb=$('#lotCsv'); if(cb) cb.onclick=exportScanCsv;
+  const ebb=$('#lotEbayCsv'); if(ebb) ebb.onclick=exportEbayListings;
   const sb=$('#lotSaveBest'); if(sb) sb.onclick=()=>{
     const asking=scanState.ask||0;
     const cards=calc.map(x=>{ const susp = x.it.verifyFail===true || (x.v>0 && (x.it.guessed===true || (x.v>50 && median>0 && x.v>4*median))); return {name:x.c.name, set:x.c.set.name, num:x.c.number, value:Math.round((x.v||0)*100)/100, verify:!!susp, marked:((x.it&&x.it.askPrice!=null)?x.it.askPrice:null), img:(x.c.images&&x.c.images.small)||''}; });
@@ -1587,6 +1588,35 @@ function renderScan(){
     const era=(new Date(cur.set.releaseDate||'2020')<new Date('2005-01-01'))?'vintage':'';
     try{ const c=await findOne(nm||cur.name, '', numm, era, undefined, denm); if(c){ const keys=finishKeysOf(c); scanState.items[i]={card:c, finishKey:keys.length?preferFinish(keys):'_cm'}; renderScan(); toast('Updated to '+c.name+' #'+c.number); } else toast('No match for that — try the exact number.'); }catch(e){ toast('Search failed.'); }
   }; });
+}
+function exportEbayListings(){
+  if(!scanState||!scanState.items||!scanState.items.length){ toast('Scan a lot first.'); return; }
+  const f2=n=>(n>0)?(Math.round(n*100)/100).toFixed(2):'';
+  const clip=(x,n)=>{ x=String(x||''); return x.length>n?x.slice(0,n).trim():x; };
+  const head=['Action','Category','Title','Description','ConditionID','StartPrice','Quantity','Format','Duration','PicURL',
+    'C:Game','C:Card Name','C:Set','C:Card Number','C:Rarity','C:Finish','C:Language','C:Graded','C:Card Condition'];
+  const rows=[head];
+  scanState.items.forEach(it=>{
+    const c=it.card; if(!c) return;
+    const eds=editionOptions(c); const ed=eds?(it.edition||'unlimited'):null;
+    let v=0; if(ed){ const e=editionPrice(c,ed); v=e?e.nm:0; } else { v=priceCard(c,it.finishKey).blendNM||0; }
+    if(!(v>0)) return;                                   // skip anything we cannot price
+    if(it.verifyFail===true || it.guessed===true) return; // never auto-list a card we are unsure about
+    const holo=isHoloCard(c)?'Holo':'';
+    const edTxt=(ed && ed!=='unlimited') ? (ed==='1st'?'1st Edition':'Shadowless') : '';
+    const total=c.set.printedTotal||'';
+    const title=clip([c.name, edTxt, c.set.name, '#'+c.number+(total?('/'+total):''), c.rarity||'', holo, 'Pokemon TCG NM'].filter(Boolean).join(' '), 80);
+    const desc=c.name+' — '+c.set.name+' #'+c.number+(total?('/'+total):'')+(c.rarity?(' · '+c.rarity):'')+(holo?' · Holo':'')+(edTxt?(' · '+edTxt):'')+'. Near Mint unless stated. Shipped in a sleeve + toploader, packed securely. Combined shipping available — buy more and save.';
+    const pic=(c.images&&(c.images.large||c.images.small))||'';
+    rows.push(['Add','183454',title,desc,'4000',f2(v),'1','FixedPrice','GTC',pic,
+      'Pokémon TCG', c.name, c.set.name, c.number, c.rarity||'', isHoloCard(c)?'Holo':'Regular', 'English', 'No', 'Near Mint or better']);
+  });
+  if(rows.length<2){ toast('No confidently-priced cards to list yet.'); return; }
+  const csv=rows.map(r=>r.map(x=>{ x=String(x==null?'':x); return /[",\n]/.test(x)?'"'+x.replace(/"/g,'""')+'"':x; }).join(',')).join('\r\n');
+  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='ebay-listings-'+new Date().toISOString().slice(0,10)+'.csv'; a.click();
+  toast((rows.length-1)+' eBay listings exported — upload in eBay Seller Hub.');
 }
 function exportScanCsv(){
   if(!scanState||!scanState.items||!scanState.items.length){ toast('Nothing to export yet — scan a lot first.'); return; }
@@ -1884,7 +1914,7 @@ if($('#openSettingsLink')) $('#openSettingsLink').onclick=(e)=>{ e.preventDefaul
 (function(){ const l=$('#locInput'); if(!l) return; try{ l.value=localStorage.getItem('cs_loc')||''; }catch(e){} l.oninput=()=>{ try{ localStorage.setItem('cs_loc',(l.value||'').trim()); }catch(e){} }; })();
 window.cardscoutLocation=function(){ try{ return localStorage.getItem('cs_loc')||''; }catch(e){ return ''; } };
 // Visible build stamp so you can confirm you're on the latest version
-var BUILD='2026-07-05 · v50 (accounts)';
+var BUILD='2026-07-05 · v51 (accounts)';
 (function(){ var e=document.getElementById('buildStamp'); if(e) e.textContent='Build '+BUILD; })();
 async function svcOn(url){ try{ const r=await fetch(url); const d=await r.json(); return !!d.enabled; }catch(e){ return false; } }
 function svcRow(name,desc,on){ return `<div class="setrow"><span class="dot2 ${on?'on':'off'}"></span><div class="si"><div class="st">${name}</div><div class="sd">${desc}</div></div></div>`; }
