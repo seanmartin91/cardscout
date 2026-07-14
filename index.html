@@ -4,14 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0A0E15">
-<title>CardScout — Pokémon buy-price scanner</title>
+<title>Lotlens — scan a card lot, know what to pay</title>
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="icon" href="/favicon-32.png" sizes="32x32">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="CardScout">
+<meta name="apple-mobile-web-app-title" content="Lotlens">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -219,7 +219,7 @@
 <header>
   <div class="brand">
     <span class="logo">
-      <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" aria-label="CardScout">
+      <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" aria-label="Lotlens">
         <rect x="1.5" y="1.5" width="37" height="37" rx="9" fill="#111A2C" stroke="#22304A" stroke-width="1.5"/>
         <path d="M9 15V11a2 2 0 0 1 2-2h4" fill="none" stroke="#2DD4BF" stroke-width="2.6" stroke-linecap="round"/>
         <path d="M31 25v4a2 2 0 0 1-2 2h-4" fill="none" stroke="#2DD4BF" stroke-width="2.6" stroke-linecap="round"/>
@@ -227,7 +227,7 @@
       </svg>
     </span>
     <div>
-      <b>CardScout <span class="chip" id="liveBadge"><span class="blip"></span>Live prices</span></b>
+      <b>Lotlens <span class="chip" id="liveBadge"><span class="blip"></span>Live prices</span></b>
       <small>Scan a card · see worldwide value · get a buy price</small>
       <small id="buildStamp" style="font-size:9.5px;color:var(--faint);letter-spacing:.3px"></small>
       <small id="creditBadge" class="hidden" style="display:block;font-size:10.5px;color:#5EEAD4;font-weight:700;letter-spacing:.3px;margin-top:1px"></small>
@@ -304,7 +304,7 @@
     <p class="muted" style="margin-top:14px;font-size:12.5px">AI photo recognition is optional. Add your Claude or OpenAI key in <a href="#" id="openSettingsLink">Settings</a> to auto-read cards from photos. Single cards &amp; manual search work without it.</p>
 
     <details style="margin-top:14px" id="flipBox"><summary><svg class="ic" viewBox="0 0 24 24" style="width:1em;height:1em;vertical-align:-.13em"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg> Find profitable single-card flips</summary>
-      <p class="muted" style="margin:8px 0 10px;font-size:12.5px">CardScout sweeps live eBay listings for ~25 popular, liquid cards and flags any where you'd net <b>15%+ after fees</b> vs market value — biggest margin first. Live prices, updated the moment you tap.</p>
+      <p class="muted" style="margin:8px 0 10px;font-size:12.5px">Lotlens sweeps live eBay listings for ~25 popular, liquid cards and flags any where you'd net <b>15%+ after fees</b> vs market value — biggest margin first. Live prices, updated the moment you tap.</p>
       <button class="btn gold" id="flipFindBtn">Find profitable flips now</button>
       <div id="flipResults" style="margin-top:10px"></div>
     </details>
@@ -389,7 +389,7 @@
   <div class="panel hidden" id="batchStep">
     <h2 class="eyebrow"><span class="n">2</span> Your stack</h2>
     <div id="batchThinking" class="hidden" style="text-align:center"><div class="spin"></div><p class="muted" id="batchThinkTxt">Reading all the cards in your photo…</p></div>
-    <div id="batchEmpty" class="muted">Take or upload one photo with several cards laid out, and/or add sealed packs &amp; boxes manually — CardScout totals the whole pile.</div>
+    <div id="batchEmpty" class="muted">Take or upload one photo with several cards laid out, and/or add sealed packs &amp; boxes manually — Lotlens totals the whole pile.</div>
     <button class="btn ghost" id="addManual" style="margin-top:12px">+ Add pack / sealed / manual item</button>
     <div id="batchList" style="margin-top:12px"></div>
     <div id="batchControls" class="hidden">
@@ -473,7 +473,7 @@
 
     <div id="dealLot" class="hidden">
       <label>Paste a lot link — eBay, Facebook Marketplace, Kijiji or Whatnot</label>
-      <div class="muted" style="margin:2px 0 8px;font-size:12.5px"><b>eBay</b> link (or item number) → CardScout pulls the photos automatically. <b>Facebook / Kijiji / Whatnot</b> have no photo API, so paste the link then tap <b>Upload photos</b> to add screenshots — the link stays attached so “Open listing” works. You can also paste photo links directly.</div>
+      <div class="muted" style="margin:2px 0 8px;font-size:12.5px"><b>eBay</b> link (or item number) → Lotlens pulls the photos automatically. <b>Facebook / Kijiji / Whatnot</b> have no photo API, so paste the link then tap <b>Upload photos</b> to add screenshots — the link stays attached so “Open listing” works. You can also paste photo links directly.</div>
       <textarea id="lotImgs" rows="3" placeholder="Paste an eBay / Facebook Marketplace / Kijiji / Whatnot listing link. Or photo links, one per line. Or Upload photos below." style="width:100%;background:rgba(8,11,20,.7);border:1px solid var(--line-strong);color:var(--txt);padding:13px 15px;border-radius:13px;font-size:13.5px;font-family:inherit;outline:none;resize:vertical"></textarea>
       <input id="lotAsk" type="number" inputmode="decimal" placeholder="Asking price (optional, for the verdict)" style="margin-top:10px">
       <div class="row" style="margin-top:12px">
@@ -492,7 +492,7 @@
     </div>
 
     <div id="dealSniper" class="hidden">
-      <div class="muted" style="margin:2px 0 10px;font-size:12.5px">Save the cards you're hunting with a max price. Tap <b>Run sniper</b> and CardScout flags any live eBay listing at or under your target — sorted cheapest first. Your watchlist is saved on this device.</div>
+      <div class="muted" style="margin:2px 0 10px;font-size:12.5px">Save the cards you're hunting with a max price. Tap <b>Run sniper</b> and Lotlens flags any live eBay listing at or under your target — sorted cheapest first. Your watchlist is saved on this device.</div>
       <label>Card to watch</label>
       <input id="snipeTerm" placeholder="e.g. Charizard Base Set 4/102">
       <div class="row" style="margin-top:10px">
@@ -547,7 +547,7 @@
         <rect x="15.5" y="15.5" width="9" height="9" rx="2" fill="#2DD4BF"/>
       </svg>
     </span>
-    <h3>CardScout</h3>
+    <h3>Lotlens</h3>
     <p class="muted" style="margin:0 0 18px">Enter the access code to continue.</p>
     <input type="password" id="loginCode" placeholder="Access code" style="text-align:center;letter-spacing:2px">
     <button class="btn" id="loginBtn" style="margin-top:12px">Unlock</button>
@@ -565,7 +565,7 @@
         <rect x="15.5" y="15.5" width="9" height="9" rx="2" fill="#2DD4BF"/>
       </svg>
     </span>
-    <h3>CardScout</h3>
+    <h3>Lotlens</h3>
     <p class="muted" id="authSub" style="margin:0 0 16px">Create an account or log in to start scanning.</p>
     <input type="email" id="authEmail" placeholder="you@email.com" autocomplete="email" style="margin-bottom:8px">
     <div style="position:relative"><input type="password" id="authPass" placeholder="password (8+ characters)" autocomplete="current-password" style="padding-right:58px"><button type="button" id="authPassToggle" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer">Show</button></div>
@@ -693,7 +693,7 @@ function exportBestLotsCsv(){
   const rows=[head, ...lots.map(L=>[L.date||'', L.title||'', L.url||'', f2(L.asking), f2(L.resale!=null?L.resale:L.value), f2(L.net), L.roi!=null?Math.round(L.roi)+'%':'', L.verdict||'Watch', '', '', '', L.notes||''])];
   const csv=rows.map(r=>r.map(x=>{x=String(x==null?'':x);return /[",\n]/.test(x)?'"'+x.replace(/"/g,'""')+'"':x;}).join(',')).join('\r\n');
   const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'}); const u=URL.createObjectURL(blob);
-  const a=document.createElement('a'); a.href=u; a.download='cardscout-best-lots.csv'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),4000);
+  const a=document.createElement('a'); a.href=u; a.download='lotlens-best-lots.csv'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),4000);
   toast('CSV exported — asking, resale, net profit, ROI & status filled in.');
 }
 if($('#lotsCsv')) $('#lotsCsv').onclick=exportBestLotsCsv;
@@ -799,7 +799,7 @@ function setCaptured(url){
 function updateAiState(){
   const on = $('#aiKey').value.trim().length>0;
   $('#aiState').innerHTML = on
-    ? 'AI recognition is <b style="color:#5EEAD4">ON</b> — your key is saved on this device, so it’s ready every time you open CardScout here.'
+    ? 'AI recognition is <b style="color:#5EEAD4">ON</b> — your key is saved on this device, so it’s ready every time you open Lotlens here.'
     : 'AI recognition is <b>off</b>. Add a key to enable it.';
   $('#forgetKey').style.display = on ? 'block' : 'none';
 }
@@ -1062,10 +1062,10 @@ function recompute(){
 $('#resetBtn').onclick=resetSingle;
 $('#cardShare').onclick=()=>{
   if(!selectedCard) return; const c=selectedCard;
-  const text=`CardScout valuation\n${c.name} — ${c.set.name} #${c.number}\nMarket (${$('#condSel').selectedOptions[0].text}): ${$('#blendVal').textContent}\nSuggested max buy: ${$('#offerVal').textContent}\n\nvia cardscout-uk.netlify.app`;
+  const text=`Lotlens valuation\n${c.name} — ${c.set.name} #${c.number}\nMarket (${$('#condSel').selectedOptions[0].text}): ${$('#blendVal').textContent}\nSuggested max buy: ${$('#offerVal').textContent}\n\nvia lotlens.netlify.app`;
   const isMobile=/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  if(isMobile){ if(navigator.share){ navigator.share({title:'CardScout valuation',text}).catch(()=>{ try{ location.href='sms:?&body='+encodeURIComponent(text); }catch(e){} }); } else { try{ location.href='sms:?&body='+encodeURIComponent(text); }catch(e){} } return; }
-  if(navigator.share){ navigator.share({title:'CardScout valuation',text}).catch(()=>{}); }
+  if(isMobile){ if(navigator.share){ navigator.share({title:'Lotlens valuation',text}).catch(()=>{ try{ location.href='sms:?&body='+encodeURIComponent(text); }catch(e){} }); } else { try{ location.href='sms:?&body='+encodeURIComponent(text); }catch(e){} } return; }
+  if(navigator.share){ navigator.share({title:'Lotlens valuation',text}).catch(()=>{}); }
   else if(navigator.clipboard){ navigator.clipboard.writeText(text).then(()=>toast('Valuation copied to clipboard.')).catch(()=>toast('Copy failed — long-press to select.')); }
   else toast('Sharing not supported on this browser.');
 };
@@ -1093,7 +1093,7 @@ function listingFor(c, finishVal, cond, condText){
   const desc=`${c.name} — ${set}${numStr?' ('+numStr+')':''}${ed?' · '+ed:''}.\n`+
     `${reverse?'Reverse Holofoil. ':(holo?'Holofoil. ':'')}Condition: ${condText}.${year?' Released '+year+'.':''}\n\n`+
     `Genuine Pokémon TCG card. The photos show the exact card you will receive. Shipped securely in a penny sleeve + toploader inside a rigid mailer. Combined shipping available on multiple cards — buy more and save.\n\n`+
-    `Listed via CardScout.`;
+    `Listed via Lotlens.`;
   return {title, listPrice, resale, specifics, desc};
 }
 function copyText(str,label){ if(navigator.clipboard){ navigator.clipboard.writeText(str).then(()=>toast((label||'Text')+' copied.')).catch(()=>toast('Copy failed.')); } else toast('Copy not supported.'); }
@@ -1276,11 +1276,11 @@ function batchTotals(){
   return {cond,buyPct,rows,totResale,totBuy};
 }
 $('#batchShare').onclick=async ()=>{
-  const t=batchTotals(); const L=['CardScout — stack valuation',''];
+  const t=batchTotals(); const L=['Lotlens — stack valuation',''];
   t.rows.forEach(r=> L.push(`• ${r.name} (${r.set} #${r.num}) — market ${r.resale!=null?gbp(r.resale):'n/a'}, buy ${r.buy!=null?gbp(r.buy):'n/a'}`));
-  L.push('', `Items: ${t.rows.length}`, `Total resale value: ${gbp(t.totResale)}`, `TOTAL OFFER TO THE SHOP (pay ${t.buyPct}% of market): ${gbp(t.totBuy)}`, `Profit if sold: ${gbp(t.totResale-t.totBuy)}`, '', 'Priced via cardscout-uk.netlify.app');
+  L.push('', `Items: ${t.rows.length}`, `Total resale value: ${gbp(t.totResale)}`, `TOTAL OFFER TO THE SHOP (pay ${t.buyPct}% of market): ${gbp(t.totBuy)}`, `Profit if sold: ${gbp(t.totResale-t.totBuy)}`, '', 'Priced via lotlens.netlify.app');
   const text=L.join('\n');
-  if(navigator.share){ try{ await navigator.share({title:'CardScout stack',text}); return; }catch(e){ if(e&&e.name==='AbortError') return; } }
+  if(navigator.share){ try{ await navigator.share({title:'Lotlens stack',text}); return; }catch(e){ if(e&&e.name==='AbortError') return; } }
   if(navigator.clipboard){ try{ await navigator.clipboard.writeText(text); toast('Stack summary copied to clipboard.'); return; }catch(e){} }
   toast('Sharing not supported — try the CSV.');
 };
@@ -1290,10 +1290,10 @@ $('#batchCsv').onclick=()=>{
   t.rows.forEach(r=> lines.push([r.name,r.set,r.num, r.resale!=null?r.resale.toFixed(2):'', r.buy!=null?r.buy.toFixed(2):'']));
   lines.push(['TOTAL','','', t.totResale.toFixed(2), t.totBuy.toFixed(2)]);
   const csv=lines.map(r=>r.map(x=>`"${String(x).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='cardscout-stack.csv'; a.click();
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='lotlens-stack.csv'; a.click();
   setTimeout(()=>URL.revokeObjectURL(a.href),1500); toast('CSV downloaded.');
 };
-$('#batchReset').onclick=()=>{ batchCards=[]; manualItems=[]; capturedDataURL=null; $('#batchStep').classList.add('hidden'); $('#batchList').innerHTML=''; $('#batchControls').classList.add('hidden'); const be=$('#batchEbay'); if(be){be.classList.add('hidden');be.innerHTML='';} $('#batchEmpty').classList.remove('hidden'); $('#batchEmpty').innerHTML='Take or upload one photo with several cards laid out, and/or add sealed packs &amp; boxes manually — CardScout totals the whole pile.'; $('#preview').style.display='none'; $('#camHint').style.display='block'; window.scrollTo({top:0,behavior:'smooth'}); };
+$('#batchReset').onclick=()=>{ batchCards=[]; manualItems=[]; capturedDataURL=null; $('#batchStep').classList.add('hidden'); $('#batchList').innerHTML=''; $('#batchControls').classList.add('hidden'); const be=$('#batchEbay'); if(be){be.classList.add('hidden');be.innerHTML='';} $('#batchEmpty').classList.remove('hidden'); $('#batchEmpty').innerHTML='Take or upload one photo with several cards laid out, and/or add sealed packs &amp; boxes manually — Lotlens totals the whole pile.'; $('#preview').style.display='none'; $('#camHint').style.display='block'; window.scrollTo({top:0,behavior:'smooth'}); };
 if($('#batchEbayBtn')) $('#batchEbayBtn').onclick=()=>{
   const box=$('#batchEbay'); if(!box) return; const cond=parseFloat($('#batchCond').value); const condText=$('#batchCond').selectedOptions[0].text;
   const dom=(CUR_DEFS[CUR]&&CUR_DEFS[CUR].ebay)||'ebay.ca';
@@ -1514,7 +1514,7 @@ async function scanImages(imgs, ask, out, ctx){
     await Promise.all(Array.from({length:Math.min(4,tasks.length)}, reader));
     if(keyErr){ out.innerHTML='<div class="errbox">'+keyErr+'</div>'; return; }
     const list=Object.values(found).slice(0,30);
-    if(!list.length){ out.innerHTML='<div class="muted"><b>Couldn’t read this lot.</b> These photos pack in hundreds of small, low-res cards — too dense to identify card-by-card (a person couldn’t either). CardScout is most accurate on lots where the cards are clearly visible, or on the few <b>chase cards</b> that carry the value. For a random bulk lot like this, treat it as bulk: value it per-card (roughly $0.05–0.15 each for modern commons/uncommons) plus any visible holos/full-arts. Tip: zoom the listing to a standout card and scan just that, or use Single mode.</div>'; return; }
+    if(!list.length){ out.innerHTML='<div class="muted"><b>Couldn’t read this lot.</b> These photos pack in hundreds of small, low-res cards — too dense to identify card-by-card (a person couldn’t either). Lotlens is most accurate on lots where the cards are clearly visible, or on the few <b>chase cards</b> that carry the value. For a random bulk lot like this, treat it as bulk: value it per-card (roughly $0.05–0.15 each for modern commons/uncommons) plus any visible holos/full-arts. Tip: zoom the listing to a standout card and scan just that, or use Single mode.</div>'; return; }
     const t=$('#lotScanTxt'); if(t) t.textContent=`Pricing ${list.length} cards…`;
     // Price all cards in parallel
     const settled=await Promise.all(list.map(async f=>{ try{ const c=await findOne(cleanCardName(f.name), f.set||'', f.number||'', f.era, typeof f.holo==='boolean'?f.holo:undefined, f.total||'', true); if(c){ const keys=finishKeysOf(c); const fnum=String(f.number||'').split('/')[0].trim(); const dt=parseInt(String(f.total||(String(f.number||'').includes('/')?String(f.number).split('/')[1]:'')).replace(/[^0-9]/g,''),10)||0; const numMatched=fnum!==''&&String(c.number)===fnum; const totalMatched=!!(dt&&(c.set.printedTotal===dt||c.set.total===dt)); const trusted=numMatched||totalMatched; const noNum=!f.number&&!f.total; const guessed = noNum || (!trusted && (f._seen||1)<2); return {card:c, finishKey: keys.length?preferFinish(keys):'_cm', guessed, numMatched, seen:(f._seen||1), askPrice: (f.askPrice!=null?f.askPrice:null)}; } }catch(e){} return null; }));
@@ -1633,7 +1633,7 @@ function exportScanCsv(){
   });
   const csv=rows.map(r=>r.map(x=>{ x=String(x==null?'':x); return /[",\n]/.test(x)?'"'+x.replace(/"/g,'""')+'"':x; }).join(',')).join('\r\n');
   const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'}); const u=URL.createObjectURL(blob);
-  const a=document.createElement('a'); a.href=u; a.download='cardscout-lot.csv'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),4000);
+  const a=document.createElement('a'); a.href=u; a.download='lotlens-lot.csv'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),4000);
   toast('CSV downloaded — card values, conditions, buy & sell.');
 }
 async function scanLot(){ const it=window._lot; if(!it) return; scanImages(it.images, ebGBP(it.price,it.currency), $('#lotScan')); }
@@ -1658,7 +1658,7 @@ async function lotManualScan(){
         r=await fetch('/.netlify/functions/lotpull?url='+encodeURIComponent(listing[1])); const d2=await r.json(); imgs=(d2&&d2.images)||[]; if(!ctx && d2&&d2.title) ctx=d2.title;
       }
       if(imgs.length){ if(ask==null && item && item.price!=null) ask=ebGBP(item.price, item.currency||'USD'); window._lotMeta={title:(item&&item.title)||'Scanned lot', url:(item&&item.url)||('https://www.'+CUR_DEFS[CUR].ebay+'/itm/'+listing[1]), asking:ask}; scanImages(imgs, ask, out, ctx); return; }
-      out.innerHTML='<div class="errbox">Couldn’t pull photos from that listing. Paste the photo links (cardscout-links.txt) instead, or upload photos.</div>';
+      out.innerHTML='<div class="errbox">Couldn’t pull photos from that listing. Paste the photo links (lotlens-links.txt) instead, or upload photos.</div>';
     }catch(e){ out.innerHTML='<div class="errbox">Listing puller unavailable. Paste the photo links instead, or upload photos.</div>'; }
     return;
   }
@@ -1667,7 +1667,7 @@ async function lotManualScan(){
   if(src){
     const extLink=(raw.match(/https?:\/\/[^\s]+/)||[])[0]||raw.trim();
     window._lotMeta={title:src+' lot', url:extLink, asking:ask};
-    out.innerHTML=`<div class="vbox wide"><div class="lbl"><svg class="ic" viewBox="0 0 24 24" style="width:1em;height:1em;vertical-align:-.13em"><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/></svg> ${src} link saved</div><div class="sub" style="margin-top:6px;line-height:1.55">There’s no photo API for ${src}, so CardScout can’t auto-pull the images. Tap <b>Upload photos</b> above and add screenshots of the listing (or paste photo links) — they’ll be scanned and priced, and this ${src} link stays attached so “Open listing” works in Best Lots.</div></div>`;
+    out.innerHTML=`<div class="vbox wide"><div class="lbl"><svg class="ic" viewBox="0 0 24 24" style="width:1em;height:1em;vertical-align:-.13em"><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/></svg> ${src} link saved</div><div class="sub" style="margin-top:6px;line-height:1.55">There’s no photo API for ${src}, so Lotlens can’t auto-pull the images. Tap <b>Upload photos</b> above and add screenshots of the listing (or paste photo links) — they’ll be scanned and priced, and this ${src} link stays attached so “Open listing” works in Best Lots.</div></div>`;
     return;
   }
   // 3) otherwise treat the box as image links (no listing URL to attach)
@@ -1842,6 +1842,14 @@ window.cardscoutSetBoxDeals=async function(arr){ const a=Array.isArray(arr)?arr.
   renderBoxDeals(); return a.length; };
 window.cardscoutAddBoxDeal=function(o){ let a=[]; try{a=JSON.parse(localStorage.getItem('cardscout_boxdeals')||'[]');}catch(e){} a=a.filter(x=>!(o.url&&x.url===o.url)); a.push(o); return window.cardscoutSetBoxDeals(a); };
 if($('#boxDealsRefresh')) $('#boxDealsRefresh').onclick=pullBoxDeals;
+// Brand alias: the app is now Lotlens. The original cardscout* names are kept so the
+// scheduled scouts and every saved lot/box/lead keep working — these just point at them.
+window.lotlensSetLots      = window.cardscoutSetLots;
+window.lotlensAddLot       = window.cardscoutAddLot;
+window.lotlensSetBoxDeals  = window.cardscoutSetBoxDeals;
+window.lotlensAddBoxDeal   = window.cardscoutAddBoxDeal;
+window.lotlensSetLocalHunt = window.cardscoutSetLocalHunt;
+window.lotlensRunSniper    = window.cardscoutRunSniper;
 
 // ---------- AGENT DASHBOARD ----------
 function csWhen(ts){ if(!ts) return ''; const d=new Date(+ts); const h=(Date.now()-d)/36e5; if(h<1) return 'just now'; if(h<24) return Math.round(h)+'h ago'; return d.toLocaleDateString(); }
@@ -1914,7 +1922,7 @@ if($('#openSettingsLink')) $('#openSettingsLink').onclick=(e)=>{ e.preventDefaul
 (function(){ const l=$('#locInput'); if(!l) return; try{ l.value=localStorage.getItem('cs_loc')||''; }catch(e){} l.oninput=()=>{ try{ localStorage.setItem('cs_loc',(l.value||'').trim()); }catch(e){} }; })();
 window.cardscoutLocation=function(){ try{ return localStorage.getItem('cs_loc')||''; }catch(e){ return ''; } };
 // Visible build stamp so you can confirm you're on the latest version
-var BUILD='2026-07-05 · v51 (accounts)';
+var BUILD='2026-07-05 · v52 (Lotlens)';
 (function(){ var e=document.getElementById('buildStamp'); if(e) e.textContent='Build '+BUILD; })();
 async function svcOn(url){ try{ const r=await fetch(url); const d=await r.json(); return !!d.enabled; }catch(e){ return false; } }
 function svcRow(name,desc,on){ return `<div class="setrow"><span class="dot2 ${on?'on':'off'}"></span><div class="si"><div class="st">${name}</div><div class="sd">${desc}</div></div></div>`; }
@@ -1961,7 +1969,7 @@ async function initAuth(){
   try{ const { data:{ session } } = await window.SB.auth.getSession(); window.SB.auth.onAuthStateChange((ev,sN)=>{ if(ev==='PASSWORD_RECOVERY'){ authRecover(); return; } handleSession(sN); }); handleSession(session); }catch(e){ showAuth(); }
 }
 async function authLogin(){ if(!window.SB) return; const e=$('#authEmail').value.trim(), p=$('#authPass').value; if(!e||!p){ $('#authErr').style.color='var(--red)'; $('#authErr').textContent='Enter your email and password.'; $('#authErr').style.display='block'; return; } $('#authErr').style.display='none'; const {error}=await window.SB.auth.signInWithPassword({email:e,password:p}); if(error){ $('#authErr').style.color='var(--red)'; $('#authErr').textContent=error.message; $('#authErr').style.display='block'; } }
-async function authSignup(){ if(!window.SB) return; const e=$('#authEmail').value.trim(), p=$('#authPass').value; if(!e||!p){ $('#authErr').style.color='var(--red)'; $('#authErr').textContent='Enter an email and a password (8+ characters).'; $('#authErr').style.display='block'; return; } $('#authErr').style.display='none'; const {data,error}=await window.SB.auth.signUp({email:e,password:p}); if(error){ $('#authErr').style.color='var(--red)'; $('#authErr').textContent=error.message; $('#authErr').style.display='block'; return; } if(data&&data.session){ handleSession(data.session); toast('Welcome to CardScout!'); } else { $('#authErr').style.color='#5EEAD4'; $('#authErr').textContent='Account created — check your email to confirm, then log in.'; $('#authErr').style.display='block'; } }
+async function authSignup(){ if(!window.SB) return; const e=$('#authEmail').value.trim(), p=$('#authPass').value; if(!e||!p){ $('#authErr').style.color='var(--red)'; $('#authErr').textContent='Enter an email and a password (8+ characters).'; $('#authErr').style.display='block'; return; } $('#authErr').style.display='none'; const {data,error}=await window.SB.auth.signUp({email:e,password:p}); if(error){ $('#authErr').style.color='var(--red)'; $('#authErr').textContent=error.message; $('#authErr').style.display='block'; return; } if(data&&data.session){ handleSession(data.session); toast('Welcome to Lotlens!'); } else { $('#authErr').style.color='#5EEAD4'; $('#authErr').textContent='Account created — check your email to confirm, then log in.'; $('#authErr').style.display='block'; } }
 async function authForgot(){ if(!window.SB) return; const e=$('#authEmail').value.trim(); if(!e){ $('#authErr').style.color='var(--red)'; $('#authErr').textContent='Enter your email above first, then tap Forgot password.'; $('#authErr').style.display='block'; return; } const {error}=await window.SB.auth.resetPasswordForEmail(e, {redirectTo: location.origin}); $('#authErr').style.color=error?'var(--red)':'#5EEAD4'; $('#authErr').textContent=error?error.message:('Reset link sent to '+e+' — check your email.'); $('#authErr').style.display='block'; }
 async function authRecover(){ const np=prompt('Set a new password (8+ characters):'); if(!np||np.length<8){ if(np!==null) toast('Password must be 8+ characters.'); return; } try{ const {error}=await window.SB.auth.updateUser({password:np}); if(error) toast(error.message); else toast('Password updated \u2014 you are logged in.'); }catch(e){ toast('Could not update password.'); } }
 async function authLogout(){ try{ if(window.SB) await window.SB.auth.signOut(); }catch(e){} try{ closeSettings(); }catch(e){} }
