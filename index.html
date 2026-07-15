@@ -1062,7 +1062,7 @@ function recompute(){
 $('#resetBtn').onclick=resetSingle;
 $('#cardShare').onclick=()=>{
   if(!selectedCard) return; const c=selectedCard;
-  const text=`Lotlens valuation\n${c.name} — ${c.set.name} #${c.number}\nMarket (${$('#condSel').selectedOptions[0].text}): ${$('#blendVal').textContent}\nSuggested max buy: ${$('#offerVal').textContent}\n\nvia lotlens.netlify.app`;
+  const text=`Lotlens valuation\n${c.name} — ${c.set.name} #${c.number}\nMarket (${$('#condSel').selectedOptions[0].text}): ${$('#blendVal').textContent}\nSuggested max buy: ${$('#offerVal').textContent}\n\nvia cardscout-uk.netlify.app`;
   const isMobile=/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   if(isMobile){ if(navigator.share){ navigator.share({title:'Lotlens valuation',text}).catch(()=>{ try{ location.href='sms:?&body='+encodeURIComponent(text); }catch(e){} }); } else { try{ location.href='sms:?&body='+encodeURIComponent(text); }catch(e){} } return; }
   if(navigator.share){ navigator.share({title:'Lotlens valuation',text}).catch(()=>{}); }
@@ -1278,7 +1278,7 @@ function batchTotals(){
 $('#batchShare').onclick=async ()=>{
   const t=batchTotals(); const L=['Lotlens — stack valuation',''];
   t.rows.forEach(r=> L.push(`• ${r.name} (${r.set} #${r.num}) — market ${r.resale!=null?gbp(r.resale):'n/a'}, buy ${r.buy!=null?gbp(r.buy):'n/a'}`));
-  L.push('', `Items: ${t.rows.length}`, `Total resale value: ${gbp(t.totResale)}`, `TOTAL OFFER TO THE SHOP (pay ${t.buyPct}% of market): ${gbp(t.totBuy)}`, `Profit if sold: ${gbp(t.totResale-t.totBuy)}`, '', 'Priced via lotlens.netlify.app');
+  L.push('', `Items: ${t.rows.length}`, `Total resale value: ${gbp(t.totResale)}`, `TOTAL OFFER TO THE SHOP (pay ${t.buyPct}% of market): ${gbp(t.totBuy)}`, `Profit if sold: ${gbp(t.totResale-t.totBuy)}`, '', 'Priced via cardscout-uk.netlify.app');
   const text=L.join('\n');
   if(navigator.share){ try{ await navigator.share({title:'Lotlens stack',text}); return; }catch(e){ if(e&&e.name==='AbortError') return; } }
   if(navigator.clipboard){ try{ await navigator.clipboard.writeText(text); toast('Stack summary copied to clipboard.'); return; }catch(e){} }
@@ -1922,7 +1922,7 @@ if($('#openSettingsLink')) $('#openSettingsLink').onclick=(e)=>{ e.preventDefaul
 (function(){ const l=$('#locInput'); if(!l) return; try{ l.value=localStorage.getItem('cs_loc')||''; }catch(e){} l.oninput=()=>{ try{ localStorage.setItem('cs_loc',(l.value||'').trim()); }catch(e){} }; })();
 window.cardscoutLocation=function(){ try{ return localStorage.getItem('cs_loc')||''; }catch(e){ return ''; } };
 // Visible build stamp so you can confirm you're on the latest version
-var BUILD='2026-07-05 · v52 (Lotlens)';
+var BUILD='2026-07-05 · v53 (Lotlens)';
 (function(){ var e=document.getElementById('buildStamp'); if(e) e.textContent='Build '+BUILD; })();
 async function svcOn(url){ try{ const r=await fetch(url); const d=await r.json(); return !!d.enabled; }catch(e){ return false; } }
 function svcRow(name,desc,on){ return `<div class="setrow"><span class="dot2 ${on?'on':'off'}"></span><div class="si"><div class="st">${name}</div><div class="sd">${desc}</div></div></div>`; }
